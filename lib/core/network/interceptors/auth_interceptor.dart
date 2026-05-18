@@ -2,11 +2,13 @@ import 'package:dio/dio.dart';
 
 import '../../storage/token_storage.dart';
 
-/// Attaches the current access token to every outgoing request.
+/// Attaches the current access token to outgoing requests that need it.
 ///
-/// On 401 responses we don't transparently retry here — the auth
-/// controller handles re-authentication at a higher level so the user
-/// can be bounced back to the login screen if the refresh fails too.
+/// - Auth endpoints (`/api/v1/auth/...`) are skipped entirely — no token
+///   exists when registering / logging in, and trying to read storage
+///   has caused hangs on some browsers (Safari + localStorage edge cases).
+/// - Token read failures are swallowed — we never want a storage hiccup
+///   to block the actual HTTP call.
 class AuthInterceptor extends Interceptor {
   AuthInterceptor(this._tokens);
 
@@ -17,10 +19,18 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (options.headers['Authorization'] == null) {
-      final String? token = await _tokens.readAccessToken();
-      if (token != null && token.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $token';
+    final String path = options.path;
+    final bool isPublicAuthCall = path.startsWith('/api/v1/auth/');
+
+    if (!isPublicAuthCall && options.headers['Authorization'] == null) {
+      try {
+        final String? token = await _tokens.readAccessToken();
+        if (token != null && token.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+      } catch (_) {
+        // Storage failure should never block a request — let it go out
+        // unauthenticated; the server will respond 401 if it needs auth.
       }
     }
     handler.next(options);

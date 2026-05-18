@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
@@ -63,21 +65,34 @@ class AuthController extends StateNotifier<AuthState> {
     required String password,
     required UserRole role,
   }) async {
+    developer.log('signIn: start  email=$email', name: 'qazan.auth');
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      developer.log('signIn: calling _remote.login', name: 'qazan.auth');
       final AuthSession session = await _remote.login(
         email: email,
         password: password,
       );
+      developer.log('signIn: got session user=${session.user.email}',
+          name: 'qazan.auth');
       state = AuthState(user: session.user);
-    } on ApiException catch (e) {
-      state = AuthState(error: e.message);
+      developer.log('signIn: state updated', name: 'qazan.auth');
+    } catch (e, st) {
+      developer.log('signIn: FAILED type=${e.runtimeType}',
+          name: 'qazan.auth', error: e, stackTrace: st);
+      final String msg =
+          '${e.runtimeType}: $e\n\n${_shortStack(st)}';
+      state = AuthState(error: msg);
       rethrow;
     } finally {
       if (state.user == null) {
         state = state.copyWith(isLoading: false);
       }
     }
+  }
+
+  String _shortStack(StackTrace st) {
+    return st.toString().split('\n').take(6).join('\n');
   }
 
   Future<void> signUp({
@@ -87,6 +102,7 @@ class AuthController extends StateNotifier<AuthState> {
     required UserRole role,
     String? phone,
   }) async {
+    developer.log('signUp: start  email=$email', name: 'qazan.auth');
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final AuthSession session = await _remote.register(
@@ -96,9 +112,13 @@ class AuthController extends StateNotifier<AuthState> {
         role: role,
         phone: phone,
       );
+      developer.log('signUp: success user=${session.user.email}',
+          name: 'qazan.auth');
       state = AuthState(user: session.user);
-    } on ApiException catch (e) {
-      state = AuthState(error: e.message);
+    } catch (e, st) {
+      developer.log('signUp: failed', name: 'qazan.auth', error: e, stackTrace: st);
+      final String msg = e is ApiException ? e.message : e.toString();
+      state = AuthState(error: msg);
       rethrow;
     } finally {
       if (state.user == null) {

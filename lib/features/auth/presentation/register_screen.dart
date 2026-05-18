@@ -46,10 +46,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             role: widget.role,
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
           );
-    } catch (e) {
+    } catch (e, st) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+      await showDialog<void>(
+        context: context,
+        builder: (BuildContext ctx) => AlertDialog(
+          title: const Text('Register failed'),
+          content: SingleChildScrollView(
+            child: SelectableText(
+              '${e.runtimeType}: $e\n\n${st.toString().split('\n').take(10).join('\n')}',
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
       );
       return;
     }
