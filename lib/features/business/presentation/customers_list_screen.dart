@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../application/business_providers.dart';
@@ -38,7 +39,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
               onChanged: (String v) => setState(() => _query = v),
               decoration: const InputDecoration(
                 hintText: 'Müştəri axtar',
-                prefixIcon: Icon(Icons.search_rounded),
+                prefixIcon: Icon(AppIcons.search),
               ),
             ),
           ),
@@ -47,7 +48,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (Object e, _) => EmptyState(
                 title: 'Xəta', subtitle: e.toString(),
-                icon: Icons.error_outline_rounded,
+                icon: AppIcons.error,
               ),
               data: (List<CustomerSummary> all) {
                 final List<CustomerSummary> filtered = _query.trim().isEmpty
@@ -60,7 +61,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                 if (filtered.isEmpty) {
                   return const EmptyState(
                     title: 'Heç nə tapılmadı',
-                    icon: Icons.search_off_rounded,
+                    icon: AppIcons.searchOff,
                   );
                 }
                 return ListView.separated(
@@ -93,8 +94,9 @@ class _Row extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.sm,
       ),
       child: Row(
         children: <Widget>[

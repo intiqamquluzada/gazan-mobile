@@ -6,8 +6,10 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../business/application/business_providers.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
@@ -172,6 +174,7 @@ class _ScanResultSheet extends ConsumerWidget {
         ),
         data: (List<LoyaltyProgram> programs) => _ProgramPicker(
           customerId: customerId,
+          companyId: company.id,
           programs: programs.where((LoyaltyProgram p) => p.isActive).toList(),
         ),
       ),
@@ -180,9 +183,14 @@ class _ScanResultSheet extends ConsumerWidget {
 }
 
 class _ProgramPicker extends ConsumerStatefulWidget {
-  const _ProgramPicker({required this.customerId, required this.programs});
+  const _ProgramPicker({
+    required this.customerId,
+    required this.companyId,
+    required this.programs,
+  });
 
   final String customerId;
+  final String companyId;
   final List<LoyaltyProgram> programs;
 
   @override
@@ -212,6 +220,37 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
       );
     } finally {
       if (mounted) setState(() => _busyProgramId = null);
+    }
+  }
+
+  bool _grantingCoins = false;
+
+  Future<void> _grantCoins() async {
+    final int? amount = await showDialog<int>(
+      context: context,
+      builder: (BuildContext ctx) => const _CoinAmountDialog(),
+    );
+    if (amount == null || amount <= 0) return;
+    setState(() => _grantingCoins = true);
+    try {
+      await ref.read(businessRepositoryProvider).grantCoins(
+            customerId: widget.customerId,
+            companyId: widget.companyId,
+            amount: amount,
+            note: 'Skan bonusu',
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('+$amount coin müştəriyə verildi')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _grantingCoins = false);
     }
   }
 
@@ -270,10 +309,74 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
               onPressed: _busyProgramId == null ? () => _addStamp(p) : null,
             ),
           ),
+        const SizedBox(height: AppSpacing.xs),
+        Row(children: <Widget>[
+          const Expanded(child: Divider()),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Text('və ya', style: AppTextStyles.caption),
+          ),
+          const Expanded(child: Divider()),
+        ]),
+        const SizedBox(height: AppSpacing.sm),
+        PrimaryButton(
+          label: 'Coin ver',
+          icon: AppIcons.token,
+          variant: PrimaryButtonVariant.outlined,
+          loading: _grantingCoins,
+          onPressed: _busyProgramId == null && !_grantingCoins
+              ? _grantCoins
+              : null,
+        ),
         const SizedBox(height: AppSpacing.sm),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Ləğv et'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tiny dialog to enter how many coins to award.
+class _CoinAmountDialog extends StatefulWidget {
+  const _CoinAmountDialog();
+
+  @override
+  State<_CoinAmountDialog> createState() => _CoinAmountDialogState();
+}
+
+class _CoinAmountDialogState extends State<_CoinAmountDialog> {
+  final TextEditingController _c = TextEditingController(text: '50');
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Neçə coin?'),
+      content: TextField(
+        controller: _c,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          hintText: 'Məbləğ',
+          prefixIcon: Icon(AppIcons.token),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Ləğv et'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.of(context).pop(int.tryParse(_c.text.trim())),
+          child: const Text('Ver'),
         ),
       ],
     );

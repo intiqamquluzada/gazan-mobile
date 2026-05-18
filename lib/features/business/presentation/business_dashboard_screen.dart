@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
@@ -80,14 +81,14 @@ class BusinessDashboardScreen extends ConsumerWidget {
                 ),
                 error: (Object e, _) => EmptyState(
                   title: 'Xəta', subtitle: e.toString(),
-                  icon: Icons.error_outline_rounded,
+                  icon: AppIcons.error,
                 ),
                 data: (List<CustomerSummary> list) {
                   if (list.isEmpty) {
                     return const EmptyState(
                       title: 'Hələ müştəri yoxdur',
                       subtitle: 'İlk QR-i skan etdiyin anda müştəri burada görünəcək.',
-                      icon: Icons.group_outlined,
+                      icon: AppIcons.customers,
                     );
                   }
                   return Column(
@@ -122,7 +123,7 @@ class _StatsGrid extends StatelessWidget {
               child: _StatTile(
                 value: '${stats.activeCustomers}',
                 label: 'Aktiv müştəri',
-                icon: Icons.group_rounded,
+                icon: AppIcons.customersActive,
                 tint: AppColors.primary,
               ),
             ),
@@ -144,7 +145,7 @@ class _StatsGrid extends StatelessWidget {
               child: _StatTile(
                 value: '${stats.rewardsThisWeek}',
                 label: 'Həftədə mükafat',
-                icon: Icons.card_giftcard_rounded,
+                icon: AppIcons.gift,
                 tint: AppColors.success,
               ),
             ),
@@ -185,6 +186,7 @@ class _StatTile extends StatelessWidget {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,7 +264,7 @@ class _PrimaryAction extends StatelessWidget {
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppRadius.lg),
               ),
-              child: const Icon(Icons.qr_code_scanner_rounded,
+              child: const Icon(AppIcons.qr,
                   color: Colors.white, size: 28),
             ),
             const SizedBox(width: AppSpacing.lg),
@@ -280,7 +282,7 @@ class _PrimaryAction extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+            const Icon(AppIcons.forward, color: Colors.white),
           ],
         ),
       ),
@@ -301,8 +303,9 @@ class _CustomerTile extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.border),
+          boxShadow: AppShadows.sm,
         ),
         child: Row(
           children: <Widget>[
