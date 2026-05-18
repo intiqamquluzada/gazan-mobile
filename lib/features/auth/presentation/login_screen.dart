@@ -24,7 +24,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _email = TextEditingController(
     text: 'demo@qazan.az',
   );
-  final TextEditingController _password = TextEditingController(text: '••••••');
+  final TextEditingController _password =
+      TextEditingController(text: 'password123');
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
   bool _obscure = true;
 

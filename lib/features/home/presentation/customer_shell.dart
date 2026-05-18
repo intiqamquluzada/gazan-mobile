@@ -2,59 +2,75 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_strings.dart';
+import '../../../core/widgets/app_bottom_nav.dart';
+import '../../../core/widgets/app_icons.dart';
 
-/// Bottom-nav shell for the customer experience. Holds the four core tabs.
+/// 5-tab customer shell. QR sits dead-centre as the raised brand action:
+/// İşlətmələr · Cüzdan · QR · Kampaniyalar · Profil.
 class CustomerShell extends StatelessWidget {
   const CustomerShell({super.key, required this.child});
 
   final Widget child;
 
-  static const List<_Tab> _tabs = <_Tab>[
-    _Tab('/home', AppStrings.tabHome,
-        Icons.explore_outlined, Icons.explore_rounded),
-    _Tab('/cards', AppStrings.tabCards,
-        Icons.card_giftcard_outlined, Icons.card_giftcard_rounded),
-    _Tab('/qr', AppStrings.tabQr,
-        Icons.qr_code_2_outlined, Icons.qr_code_2_rounded),
-    _Tab('/profile', AppStrings.tabProfile,
-        Icons.person_outline_rounded, Icons.person_rounded),
+  static const List<String> _routes = <String>[
+    '/home',
+    '/wallet',
+    '/qr',
+    '/campaigns',
+    '/profile',
+  ];
+
+  static const List<AppNavItem> _items = <AppNavItem>[
+    AppNavItem(
+      label: AppStrings.tabHome,
+      icon: AppIcons.home,
+      activeIcon: AppIcons.homeActive,
+    ),
+    AppNavItem(
+      label: 'Cüzdan',
+      icon: AppIcons.token,
+      activeIcon: AppIcons.token,
+    ),
+    AppNavItem(
+      label: AppStrings.tabQr,
+      icon: AppIcons.qr,
+      activeIcon: AppIcons.qr,
+      prominent: true,
+    ),
+    AppNavItem(
+      label: 'Kampaniyalar',
+      icon: AppIcons.programs,
+      activeIcon: AppIcons.programsActive,
+    ),
+    AppNavItem(
+      label: AppStrings.tabProfile,
+      icon: AppIcons.profile,
+      activeIcon: AppIcons.profileActive,
+    ),
   ];
 
   int _indexFor(String location) {
-    for (int i = 0; i < _tabs.length; i++) {
-      if (location.startsWith(_tabs[i].location)) return i;
+    int best = 0;
+    int bestLen = 0;
+    for (int i = 0; i < _routes.length; i++) {
+      if (location.startsWith(_routes[i]) && _routes[i].length > bestLen) {
+        best = i;
+        bestLen = _routes[i].length;
+      }
     }
-    return 0;
+    return best;
   }
 
   @override
   Widget build(BuildContext context) {
-    final String location =
-        GoRouterState.of(context).uri.toString();
-    final int currentIndex = _indexFor(location);
-
+    final String location = GoRouterState.of(context).uri.toString();
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (int i) => context.go(_tabs[i].location),
-        destinations: <NavigationDestination>[
-          for (final _Tab t in _tabs)
-            NavigationDestination(
-              icon: Icon(t.icon),
-              selectedIcon: Icon(t.iconActive),
-              label: t.label,
-            ),
-        ],
+      bottomNavigationBar: AppBottomNav(
+        items: _items,
+        currentIndex: _indexFor(location),
+        onSelect: (int i) => context.go(_routes[i]),
       ),
     );
   }
-}
-
-class _Tab {
-  const _Tab(this.location, this.label, this.icon, this.iconActive);
-  final String location;
-  final String label;
-  final IconData icon;
-  final IconData iconActive;
 }

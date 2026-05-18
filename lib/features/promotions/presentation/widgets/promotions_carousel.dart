@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/app_icons.dart';
 import '../../application/promotions_providers.dart';
 import '../../domain/promotion.dart';
 
@@ -86,14 +87,12 @@ class _PromoCard extends StatelessWidget {
           child: Stack(
             children: <Widget>[
               Positioned(
-                right: -8,
-                bottom: -10,
-                child: Text(
-                  promo.emoji,
-                  style: TextStyle(
-                    fontSize: 96,
-                    color: Colors.white.withValues(alpha: 0.18),
-                  ),
+                right: -16,
+                bottom: -20,
+                child: Icon(
+                  AppIcons.gift,
+                  size: 120,
+                  color: Colors.white.withValues(alpha: 0.16),
                 ),
               ),
               Column(
@@ -122,7 +121,7 @@ class _PromoCard extends StatelessWidget {
                       if (countdown != null)
                         Row(
                           children: <Widget>[
-                            const Icon(Icons.schedule_rounded,
+                            const Icon(AppIcons.clock,
                                 size: 12, color: Colors.white),
                             const SizedBox(width: 4),
                             Text(
@@ -176,7 +175,7 @@ class _PromoCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Icon(
-                          Icons.arrow_forward_rounded,
+                          AppIcons.forward,
                           size: 14,
                           color: Color(promo.gradientStartHex),
                         ),

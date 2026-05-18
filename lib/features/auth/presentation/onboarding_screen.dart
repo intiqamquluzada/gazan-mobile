@@ -5,6 +5,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -20,22 +21,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   static const List<_OnboardSlide> _slides = <_OnboardSlide>[
     _OnboardSlide(
-      emoji: '☕',
+      icon: AppIcons.store,
       title: AppStrings.onboardTitle1,
       subtitle: AppStrings.onboardSubtitle1,
-      tint: Color(0xFFFFE7DC),
     ),
     _OnboardSlide(
-      emoji: '📱',
+      icon: AppIcons.qr,
       title: AppStrings.onboardTitle2,
       subtitle: AppStrings.onboardSubtitle2,
-      tint: Color(0xFFD9F5F1),
     ),
     _OnboardSlide(
-      emoji: '🎁',
+      icon: AppIcons.gift,
       title: AppStrings.onboardTitle3,
       subtitle: AppStrings.onboardSubtitle3,
-      tint: Color(0xFFFFF3CD),
     ),
   ];
 
@@ -58,6 +56,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool last = _index == _slides.length - 1;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -91,9 +90,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 AppSpacing.xl,
               ),
               child: PrimaryButton(
-                label: _index == _slides.length - 1
-                    ? AppStrings.getStarted
-                    : AppStrings.continueAction,
+                label: last ? AppStrings.getStarted : AppStrings.continueAction,
+                icon: last ? null : AppIcons.forward,
                 onPressed: _next,
               ),
             ),
@@ -106,16 +104,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
 class _OnboardSlide {
   const _OnboardSlide({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.subtitle,
-    required this.tint,
   });
 
-  final String emoji;
+  final IconData icon;
   final String title;
   final String subtitle;
-  final Color tint;
 }
 
 class _SlideView extends StatelessWidget {
@@ -126,29 +122,64 @@ class _SlideView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Container(
-            width: 220,
-            height: 220,
-            decoration: BoxDecoration(
-              color: slide.tint,
-              shape: BoxShape.circle,
+          // Layered icon mark: soft outer halo → tinted disc → glyph.
+          SizedBox(
+            width: 240,
+            height: 240,
+            child: Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                Container(
+                  width: 240,
+                  height: 240,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primarySofter,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 168,
+                  height: 168,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primarySoft,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 104,
+                  height: 104,
+                  decoration: const BoxDecoration(
+                    gradient: kHeroGradient,
+                    shape: BoxShape.circle,
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x33F5560A),
+                        blurRadius: 24,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: Icon(slide.icon, color: Colors.white, size: 46),
+                ),
+              ],
             ),
-            alignment: Alignment.center,
-            child: Text(slide.emoji, style: const TextStyle(fontSize: 96)),
           ),
           const SizedBox(height: AppSpacing.huge),
-          Text(slide.title,
-              style: AppTextStyles.h1, textAlign: TextAlign.center),
+          Text(
+            slide.title,
+            style: AppTextStyles.h1,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: AppSpacing.md),
-          Text(slide.subtitle,
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center),
+          Text(
+            slide.subtitle,
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -170,7 +201,7 @@ class _PageDots extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 22 : 8,
+          width: active ? 24 : 8,
           height: 8,
           decoration: BoxDecoration(
             color: active ? AppColors.primary : AppColors.border,

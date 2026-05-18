@@ -27,22 +27,31 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
-      body: Center(
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(gradient: kHeroGradient),
+        child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Container(
-              width: 96,
-              height: 96,
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(AppRadius.xxl),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 28,
+                    offset: Offset(0, 14),
+                  ),
+                ],
               ),
               alignment: Alignment.center,
               child: const Text('Q',
                   style: TextStyle(
-                    fontSize: 56,
+                    fontSize: 58,
                     fontWeight: FontWeight.w900,
                     color: AppColors.primary,
                     height: 1,
@@ -61,6 +70,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 )),
           ],
         ),
+      ),
       ),
     );
   }

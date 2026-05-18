@@ -12,12 +12,14 @@ import '../features/auth/presentation/splash_screen.dart';
 import '../features/business/presentation/business_dashboard_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
+import '../features/campaigns/presentation/campaigns_screen.dart';
 import '../features/companies/presentation/company_detail_screen.dart';
 import '../features/companies/presentation/discover_screen.dart';
 import '../features/home/presentation/business_shell.dart';
 import '../features/home/presentation/customer_shell.dart';
 import '../features/loyalty/presentation/my_cards_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/wallet/presentation/wallet_screen.dart';
 import '../features/promotions/presentation/story_viewer_screen.dart';
 import '../features/qr/presentation/qr_display_screen.dart';
 import '../features/qr/presentation/qr_scanner_screen.dart';
@@ -90,12 +92,20 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             routes: <RouteBase>[],
           ),
           GoRoute(
+            path: '/wallet',
+            builder: (_, __) => const WalletScreen(),
+          ),
+          GoRoute(
             path: '/cards',
             builder: (_, __) => const MyCardsScreen(),
           ),
           GoRoute(
             path: '/qr',
             builder: (_, __) => const QrDisplayScreen(),
+          ),
+          GoRoute(
+            path: '/campaigns',
+            builder: (_, __) => const CampaignsScreen(),
           ),
           GoRoute(
             path: '/profile',
