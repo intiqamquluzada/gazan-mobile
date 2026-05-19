@@ -7,8 +7,9 @@ class RoleMapping {
 
   static UserRole fromBackend(String value) {
     switch (value) {
-      case 'BUSINESS_OWNER':
       case 'ADMIN':
+        return UserRole.admin;
+      case 'BUSINESS_OWNER':
         return UserRole.business;
       case 'CUSTOMER':
       default:
@@ -16,6 +17,14 @@ class RoleMapping {
     }
   }
 
-  static String toBackend(UserRole role) =>
-      role == UserRole.business ? 'BUSINESS_OWNER' : 'CUSTOMER';
+  static String toBackend(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        return 'ADMIN';
+      case UserRole.business:
+        return 'BUSINESS_OWNER';
+      case UserRole.customer:
+        return 'CUSTOMER';
+    }
+  }
 }

@@ -52,7 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
     final UserRole effective =
         ref.read(currentUserProvider)?.role ?? widget.role;
-    context.go(effective == UserRole.business ? '/business' : '/home');
+    context.go(effective.landingPath);
   }
 
   Future<void> _showError(String title, Object e, StackTrace st) async {
