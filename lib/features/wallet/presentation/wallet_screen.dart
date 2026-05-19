@@ -213,7 +213,12 @@ class _CoinTile extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          CompanyLogo(name: row.companyName, brandColor: color, size: 48),
+          CompanyLogo(
+            name: row.companyName,
+            brandColor: color,
+            imageUrl: row.logoUrl,
+            size: 48,
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(row.companyName,

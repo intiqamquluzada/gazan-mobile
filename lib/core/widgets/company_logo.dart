@@ -29,7 +29,9 @@ class CompanyLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final BorderRadius shape = BorderRadius.circular(radius);
-    return Container(
+    final bool hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+
+    final Widget monogram = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
@@ -40,24 +42,47 @@ class CompanyLogo extends StatelessWidget {
         ),
         borderRadius: shape,
         border: Border.all(color: brandColor.withValues(alpha: 0.20)),
-        image: imageUrl != null && imageUrl!.isNotEmpty
-            ? DecorationImage(
-                image: NetworkImage(imageUrl!),
-                fit: BoxFit.cover,
-              )
-            : null,
       ),
-      child: imageUrl != null && imageUrl!.isNotEmpty
-          ? null
-          : Text(
-              name.initials,
-              style: AppTextStyles.h3.copyWith(
-                color: brandColor,
-                fontSize: size * 0.34,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
+      child: Text(
+        name.initials,
+        style: AppTextStyles.h3.copyWith(
+          color: brandColor,
+          fontSize: size * 0.34,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
+
+    if (!hasImage) return monogram;
+
+    // Monogram sits underneath; the network image covers it once loaded.
+    // On error/while loading the monogram shows through — never a blank box.
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          monogram,
+          ClipRRect(
+            borderRadius: shape,
+            child: Image.network(
+              imageUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              frameBuilder: (BuildContext _, Widget child, int? frame,
+                  bool wasSyncLoaded) {
+                if (wasSyncLoaded || frame != null) return child;
+                return const SizedBox.shrink();
+              },
             ),
+          ),
+        ],
+      ),
     );
   }
 }

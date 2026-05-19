@@ -34,16 +34,19 @@ class CompanyBalance {
     required this.companyId,
     required this.companyName,
     required this.balance,
+    this.logoUrl,
   });
 
   final String? companyId;
   final String companyName;
   final int balance;
+  final String? logoUrl;
 
   factory CompanyBalance.fromJson(Map<String, dynamic> json) => CompanyBalance(
         companyId: json['companyId'] as String?,
         companyName: (json['companyName'] as String?) ?? '',
         balance: ((json['balance'] as num?) ?? 0).toInt(),
+        logoUrl: json['logoUrl'] as String?,
       );
 }
 
