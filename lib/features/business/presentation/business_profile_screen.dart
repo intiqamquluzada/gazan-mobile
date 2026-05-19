@@ -63,10 +63,12 @@ class _BusinessProfileScreenState
   BusinessCategory _category = BusinessCategory.other;
   final Set<String> _amenities = <String>{};
   final List<String> _photoUrls = <String>[];
+  String? _logoUrl;
   final ImagePicker _picker = ImagePicker();
   bool _loaded = false;
   bool _saving = false;
   bool _uploadingPhoto = false;
+  bool _uploadingLogo = false;
 
   void _hydrate(Company c) {
     if (_loaded) return;
@@ -78,6 +80,7 @@ class _BusinessProfileScreenState
     _instagram.text = c.instagram ?? '';
     _hours.text = c.workingHours ?? '';
     _menuUrl.text = c.menuUrl ?? '';
+    _logoUrl = c.logoUrl;
     _photoUrls
       ..clear()
       ..addAll(c.photoUrls);
@@ -115,6 +118,7 @@ class _BusinessProfileScreenState
         'menuUrl': _menuUrl.text.trim(),
         'amenities': _amenities.join(','),
         'photoUrls': _photoUrls.join('\n'),
+        'logoUrl': _logoUrl ?? '',
         if (double.tryParse(_lat.text.trim()) != null)
           'latitude': double.parse(_lat.text.trim()),
         if (double.tryParse(_lng.text.trim()) != null)
@@ -179,6 +183,40 @@ class _BusinessProfileScreenState
     }
   }
 
+  Future<void> _pickLogo() async {
+    XFile? x;
+    try {
+      x = await _picker.pickImage(
+          source: ImageSource.gallery, imageQuality: 85);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Şəkil seçilmədi: $e')),
+        );
+      }
+      return;
+    }
+    if (x == null) return;
+    setState(() => _uploadingLogo = true);
+    try {
+      final Uint8List bytes = await x.readAsBytes();
+      final String url = await ref.read(mediaRepositoryProvider).uploadImage(
+            bytes: bytes,
+            filename: x.name.isEmpty ? 'logo.jpg' : x.name,
+            contentType: x.mimeType ?? _guessType(x.name),
+          );
+      if (mounted) setState(() => _logoUrl = url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Logo yüklənmədi: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingLogo = false);
+    }
+  }
+
   String _guessType(String name) {
     final String n = name.toLowerCase();
     if (n.endsWith('.png')) return 'image/png';
@@ -210,6 +248,57 @@ class _BusinessProfileScreenState
               AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge,
             ),
             children: <Widget>[
+              _section('Profil şəkli'),
+              Row(
+                children: <Widget>[
+                  _LogoPreview(url: _logoUrl, name: _name.text),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          'Müştəri ana səhifəsində bu şəkil görünür. '
+                          'Kvadrat / loqo şəkli yüklə.',
+                          style: AppTextStyles.bodySm.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: <Widget>[
+                            OutlinedButton.icon(
+                              onPressed:
+                                  _uploadingLogo ? null : _pickLogo,
+                              icon: _uploadingLogo
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : const Icon(AppIcons.camera, size: 18),
+                              label: Text(_logoUrl == null
+                                  ? 'Logo yüklə'
+                                  : 'Dəyiş'),
+                            ),
+                            if (_logoUrl != null) ...<Widget>[
+                              const SizedBox(width: AppSpacing.sm),
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => _logoUrl = null),
+                                child: const Text('Sil'),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+
               _section('Əsas məlumat'),
               AppTextField(label: 'Ad', controller: _name),
               const SizedBox(height: AppSpacing.lg),
@@ -829,6 +918,60 @@ class _AddPhotoTile extends StatelessWidget {
                           fontSize: 11, color: AppColors.primary)),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// Circular logo preview shown in the editor.
+class _LogoPreview extends StatelessWidget {
+  const _LogoPreview({required this.url, required this.name});
+
+  final String? url;
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    const double s = 72;
+    if (url == null || url!.isEmpty) {
+      return Container(
+        width: s,
+        height: s,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Icon(AppIcons.store, color: AppColors.primary, size: 30),
+      );
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: CachedNetworkImage(
+        imageUrl: url!,
+        width: s,
+        height: s,
+        fit: BoxFit.cover,
+        placeholder: (_, __) => Container(
+          width: s,
+          height: s,
+          color: AppColors.surfaceAlt,
+          alignment: Alignment.center,
+          child: const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        errorWidget: (_, __, ___) => Container(
+          width: s,
+          height: s,
+          color: AppColors.surfaceAlt,
+          alignment: Alignment.center,
+          child:
+              const Icon(AppIcons.error, color: AppColors.textTertiary),
+        ),
       ),
     );
   }

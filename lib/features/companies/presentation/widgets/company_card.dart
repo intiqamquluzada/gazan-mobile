@@ -40,6 +40,7 @@ class CompanyCard extends StatelessWidget {
               CompanyLogo(
                 name: company.name,
                 brandColor: brand,
+                imageUrl: company.logoUrl,
                 size: 58,
                 radius: AppRadius.lg,
               ),

@@ -13,6 +13,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../notifications/presentation/notification_bell.dart';
 import '../../promotions/presentation/widgets/promotions_carousel.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
@@ -44,8 +45,8 @@ class DiscoverScreen extends ConsumerWidget {
               child: HeroHeader(
                 title: 'Salam, $userName',
                 subtitle: 'Bu gün hardan qazanaq?',
-                actions: <Widget>[
-                  const HeroIconButton(icon: AppIcons.bell),
+                actions: const <Widget>[
+                  NotificationBell(),
                 ],
                 bottom: const _SearchField(),
               ),

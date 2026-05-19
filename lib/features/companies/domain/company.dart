@@ -22,6 +22,7 @@ class Company {
     this.photoUrls = const <String>[],
     this.menuUrl,
     this.coinRate,
+    this.logoUrl,
   });
 
   final String id;
@@ -55,6 +56,11 @@ class Company {
   /// Coins earned per 1 currency unit spent (e.g. 0.1 → 1000 ₼ = 100 coin).
   final double? coinRate;
 
+  /// Uploaded logo / profile picture. Null → brand monogram fallback.
+  final String? logoUrl;
+
+  bool get hasMenu => (menuUrl ?? '').trim().isNotEmpty;
+
   static List<String> _splitList(String? raw) {
     if (raw == null || raw.trim().isEmpty) return const <String>[];
     return raw
@@ -86,6 +92,7 @@ class Company {
       photoUrls: _splitList(json['photoUrls'] as String?),
       menuUrl: json['menuUrl'] as String?,
       coinRate: (json['coinRate'] as num?)?.toDouble(),
+      logoUrl: json['logoUrl'] as String?,
     );
   }
 }

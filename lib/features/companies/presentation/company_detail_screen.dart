@@ -83,6 +83,12 @@ class _Body extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final Color brand = Color(company.coverColorHex);
     final double topInset = MediaQuery.paddingOf(context).top;
+    final bool hasCoinRewards = ref
+        .watch(coinRewardsProvider(company.id))
+        .maybeWhen(
+          data: (List<CoinReward> r) => r.isNotEmpty,
+          orElse: () => false,
+        );
 
     return Stack(
       children: <Widget>[
@@ -106,6 +112,7 @@ class _Body extends ConsumerWidget {
                     _OffersCard(
                       company: company,
                       programsAsync: programsAsync,
+                      hasCoinRewards: hasCoinRewards,
                       cardFor: _cardFor,
                       onJoin: (LoyaltyProgram p) async {
                         await ref
@@ -205,6 +212,7 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
             child: CompanyLogo(
               name: widget.company.name,
               brandColor: Colors.white,
+              imageUrl: widget.company.logoUrl,
               size: 96,
               radius: 28,
             ),
@@ -369,27 +377,31 @@ class _InfoCard extends StatelessWidget {
               _RoundAction(icon: AppIcons.location),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.lg),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: <Widget>[
-                for (final _Amenity a in _amenities) ...<Widget>[
-                  _AmenityChip(
-                    amenity: a,
-                    active: company.amenities.contains(a.code),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
+          // Amenities only render if the owner enabled at least one.
+          if (_activeAmenities.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.lg),
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.lg),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <Widget>[
+                  for (final _Amenity a in _activeAmenities) ...<Widget>[
+                    _AmenityChip(amenity: a, active: true),
+                    const SizedBox(width: AppSpacing.lg),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
+
+  List<_Amenity> get _activeAmenities => _amenities
+      .where((_Amenity a) => company.amenities.contains(a.code))
+      .toList(growable: false);
 }
 
 class _RoundAction extends StatelessWidget {
@@ -478,6 +490,7 @@ class _OffersCard extends StatelessWidget {
   const _OffersCard({
     required this.company,
     required this.programsAsync,
+    required this.hasCoinRewards,
     required this.cardFor,
     required this.onJoin,
     required this.onShowQr,
@@ -485,9 +498,32 @@ class _OffersCard extends StatelessWidget {
 
   final Company company;
   final AsyncValue<List<LoyaltyProgram>> programsAsync;
+
+  /// True when this business runs the coin/gift system. When it does and
+  /// there are no stamp campaigns, the campaign block is hidden entirely
+  /// (no "no campaigns yet" text) — the two systems are mutually exclusive.
+  final bool hasCoinRewards;
+
   final LoyaltyCard? Function(String programId) cardFor;
   final Future<void> Function(LoyaltyProgram program) onJoin;
   final VoidCallback onShowQr;
+
+  void _openMenu(BuildContext context) {
+    final String url = (company.menuUrl ?? '').trim();
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Menyu'),
+        content: SelectableText(url),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Bağla'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -503,37 +539,18 @@ class _OffersCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(
-                child: _BigButton(
-                  label: 'Menyu',
-                  icon: Icons.restaurant_menu_rounded,
-                  filled: false,
-                  onTap: () {
-                    final String? url = company.menuUrl;
-                    if (url == null || url.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Menyu hələ əlavə olunmayıb')),
-                      );
-                      return;
-                    }
-                    showDialog<void>(
-                      context: context,
-                      builder: (BuildContext ctx) => AlertDialog(
-                        title: const Text('Menyu'),
-                        content: SelectableText(url),
-                        actions: <Widget>[
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: const Text('Bağla'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+              // Menyu only shows if the owner added one.
+              if (company.hasMenu) ...<Widget>[
+                Expanded(
+                  child: _BigButton(
+                    label: 'Menyu',
+                    icon: Icons.restaurant_menu_rounded,
+                    filled: false,
+                    onTap: () => _openMenu(context),
+                  ),
                 ),
-              ),
-              const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.md),
+              ],
               Expanded(
                 child: _BigButton(
                   label: 'QR göstər',
@@ -544,43 +561,56 @@ class _OffersCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.lg),
-          Text('Kampaniyalar', style: AppTextStyles.h2),
-          const SizedBox(height: AppSpacing.md),
           programsAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(AppSpacing.xxl),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (Object e, _) => Text(e.toString()),
+            error: (Object e, _) => Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.lg),
+              child: Text(e.toString()),
+            ),
             data: (List<LoyaltyProgram> programs) {
-              if (programs.isEmpty) {
-                return const EmptyState(
-                  title: 'Hələ kampaniya yoxdur',
-                  subtitle: 'Bu obyekt tezliklə təklif əlavə edəcək.',
-                  icon: AppIcons.gift,
-                );
+              final bool hasPrograms = programs.isNotEmpty;
+              // Coin-only business: hide the campaign block completely.
+              if (!hasPrograms && hasCoinRewards) {
+                return const SizedBox.shrink();
               }
               return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  for (int i = 0; i < programs.length; i++) ...<Widget>[
-                    _CampaignRow(
-                      program: programs[i],
-                      card: cardFor(programs[i].id),
-                      accent: i.isEven
-                          ? AppColors.primary
-                          : AppColors.accent,
-                      onJoin: () => onJoin(programs[i]),
-                      onShowQr: onShowQr,
+                  const SizedBox(height: AppSpacing.lg),
+                  const Divider(height: 1),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text('Kampaniyalar', style: AppTextStyles.h2),
+                  const SizedBox(height: AppSpacing.md),
+                  if (!hasPrograms)
+                    const EmptyState(
+                      title: 'Hələ kampaniya yoxdur',
+                      subtitle: 'Bu obyekt tezliklə təklif əlavə edəcək.',
+                      icon: AppIcons.gift,
+                    )
+                  else
+                    Column(
+                      children: <Widget>[
+                        for (int i = 0; i < programs.length; i++) ...<Widget>[
+                          _CampaignRow(
+                            program: programs[i],
+                            card: cardFor(programs[i].id),
+                            accent: i.isEven
+                                ? AppColors.primary
+                                : AppColors.accent,
+                            onJoin: () => onJoin(programs[i]),
+                            onShowQr: onShowQr,
+                          ),
+                          if (i != programs.length - 1) ...<Widget>[
+                            const SizedBox(height: AppSpacing.lg),
+                            const Divider(height: 1),
+                            const SizedBox(height: AppSpacing.lg),
+                          ],
+                        ],
+                      ],
                     ),
-                    if (i != programs.length - 1) ...<Widget>[
-                      const SizedBox(height: AppSpacing.lg),
-                      const Divider(height: 1),
-                      const SizedBox(height: AppSpacing.lg),
-                    ],
-                  ],
                 ],
               );
             },

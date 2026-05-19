@@ -12,8 +12,10 @@ import '../features/auth/presentation/splash_screen.dart';
 import '../features/admin/presentation/admin_businesses_screen.dart';
 import '../features/admin/presentation/admin_coins_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
+import '../features/admin/presentation/admin_notifications_screen.dart';
 import '../features/admin/presentation/admin_shell.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
+import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/business/presentation/business_dashboard_screen.dart';
 import '../features/business/presentation/business_profile_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
@@ -135,6 +137,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         builder: (BuildContext _, GoRouterState state) =>
             StoryViewerScreen(companyId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/notifications',
+        builder: (_, __) => const NotificationsScreen(),
+      ),
 
       // ───────────────────── Business shell ─────────────────────
       ShellRoute(
@@ -186,6 +193,10 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/admin/coins',
             builder: (_, __) => const AdminCoinsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/notifications',
+            builder: (_, __) => const AdminNotificationsScreen(),
           ),
         ],
       ),

@@ -16,6 +16,7 @@ class AdminShell extends StatelessWidget {
     '/admin/users',
     '/admin/businesses',
     '/admin/coins',
+    '/admin/notifications',
   ];
 
   static const List<AppNavItem> _items = <AppNavItem>[
@@ -38,6 +39,11 @@ class AdminShell extends StatelessWidget {
       label: 'Coin',
       icon: AppIcons.token,
       activeIcon: AppIcons.token,
+    ),
+    AppNavItem(
+      label: 'Bildiriş',
+      icon: AppIcons.bell,
+      activeIcon: AppIcons.bell,
     ),
   ];
 
