@@ -20,3 +20,9 @@ final FutureProviderFamily<List<CoinReward>, String> coinRewardsProvider =
   (Ref ref, String companyId) =>
       ref.read(walletRepositoryProvider).rewardsForCompany(companyId),
 );
+
+/// Platform-wide reward catalog for the wallet "Hədiyyələrim" section.
+final FutureProvider<List<CoinRewardCatalogItem>> coinCatalogProvider =
+    FutureProvider<List<CoinRewardCatalogItem>>(
+  (Ref ref) => ref.read(walletRepositoryProvider).rewardsCatalog(),
+);

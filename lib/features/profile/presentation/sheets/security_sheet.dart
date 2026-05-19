@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../data/profile_remote_data_source.dart';
 import '_sheet_handle.dart';
 
-class SecuritySheet extends StatefulWidget {
+class SecuritySheet extends ConsumerStatefulWidget {
   const SecuritySheet({super.key});
 
   @override
-  State<SecuritySheet> createState() => _SecuritySheetState();
+  ConsumerState<SecuritySheet> createState() => _SecuritySheetState();
 }
 
-class _SecuritySheetState extends State<SecuritySheet> {
+class _SecuritySheetState extends ConsumerState<SecuritySheet> {
   final TextEditingController _current = TextEditingController();
   final TextEditingController _new = TextEditingController();
   final TextEditingController _confirm = TextEditingController();
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
-
-  bool _biometric = true;
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -29,12 +31,32 @@ class _SecuritySheetState extends State<SecuritySheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Şifrə yeniləndi')),
-    );
+    setState(() => _saving = true);
+    try {
+      await ref.read(profileRemoteDataSourceProvider).changePassword(
+            currentPassword: _current.text,
+            newPassword: _new.text,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Şifrə yeniləndi ✓')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Xəta: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -54,21 +76,8 @@ class _SecuritySheetState extends State<SecuritySheet> {
             children: <Widget>[
               const SheetHandle(),
               const SizedBox(height: AppSpacing.lg),
-              Text('Təhlükəsizlik', style: AppTextStyles.h2),
+              Text('Şifrəni dəyiş', style: AppTextStyles.h2),
               const SizedBox(height: AppSpacing.xl),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                value: _biometric,
-                onChanged: (bool v) => setState(() => _biometric = v),
-                secondary: const Icon(Icons.fingerprint_rounded),
-                title: Text('Biometrik daxil olma',
-                    style: AppTextStyles.bodyLg),
-                subtitle: Text('Face ID və ya barmaq izi ilə açılış',
-                    style: AppTextStyles.bodySm),
-              ),
-              const Divider(height: AppSpacing.xl),
-              Text('Şifrəni dəyiş', style: AppTextStyles.h3),
-              const SizedBox(height: AppSpacing.md),
               AppTextField(
                 label: 'Hazırkı şifrə',
                 controller: _current,
@@ -84,7 +93,7 @@ class _SecuritySheetState extends State<SecuritySheet> {
                 obscure: true,
                 prefixIcon: Icons.lock_reset_rounded,
                 validator: (String? v) =>
-                    (v == null || v.length < 6) ? '6+ simvol olsun' : null,
+                    (v == null || v.length < 8) ? '8+ simvol olsun' : null,
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
@@ -99,7 +108,8 @@ class _SecuritySheetState extends State<SecuritySheet> {
               PrimaryButton(
                 label: 'Yadda saxla',
                 icon: Icons.check_rounded,
-                onPressed: _save,
+                loading: _saving,
+                onPressed: _saving ? null : _save,
               ),
               const SizedBox(height: AppSpacing.sm),
               TextButton(

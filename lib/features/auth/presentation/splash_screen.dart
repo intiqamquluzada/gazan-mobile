@@ -1,7 +1,6 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -19,9 +18,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(milliseconds: 1100), () {
-      if (mounted) context.go('/onboarding');
-    });
+    _boot();
+  }
+
+  Future<void> _boot() async {
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    final bool seenOnboarding =
+        p.getBool('qazan.seen_onboarding') ?? false;
+    await Future<void>.delayed(const Duration(milliseconds: 1100));
+    if (!mounted) return;
+    // The router redirect sends authenticated users to their shell;
+    // returning guests skip onboarding straight to role selection.
+    context.go(seenOnboarding ? '/role' : '/onboarding');
   }
 
   @override

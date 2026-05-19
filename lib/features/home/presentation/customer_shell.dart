@@ -16,7 +16,7 @@ class CustomerShell extends StatelessWidget {
     '/home',
     '/wallet',
     '/qr',
-    '/campaigns',
+    '/cards',
     '/profile',
   ];
 
@@ -38,9 +38,9 @@ class CustomerShell extends StatelessWidget {
       prominent: true,
     ),
     AppNavItem(
-      label: 'Kampaniyalar',
-      icon: AppIcons.programs,
-      activeIcon: AppIcons.programsActive,
+      label: AppStrings.tabCards,
+      icon: AppIcons.cards,
+      activeIcon: AppIcons.cardsActive,
     ),
     AppNavItem(
       label: AppStrings.tabProfile,

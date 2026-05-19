@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -8,19 +9,14 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/company_logo.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../application/wallet_providers.dart';
+import '../domain/coin_reward.dart';
 import '../domain/coin_summary.dart';
 
 /// Coin wallet — real data from `GET /api/v1/coins/me`. Shows the total
-/// balance, the per-business breakdown and a redeemable gift catalog
-/// (catalog is still a curated demo set; affordability uses live balance).
+/// balance, the per-business breakdown and the live reward catalog
+/// (`GET /api/v1/coin-rewards`) with affordability per business.
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
-
-  static const List<_Gift> _gifts = <_Gift>[
-    _Gift('Pulsuz qəhvə', 'Reynline Coffee', 500, AppIcons.cafe),
-    _Gift('1 dilim tort', 'Sweet House', 800, AppIcons.bakery),
-    _Gift('5 ₼ nağd endirim', 'İstənilən yer', 1000, AppIcons.token),
-  ];
 
   static const List<int> _palette = <int>[
     0xFF6C2BD9, 0xFFE0356E, 0xFF12B5A6, 0xFF3B82F6, 0xFFF5A524,
@@ -29,6 +25,8 @@ class WalletScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AsyncValue<CoinSummary> async = ref.watch(coinSummaryProvider);
+    final AsyncValue<List<CoinRewardCatalogItem>> catalogAsync =
+        ref.watch(coinCatalogProvider);
 
     return Scaffold(
       body: async.when(
@@ -38,69 +36,122 @@ class WalletScreen extends ConsumerWidget {
           subtitle: e.toString(),
           icon: AppIcons.error,
         ),
-        data: (CoinSummary s) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(coinSummaryProvider),
-          child: CustomScrollView(
-            slivers: <Widget>[
-              SliverToBoxAdapter(child: _BalanceHero(total: s.total)),
-              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
-              _section('Coinlərim'),
-              if (s.companies.isEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl),
-                    child: Text('Hələ heç bir işlətmədə coin yoxdur.',
-                        style: AppTextStyles.bodySm),
-                  ),
-                )
-              else
-                SliverList.separated(
-                  itemCount: s.companies.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (BuildContext _, int i) => Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: _CoinTile(
-                      row: s.companies[i],
-                      color: Color(_palette[i % _palette.length]),
+        data: (CoinSummary s) {
+          final Map<String, int> balanceByCompany = <String, int>{
+            for (final CompanyBalance c in s.companies)
+              if (c.companyId != null) c.companyId!: c.balance,
+          };
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(coinSummaryProvider);
+              ref.invalidate(coinCatalogProvider);
+            },
+            child: CustomScrollView(
+              slivers: <Widget>[
+                SliverToBoxAdapter(child: _BalanceHero(total: s.total)),
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.xl)),
+                _section('Coinlərim'),
+                if (s.companies.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl),
+                      child: Text('Hələ heç bir işlətmədə coin yoxdur.',
+                          style: AppTextStyles.bodySm),
+                    ),
+                  )
+                else
+                  SliverList.separated(
+                    itemCount: s.companies.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (BuildContext _, int i) => Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl),
+                      child: _CoinTile(
+                        row: s.companies[i],
+                        color: Color(_palette[i % _palette.length]),
+                      ),
                     ),
                   ),
-                ),
-              const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxl)),
-              _section('Hədiyyələrim'),
-              SliverList.separated(
-                itemCount: _gifts.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (BuildContext _, int i) => Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                  child: _GiftTile(gift: _gifts[i], balance: s.total),
-                ),
-              ),
-              if (s.recent.isNotEmpty) ...<Widget>[
                 const SliverToBoxAdapter(
                     child: SizedBox(height: AppSpacing.xxl)),
-                _section('Son hərəkətlər'),
-                SliverList.separated(
-                  itemCount: s.recent.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (BuildContext _, int i) => Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-                    child: _TxnTile(txn: s.recent[i]),
+                _section('Hədiyyə kataloqu'),
+                _catalogSliver(context, catalogAsync, balanceByCompany),
+                if (s.recent.isNotEmpty) ...<Widget>[
+                  const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.xxl)),
+                  _section('Son hərəkətlər'),
+                  SliverList.separated(
+                    itemCount: s.recent.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (BuildContext _, int i) => Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl),
+                      child: _TxnTile(txn: s.recent[i]),
+                    ),
                   ),
-                ),
+                ],
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.xxxl)),
               ],
-              const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.xxxl)),
-            ],
-          ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _catalogSliver(
+    BuildContext context,
+    AsyncValue<List<CoinRewardCatalogItem>> catalogAsync,
+    Map<String, int> balanceByCompany,
+  ) {
+    return catalogAsync.when(
+      loading: () => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.xl),
+          child: Center(child: CircularProgressIndicator()),
         ),
       ),
+      error: (_, __) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          child: Text('Kataloq yüklənmədi.', style: AppTextStyles.bodySm),
+        ),
+      ),
+      data: (List<CoinRewardCatalogItem> list) {
+        if (list.isEmpty) {
+          return SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: Text(
+                'Hələ hədiyyə yoxdur. İşlətmələr coinlə alınan '
+                'mükafatlar əlavə etdikcə burada görünəcək.',
+                style: AppTextStyles.bodySm,
+              ),
+            ),
+          );
+        }
+        return SliverList.separated(
+          itemCount: list.length,
+          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+          itemBuilder: (BuildContext _, int i) {
+            final CoinRewardCatalogItem r = list[i];
+            return Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: _RewardCatalogTile(
+                reward: r,
+                balanceHere: balanceByCompany[r.companyId] ?? 0,
+                onTap: () => context.push('/companies/${r.companyId}'),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -236,76 +287,101 @@ class _CoinTile extends StatelessWidget {
   }
 }
 
-class _Gift {
-  const _Gift(this.title, this.where, this.cost, this.icon);
-  final String title;
-  final String where;
-  final int cost;
-  final IconData icon;
-}
+class _RewardCatalogTile extends StatelessWidget {
+  const _RewardCatalogTile({
+    required this.reward,
+    required this.balanceHere,
+    required this.onTap,
+  });
 
-class _GiftTile extends StatelessWidget {
-  const _GiftTile({required this.gift, required this.balance});
-
-  final _Gift gift;
-  final int balance;
+  final CoinRewardCatalogItem reward;
+  final int balanceHere;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final bool affordable = balance >= gift.cost;
+    final bool affordable = balanceHere >= reward.coinCost;
     final bool dark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+    return Material(
+      color: Theme.of(context).colorScheme.surface,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(
-          color: dark ? AppColors.borderDark : AppColors.border,
-        ),
-        boxShadow: dark ? null : AppShadows.sm,
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 48,
-            height: 48,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: AppColors.primarySoft,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            border: Border.all(
+              color: dark ? AppColors.borderDark : AppColors.border,
             ),
-            child: Icon(gift.icon, color: AppColors.primary, size: 24),
+            boxShadow: dark ? null : AppShadows.sm,
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(gift.title, style: AppTextStyles.h3),
-                const SizedBox(height: 2),
-                Text(gift.where, style: AppTextStyles.bodySm),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Row(
             children: <Widget>[
-              Text('${gift.cost}',
-                  style: AppTextStyles.h3.copyWith(
-                    color: affordable
-                        ? AppColors.primary
-                        : AppColors.textTertiary,
-                  )),
-              Text(affordable ? 'hazırdır' : 'coin',
-                  style: AppTextStyles.caption.copyWith(
-                    color: affordable
-                        ? AppColors.success
-                        : AppColors.textTertiary,
-                  )),
+              CompanyLogo(
+                name: reward.companyName,
+                brandColor: AppColors.primary,
+                imageUrl: reward.companyLogoUrl,
+                size: 48,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(reward.title,
+                        style: AppTextStyles.h3,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(reward.companyName,
+                        style: AppTextStyles.bodySm,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text(
+                      affordable
+                          ? 'Hazırdır — kassada QR göstər'
+                          : 'Bu işlətmədə balans: $balanceHere',
+                      style: AppTextStyles.caption.copyWith(
+                        color: affordable
+                            ? AppColors.success
+                            : AppColors.textTertiary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: <Widget>[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Icon(AppIcons.token,
+                          size: 16,
+                          color: affordable
+                              ? AppColors.primary
+                              : AppColors.textTertiary),
+                      const SizedBox(width: 4),
+                      Text('${reward.coinCost}',
+                          style: AppTextStyles.h3.copyWith(
+                            color: affordable
+                                ? AppColors.primary
+                                : AppColors.textTertiary,
+                          )),
+                    ],
+                  ),
+                  const Icon(AppIcons.chevron,
+                      size: 18, color: AppColors.textTertiary),
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -76,6 +76,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Future<void> _forgotPassword(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Şifrəni unutmusan?'),
+        content: const Text(
+          'Şifrə bərpası üçün dəstəklə əlaqə saxla:\n\n'
+          'hello@qazan.az\n+994 12 555 00 00\n\n'
+          'Komandamız hesabını yoxlayıb şifrəni sıfırlayacaq.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Bağla'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AuthState auth = ref.watch(authControllerProvider);
@@ -134,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () => _forgotPassword(context),
                     child: const Text('Şifrəni unutmusan?'),
                   ),
                 ),
@@ -143,20 +163,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   label: AppStrings.login,
                   loading: auth.isLoading,
                   onPressed: _submit,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _OrDivider(label: AppStrings.orContinueWith),
-                const SizedBox(height: AppSpacing.lg),
-                _SocialButton(
-                  icon: Icons.apple,
-                  label: 'Apple ilə davam et',
-                  onPressed: () {},
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _SocialButton(
-                  icon: Icons.g_mobiledata_rounded,
-                  label: 'Google ilə davam et',
-                  onPressed: () {},
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 Center(
@@ -183,43 +189,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _OrDivider extends StatelessWidget {
-  const _OrDivider({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const Expanded(child: Divider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Text(label, style: AppTextStyles.caption),
-        ),
-        const Expanded(child: Divider()),
-      ],
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20),
-      label: Text(label),
-    );
-  }
-}

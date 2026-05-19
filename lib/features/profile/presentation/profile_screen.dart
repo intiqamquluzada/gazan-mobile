@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -262,19 +263,19 @@ class ProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.alternate_email_rounded),
               title: const Text('E-poçt'),
               subtitle: const Text('hello@qazan.az'),
-              onTap: () {},
+              onTap: () => _launch('mailto:hello@qazan.az'),
             ),
             ListTile(
               leading: const Icon(Icons.phone_rounded),
               title: const Text('Telefon'),
               subtitle: const Text('+994 12 555 00 00'),
-              onTap: () {},
+              onTap: () => _launch('tel:+994125550000'),
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline_rounded),
               title: const Text('WhatsApp'),
               subtitle: const Text('Mesaj yaz — 5 dəqiqəyə cavab'),
-              onTap: () {},
+              onTap: () => _launch('https://wa.me/994125550000'),
             ),
             const SizedBox(height: AppSpacing.lg),
             PrimaryButton(
@@ -285,6 +286,13 @@ class ProfileScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _launch(String uri) async {
+    final Uri u = Uri.parse(uri);
+    if (await canLaunchUrl(u)) {
+      await launchUrl(u, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _showAbout(BuildContext context) {

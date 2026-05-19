@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -43,9 +44,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  Future<void> _finish() async {
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    await p.setBool('qazan.seen_onboarding', true);
+    if (mounted) context.go('/role');
+  }
+
   void _next() {
     if (_index >= _slides.length - 1) {
-      context.go('/role');
+      _finish();
       return;
     }
     _controller.nextPage(
@@ -66,7 +73,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 child: TextButton(
-                  onPressed: () => context.go('/role'),
+                  onPressed: _finish,
                   child: const Text('Keç'),
                 ),
               ),

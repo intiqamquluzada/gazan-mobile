@@ -20,7 +20,6 @@ import '../features/business/presentation/business_dashboard_screen.dart';
 import '../features/business/presentation/business_profile_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
-import '../features/campaigns/presentation/campaigns_screen.dart';
 import '../features/companies/presentation/company_detail_screen.dart';
 import '../features/companies/presentation/discover_screen.dart';
 import '../features/home/presentation/business_shell.dart';
@@ -112,10 +111,6 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/qr',
             builder: (_, __) => const QrDisplayScreen(),
-          ),
-          GoRoute(
-            path: '/campaigns',
-            builder: (_, __) => const CampaignsScreen(),
           ),
           GoRoute(
             path: '/profile',

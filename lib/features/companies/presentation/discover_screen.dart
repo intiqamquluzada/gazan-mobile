@@ -57,11 +57,7 @@ class DiscoverScreen extends ConsumerWidget {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               sliver: SliverToBoxAdapter(
-                child: SectionHeader(
-                  title: 'Reklamlar',
-                  action: AppStrings.seeAll,
-                  onAction: () {},
-                ),
+                child: SectionHeader(title: 'Reklamlar'),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),

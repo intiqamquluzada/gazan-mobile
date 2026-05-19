@@ -13,6 +13,9 @@ abstract class WalletRepository {
   /// Reward catalog a customer can claim with coins at one business.
   Future<List<CoinReward>> rewardsForCompany(String companyId);
 
+  /// Platform-wide active reward catalog for the wallet "Hədiyyələrim".
+  Future<List<CoinRewardCatalogItem>> rewardsCatalog();
+
   /// Owner adds a coin reward to their business.
   Future<CoinReward> createReward({
     required String companyId,
@@ -71,6 +74,16 @@ class RemoteWalletRepository implements WalletRepository {
     return raw
         .cast<Map<String, dynamic>>()
         .map(CoinReward.fromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<List<CoinRewardCatalogItem>> rewardsCatalog() async {
+    final List<dynamic> raw =
+        await _api.get<List<dynamic>>('/api/v1/coin-rewards');
+    return raw
+        .cast<Map<String, dynamic>>()
+        .map(CoinRewardCatalogItem.fromJson)
         .toList(growable: false);
   }
 

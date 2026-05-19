@@ -1,8 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -153,9 +155,19 @@ class _Body extends ConsumerWidget {
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
               const Spacer(),
-              const _GlassCircle(icon: AppIcons.heart),
-              const SizedBox(width: AppSpacing.sm),
-              const _GlassCircle(icon: AppIcons.share),
+              _GlassCircle(
+                icon: AppIcons.share,
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(
+                    text: '${AppConfig.apiBaseUrl}/companies/${company.id}',
+                  ));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Keçid kopyalandı')),
+                    );
+                  }
+                },
+              ),
             ],
           ),
         ),
