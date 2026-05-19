@@ -158,14 +158,16 @@ class _ProminentCell extends StatelessWidget {
               child: Icon(item.activeIcon, color: Colors.white, size: 26),
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            item.label,
-            style: AppTextStyles.caption.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w700,
+          if (item.label.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 3),
+            Text(
+              item.label,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

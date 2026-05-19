@@ -32,7 +32,7 @@ class CustomerShell extends StatelessWidget {
       activeIcon: AppIcons.token,
     ),
     AppNavItem(
-      label: AppStrings.tabQr,
+      label: '',
       icon: AppIcons.qr,
       activeIcon: AppIcons.qr,
       prominent: true,

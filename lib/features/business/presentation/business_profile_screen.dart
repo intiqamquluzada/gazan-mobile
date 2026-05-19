@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -11,8 +15,8 @@ import '../../../core/widgets/primary_button.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/business_category.dart';
 import '../../companies/domain/company.dart';
+import '../../media/data/media_repository.dart';
 import '../../wallet/application/wallet_providers.dart';
-import '../../wallet/data/wallet_repository.dart';
 import '../../wallet/domain/coin_reward.dart';
 
 /// "Mənim biznesim" — the owner manages every feature shown on the public
@@ -52,15 +56,17 @@ class _BusinessProfileScreenState
   final TextEditingController _instagram = TextEditingController();
   final TextEditingController _hours = TextEditingController();
   final TextEditingController _menuUrl = TextEditingController();
-  final TextEditingController _photos = TextEditingController();
   final TextEditingController _lat = TextEditingController();
   final TextEditingController _lng = TextEditingController();
   final TextEditingController _coinRate = TextEditingController();
 
   BusinessCategory _category = BusinessCategory.other;
   final Set<String> _amenities = <String>{};
+  final List<String> _photoUrls = <String>[];
+  final ImagePicker _picker = ImagePicker();
   bool _loaded = false;
   bool _saving = false;
+  bool _uploadingPhoto = false;
 
   void _hydrate(Company c) {
     if (_loaded) return;
@@ -72,7 +78,9 @@ class _BusinessProfileScreenState
     _instagram.text = c.instagram ?? '';
     _hours.text = c.workingHours ?? '';
     _menuUrl.text = c.menuUrl ?? '';
-    _photos.text = c.photoUrls.join('\n');
+    _photoUrls
+      ..clear()
+      ..addAll(c.photoUrls);
     _lat.text = c.latitude?.toString() ?? '';
     _lng.text = c.longitude?.toString() ?? '';
     _coinRate.text = c.coinRate?.toString() ?? '';
@@ -86,7 +94,7 @@ class _BusinessProfileScreenState
   void dispose() {
     for (final TextEditingController c in <TextEditingController>[
       _name, _tagline, _address, _phone, _instagram, _hours,
-      _menuUrl, _photos, _lat, _lng, _coinRate,
+      _menuUrl, _lat, _lng, _coinRate,
     ]) {
       c.dispose();
     }
@@ -106,11 +114,7 @@ class _BusinessProfileScreenState
         'workingHours': _hours.text.trim(),
         'menuUrl': _menuUrl.text.trim(),
         'amenities': _amenities.join(','),
-        'photoUrls': _photos.text
-            .split('\n')
-            .map((String s) => s.trim())
-            .where((String s) => s.isNotEmpty)
-            .join('\n'),
+        'photoUrls': _photoUrls.join('\n'),
         if (double.tryParse(_lat.text.trim()) != null)
           'latitude': double.parse(_lat.text.trim()),
         if (double.tryParse(_lng.text.trim()) != null)
@@ -137,6 +141,50 @@ class _BusinessProfileScreenState
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  Future<void> _pickAndUpload() async {
+    List<XFile> picked;
+    try {
+      picked = await _picker.pickMultiImage(imageQuality: 82);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Şəkil seçilmədi: $e')),
+        );
+      }
+      return;
+    }
+    if (picked.isEmpty) return;
+    setState(() => _uploadingPhoto = true);
+    try {
+      for (final XFile x in picked) {
+        final Uint8List bytes = await x.readAsBytes();
+        final String url =
+            await ref.read(mediaRepositoryProvider).uploadImage(
+                  bytes: bytes,
+                  filename: x.name.isEmpty ? 'photo.jpg' : x.name,
+                  contentType: x.mimeType ?? _guessType(x.name),
+                );
+        if (mounted) setState(() => _photoUrls.add(url));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Şəkil yüklənmədi: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
+  }
+
+  String _guessType(String name) {
+    final String n = name.toLowerCase();
+    if (n.endsWith('.png')) return 'image/png';
+    if (n.endsWith('.webp')) return 'image/webp';
+    if (n.endsWith('.gif')) return 'image/gif';
+    return 'image/jpeg';
   }
 
   @override
@@ -291,10 +339,29 @@ class _BusinessProfileScreenState
               const SizedBox(height: AppSpacing.xxl),
 
               _section('Foto & menyu'),
-              AppTextField(
-                label: 'Foto linkləri (hər sətirdə bir)',
-                hint: 'https://...jpg',
-                controller: _photos,
+              Text(
+                'Biznes şəkilləri — telefon/kompüterindən yüklə '
+                '(profil və axtarış səhifəsində görünür).',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: <Widget>[
+                  for (int i = 0; i < _photoUrls.length; i++)
+                    _PhotoThumb(
+                      url: _photoUrls[i],
+                      onRemove: () =>
+                          setState(() => _photoUrls.removeAt(i)),
+                    ),
+                  _AddPhotoTile(
+                    loading: _uploadingPhoto,
+                    onTap: _uploadingPhoto ? null : _pickAndUpload,
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
@@ -659,6 +726,110 @@ class _RewardCatalog extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// A square photo tile with a remove badge, used in the owner's gallery.
+class _PhotoThumb extends StatelessWidget {
+  const _PhotoThumb({required this.url, required this.onRemove});
+
+  final String url;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 96,
+      height: 96,
+      child: Stack(
+        children: <Widget>[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: CachedNetworkImage(
+              imageUrl: url,
+              width: 96,
+              height: 96,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(
+                color: AppColors.surfaceAlt,
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                color: AppColors.surfaceAlt,
+                alignment: Alignment.center,
+                child: const Icon(AppIcons.error,
+                    color: AppColors.textTertiary),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 2,
+            right: 2,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  color: Colors.black54,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(AppIcons.close,
+                    size: 16, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The "add photo" tile that opens the device picker and uploads.
+class _AddPhotoTile extends StatelessWidget {
+  const _AddPhotoTile({required this.loading, required this.onTap});
+
+  final bool loading;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        width: 96,
+        height: 96,
+        decoration: BoxDecoration(
+          color: AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+        ),
+        child: loading
+            ? const Center(
+                child: SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            : const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(AppIcons.camera, color: AppColors.primary),
+                  SizedBox(height: 4),
+                  Text('Şəkil əlavə et',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 11, color: AppColors.primary)),
+                ],
+              ),
+      ),
     );
   }
 }
