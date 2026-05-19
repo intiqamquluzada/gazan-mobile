@@ -147,11 +147,7 @@ class _BusinessProfileScreenState
         ),
         data: (Company? company) {
           if (company == null) {
-            return const EmptyState(
-              title: 'Biznes profili yoxdur',
-              subtitle: 'Əvvəlcə biznesini yarat.',
-              icon: AppIcons.store,
-            );
+            return const _CreateBusinessForm();
           }
           _hydrate(company);
           return ListView(
@@ -318,4 +314,133 @@ class _BusinessProfileScreenState
         padding: const EdgeInsets.only(bottom: AppSpacing.md),
         child: Text(t, style: AppTextStyles.h3),
       );
+}
+
+/// Shown when the signed-in owner has no business yet — lets them
+/// bootstrap one (POST /api/v1/companies). After creation the parent
+/// re-reads myCompany and the full editor appears.
+class _CreateBusinessForm extends ConsumerStatefulWidget {
+  const _CreateBusinessForm();
+
+  @override
+  ConsumerState<_CreateBusinessForm> createState() =>
+      _CreateBusinessFormState();
+}
+
+class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _tagline = TextEditingController();
+  final TextEditingController _address = TextEditingController();
+  BusinessCategory _category = BusinessCategory.coffee;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _tagline.dispose();
+    _address.dispose();
+    super.dispose();
+  }
+
+  Future<void> _create() async {
+    if (_name.text.trim().length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Biznes adını yaz (ən az 2 hərf)')),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await ref.read(companiesRepositoryProvider).createCompany(
+        <String, dynamic>{
+          'name': _name.text.trim(),
+          'tagline': _tagline.text.trim(),
+          'category': _category.wire,
+          'address': _address.text.trim(),
+          'coverColorHex': 0xFF6C2BD9,
+        },
+      );
+      ref.invalidate(myCompanyProvider);
+      ref.invalidate(companiesProvider);
+      ref.invalidate(featuredCompaniesProvider);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Biznes yaradıldı ✓ İndi profili tamamla')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Xəta: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge,
+      ),
+      children: <Widget>[
+        Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: const Icon(AppIcons.store,
+              color: AppColors.primary, size: 30),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text('Biznesini yarat', style: AppTextStyles.h1),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'Bu hesabın hələ biznesi yoxdur. Aşağıdakıları doldur — '
+          'sonra foto, menyu, imkanlar və s. əlavə edə bilərsən.',
+          style: AppTextStyles.bodySm.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        AppTextField(label: 'Biznes adı', controller: _name),
+        const SizedBox(height: AppSpacing.lg),
+        AppTextField(label: 'Şüar / qısa təsvir', controller: _tagline),
+        const SizedBox(height: AppSpacing.lg),
+        Text('Kateqoriya',
+            style: AppTextStyles.bodySm.copyWith(
+              fontWeight: FontWeight.w600,
+            )),
+        const SizedBox(height: AppSpacing.sm),
+        DropdownButtonFormField<BusinessCategory>(
+          initialValue: _category,
+          items: BusinessCategory.values
+              .map((BusinessCategory c) =>
+                  DropdownMenuItem<BusinessCategory>(
+                    value: c,
+                    child: Text(c.label),
+                  ))
+              .toList(),
+          onChanged: (BusinessCategory? v) =>
+              setState(() => _category = v ?? _category),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        AppTextField(
+          label: 'Ünvan',
+          controller: _address,
+          prefixIcon: AppIcons.location,
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        PrimaryButton(
+          label: 'Biznes yarat',
+          icon: AppIcons.store,
+          loading: _busy,
+          onPressed: _busy ? null : _create,
+        ),
+      ],
+    );
+  }
 }
