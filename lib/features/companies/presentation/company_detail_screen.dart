@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -176,14 +177,35 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
 
   @override
   Widget build(BuildContext context) {
-    const int count = 4;
     final Color b = widget.brand;
+    final List<String> photos = widget.company.photoUrls;
+    final bool hasPhotos = photos.isNotEmpty;
     final List<List<Color>> palettes = <List<Color>>[
       <Color>[b, _shift(b, -0.16)],
       <Color>[_shift(b, 0.08), _shift(b, -0.22)],
       AppColors.heroGradient,
       <Color>[_shift(b, -0.05), _shift(b, -0.30)],
     ];
+    final int count = hasPhotos ? photos.length : 4;
+
+    Widget brandPanel(int idx) => DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: palettes[idx % palettes.length],
+            ),
+          ),
+          child: Center(
+            child: CompanyLogo(
+              name: widget.company.name,
+              brandColor: Colors.white,
+              size: 96,
+              radius: 28,
+            ),
+          ),
+        );
+
     return SizedBox(
       height: 300,
       child: Stack(
@@ -193,23 +215,15 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
             controller: _pc,
             onPageChanged: (int v) => setState(() => _i = v),
             itemCount: count,
-            itemBuilder: (BuildContext _, int idx) => DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: palettes[idx % palettes.length],
-                ),
-              ),
-              child: Center(
-                child: CompanyLogo(
-                  name: widget.company.name,
-                  brandColor: Colors.white,
-                  size: 96,
-                  radius: 28,
-                ),
-              ),
-            ),
+            itemBuilder: (BuildContext _, int idx) {
+              if (!hasPhotos) return brandPanel(idx);
+              return CachedNetworkImage(
+                imageUrl: photos[idx],
+                fit: BoxFit.cover,
+                placeholder: (_, __) => brandPanel(idx),
+                errorWidget: (_, __, ___) => brandPanel(idx),
+              );
+            },
           ),
           Positioned(
             left: 0,
@@ -275,13 +289,13 @@ class _InfoCard extends StatelessWidget {
   final Company company;
 
   static const List<_Amenity> _amenities = <_Amenity>[
-    _Amenity('Wifi', Icons.wifi_rounded, true),
-    _Amenity('Çalışma', Icons.laptop_mac_rounded, true),
-    _Amenity('Toplantı', Icons.groups_rounded, false),
-    _Amenity('Bağça', Icons.park_rounded, true),
-    _Amenity('Avtopark', Icons.local_parking_rounded, false),
-    _Amenity('Vegan', Icons.eco_rounded, false),
-    _Amenity('Pet', Icons.pets_rounded, true),
+    _Amenity('WIFI', 'Wifi', Icons.wifi_rounded),
+    _Amenity('WORKSPACE', 'Çalışma', Icons.laptop_mac_rounded),
+    _Amenity('MEETING', 'Toplantı', Icons.groups_rounded),
+    _Amenity('GARDEN', 'Bağça', Icons.park_rounded),
+    _Amenity('PARKING', 'Avtopark', Icons.local_parking_rounded),
+    _Amenity('VEGAN', 'Vegan', Icons.eco_rounded),
+    _Amenity('PET', 'Pet', Icons.pets_rounded),
   ];
 
   @override
@@ -312,6 +326,32 @@ class _InfoCard extends StatelessWidget {
                       ].join(' • '),
                       style: AppTextStyles.bodySm,
                     ),
+                    if ((company.workingHours ?? '').isNotEmpty ||
+                        (company.phone ?? '').isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: <Widget>[
+                          if ((company.workingHours ?? '').isNotEmpty) ...<Widget>[
+                            const Icon(AppIcons.clock,
+                                size: 14, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            Text(company.workingHours!,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                )),
+                          ],
+                          if ((company.workingHours ?? '').isNotEmpty &&
+                              (company.phone ?? '').isNotEmpty)
+                            Text('  ·  ', style: AppTextStyles.caption),
+                          if ((company.phone ?? '').isNotEmpty)
+                            Text(company.phone!,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                )),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -332,7 +372,10 @@ class _InfoCard extends StatelessWidget {
             child: Row(
               children: <Widget>[
                 for (final _Amenity a in _amenities) ...<Widget>[
-                  _AmenityChip(amenity: a),
+                  _AmenityChip(
+                    amenity: a,
+                    active: company.amenities.contains(a.code),
+                  ),
                   const SizedBox(width: AppSpacing.lg),
                 ],
               ],
@@ -382,20 +425,21 @@ class _RoundAction extends StatelessWidget {
 }
 
 class _Amenity {
-  const _Amenity(this.label, this.icon, this.active);
+  const _Amenity(this.code, this.label, this.icon);
+  final String code;
   final String label;
   final IconData icon;
-  final bool active;
 }
 
 class _AmenityChip extends StatelessWidget {
-  const _AmenityChip({required this.amenity});
+  const _AmenityChip({required this.amenity, required this.active});
 
   final _Amenity amenity;
+  final bool active;
 
   @override
   Widget build(BuildContext context) {
-    final bool on = amenity.active;
+    final bool on = active;
     return Column(
       children: <Widget>[
         Container(
@@ -459,9 +503,29 @@ class _OffersCard extends StatelessWidget {
                   label: 'Menyu',
                   icon: Icons.restaurant_menu_rounded,
                   filled: false,
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Menyu tezliklə əlavə olunacaq')),
-                  ),
+                  onTap: () {
+                    final String? url = company.menuUrl;
+                    if (url == null || url.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Menyu hələ əlavə olunmayıb')),
+                      );
+                      return;
+                    }
+                    showDialog<void>(
+                      context: context,
+                      builder: (BuildContext ctx) => AlertDialog(
+                        title: const Text('Menyu'),
+                        content: SelectableText(url),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            child: const Text('Bağla'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(width: AppSpacing.md),

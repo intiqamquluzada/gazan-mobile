@@ -10,6 +10,7 @@ import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/role_picker_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
 import '../features/business/presentation/business_dashboard_screen.dart';
+import '../features/business/presentation/business_profile_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
 import '../features/campaigns/presentation/campaigns_screen.dart';
@@ -149,6 +150,10 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/business/programs',
             builder: (_, __) => const ManageProgramsScreen(),
+          ),
+          GoRoute(
+            path: '/business/profile',
+            builder: (_, __) => const BusinessProfileScreen(),
           ),
         ],
       ),

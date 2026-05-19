@@ -14,9 +14,10 @@ class BusinessShell extends StatelessWidget {
 
   static const List<String> _routes = <String>[
     '/business',
-    '/business/scan',
     '/business/customers',
+    '/business/scan',
     '/business/programs',
+    '/business/profile',
   ];
 
   static const List<AppNavItem> _items = <AppNavItem>[
@@ -26,20 +27,25 @@ class BusinessShell extends StatelessWidget {
       activeIcon: AppIcons.dashboardActive,
     ),
     AppNavItem(
+      label: AppStrings.tabCustomers,
+      icon: AppIcons.customers,
+      activeIcon: AppIcons.customersActive,
+    ),
+    AppNavItem(
       label: AppStrings.tabScan,
       icon: AppIcons.qr,
       activeIcon: AppIcons.qr,
       prominent: true,
     ),
     AppNavItem(
-      label: AppStrings.tabCustomers,
-      icon: AppIcons.customers,
-      activeIcon: AppIcons.customersActive,
-    ),
-    AppNavItem(
       label: AppStrings.tabPrograms,
       icon: AppIcons.programs,
       activeIcon: AppIcons.programsActive,
+    ),
+    AppNavItem(
+      label: 'Biznesim',
+      icon: AppIcons.store,
+      activeIcon: AppIcons.store,
     ),
   ];
 
