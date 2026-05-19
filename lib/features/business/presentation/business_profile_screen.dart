@@ -11,6 +11,9 @@ import '../../../core/widgets/primary_button.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/business_category.dart';
 import '../../companies/domain/company.dart';
+import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/data/wallet_repository.dart';
+import '../../wallet/domain/coin_reward.dart';
 
 /// "Mənim biznesim" — the owner manages every feature shown on the public
 /// restaurant profile: details, hours, contact, location, amenities,
@@ -52,6 +55,7 @@ class _BusinessProfileScreenState
   final TextEditingController _photos = TextEditingController();
   final TextEditingController _lat = TextEditingController();
   final TextEditingController _lng = TextEditingController();
+  final TextEditingController _coinRate = TextEditingController();
 
   BusinessCategory _category = BusinessCategory.other;
   final Set<String> _amenities = <String>{};
@@ -71,6 +75,7 @@ class _BusinessProfileScreenState
     _photos.text = c.photoUrls.join('\n');
     _lat.text = c.latitude?.toString() ?? '';
     _lng.text = c.longitude?.toString() ?? '';
+    _coinRate.text = c.coinRate?.toString() ?? '';
     _category = c.category;
     _amenities
       ..clear()
@@ -81,7 +86,7 @@ class _BusinessProfileScreenState
   void dispose() {
     for (final TextEditingController c in <TextEditingController>[
       _name, _tagline, _address, _phone, _instagram, _hours,
-      _menuUrl, _photos, _lat, _lng,
+      _menuUrl, _photos, _lat, _lng, _coinRate,
     ]) {
       c.dispose();
     }
@@ -110,6 +115,8 @@ class _BusinessProfileScreenState
           'latitude': double.parse(_lat.text.trim()),
         if (double.tryParse(_lng.text.trim()) != null)
           'longitude': double.parse(_lng.text.trim()),
+        if (double.tryParse(_coinRate.text.trim()) != null)
+          'coinRate': double.parse(_coinRate.text.trim()),
       };
       await ref
           .read(companiesRepositoryProvider)
@@ -297,6 +304,26 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.xxl),
 
+              _section('Coin sistemi'),
+              AppTextField(
+                label: 'Coin dərəcəsi (1 ₼ üçün neçə coin)',
+                hint: 'məs. 0.1  → 1000 ₼ = 100 coin',
+                controller: _coinRate,
+                keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true),
+                prefixIcon: AppIcons.token,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Kassir skan edəndə çek məbləğini yazır — coin avtomatik hesablanır.',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              _RewardCatalog(companyId: company.id),
+              const SizedBox(height: AppSpacing.xxl),
+
               PrimaryButton(
                 label: 'Yadda saxla',
                 icon: AppIcons.check,
@@ -439,6 +466,197 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
           icon: AppIcons.store,
           loading: _busy,
           onPressed: _busy ? null : _create,
+        ),
+      ],
+    );
+  }
+}
+
+/// Owner-managed reward catalog: "100 coin → San Sebastian".
+class _RewardCatalog extends ConsumerWidget {
+  const _RewardCatalog({required this.companyId});
+
+  final String companyId;
+
+  Future<void> _add(BuildContext context, WidgetRef ref) async {
+    final TextEditingController title = TextEditingController();
+    final TextEditingController desc = TextEditingController();
+    final TextEditingController cost = TextEditingController();
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Mükafat əlavə et'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: title,
+                decoration: const InputDecoration(
+                    hintText: 'Ad — məs. San Sebastian'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: desc,
+                decoration:
+                    const InputDecoration(hintText: 'Açıqlama (istəyə bağlı)'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: cost,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  hintText: 'Neçə coin',
+                  prefixIcon: Icon(AppIcons.token),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Ləğv et'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Əlavə et'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final int? c = int.tryParse(cost.text.trim());
+    if (title.text.trim().isEmpty || c == null || c <= 0) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ad və düzgün coin məbləği yaz')),
+        );
+      }
+      return;
+    }
+    try {
+      await ref.read(walletRepositoryProvider).createReward(
+            companyId: companyId,
+            title: title.text.trim(),
+            description:
+                desc.text.trim().isEmpty ? null : desc.text.trim(),
+            coinCost: c,
+          );
+      ref.invalidate(coinRewardsProvider(companyId));
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Xəta: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _delete(WidgetRef ref, CoinReward r) async {
+    await ref.read(walletRepositoryProvider).deleteReward(r.id);
+    ref.invalidate(coinRewardsProvider(companyId));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<List<CoinReward>> async =
+        ref.watch(coinRewardsProvider(companyId));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+                child: Text('Mükafat kataloqu', style: AppTextStyles.h3)),
+            TextButton.icon(
+              onPressed: () => _add(context, ref),
+              icon: const Icon(AppIcons.add, size: 18),
+              label: const Text('Əlavə et'),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        async.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(AppSpacing.lg),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (Object e, _) => Text('Xəta: $e',
+              style: AppTextStyles.bodySm),
+          data: (List<CoinReward> list) {
+            if (list.isEmpty) {
+              return Text(
+                'Hələ mükafat yoxdur. "Əlavə et" ilə yarat — '
+                'məs. 100 coin = 1 porsiya San Sebastian.',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              );
+            }
+            return Column(
+              children: <Widget>[
+                for (final CoinReward r in list)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: AppShadows.sm,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primarySoft,
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.full),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              const Icon(AppIcons.token,
+                                  size: 14, color: AppColors.primary),
+                              const SizedBox(width: 4),
+                              Text('${r.coinCost}',
+                                  style: AppTextStyles.bodySm.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w800,
+                                  )),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(r.title,
+                                  style: AppTextStyles.bodyLg.copyWith(
+                                      fontWeight: FontWeight.w700)),
+                              if ((r.description ?? '').isNotEmpty)
+                                Text(r.description!,
+                                    style: AppTextStyles.caption,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded,
+                              color: AppColors.error),
+                          onPressed: () => _delete(ref, r),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ],
     );

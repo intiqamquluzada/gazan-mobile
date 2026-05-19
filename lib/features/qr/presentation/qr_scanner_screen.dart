@@ -14,6 +14,8 @@ import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
+import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/domain/coin_reward.dart';
 
 /// Used by business owners to scan a customer's identity QR. Once a code
 /// is detected we open a sheet that lets the owner pick a program and
@@ -254,15 +256,84 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
     }
   }
 
+  bool _redeeming = false;
+
+  Future<void> _redeemReward() async {
+    setState(() => _redeeming = true);
+    try {
+      final List<CoinReward> rewards = await ref
+          .read(walletRepositoryProvider)
+          .rewardsForCompany(widget.companyId);
+      if (!mounted) return;
+      if (rewards.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bu biznesdə mükafat yoxdur')),
+        );
+        return;
+      }
+      final CoinReward? picked = await showModalBottomSheet<CoinReward>(
+        context: context,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        ),
+        builder: (BuildContext _) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              Text('Mükafat seç', style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.md),
+              for (final CoinReward r in rewards)
+                ListTile(
+                  leading: const Icon(AppIcons.gift,
+                      color: AppColors.primary),
+                  title: Text(r.title),
+                  subtitle: (r.description ?? '').isEmpty
+                      ? null
+                      : Text(r.description!),
+                  trailing: Text('${r.coinCost} coin',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      )),
+                  onTap: () => Navigator.of(context).pop(r),
+                ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
+      );
+      if (picked == null || !mounted) return;
+      final Map<String, dynamic> res = await ref
+          .read(walletRepositoryProvider)
+          .redeemReward(
+            customerId: widget.customerId,
+            rewardId: picked.id,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      final Object? remaining = res['remainingAtCompany'];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${picked.title} verildi · qalıq: ${remaining ?? '-'} coin'),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _redeeming = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.programs.isEmpty) {
-      return const EmptyState(
-        title: 'Aktiv proqram yoxdur',
-        subtitle: 'Əvvəlcə proqram yarat.',
-        icon: Icons.tune_outlined,
-      );
-    }
+    final bool hasPrograms = widget.programs.isNotEmpty;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -295,8 +366,12 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
         Text('Müştəri tapıldı',
             textAlign: TextAlign.center, style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.xs),
-        Text('Hansı proqrama möhür əlavə edək?',
-            textAlign: TextAlign.center, style: AppTextStyles.bodySm),
+        Text(
+            hasPrograms
+                ? 'Möhür, coin və ya mükafat:'
+                : 'Coin ver və ya mükafat:',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySm),
         const SizedBox(height: AppSpacing.lg),
         for (final LoyaltyProgram p in widget.programs)
           Padding(
@@ -309,15 +384,17 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
               onPressed: _busyProgramId == null ? () => _addStamp(p) : null,
             ),
           ),
-        const SizedBox(height: AppSpacing.xs),
-        Row(children: <Widget>[
-          const Expanded(child: Divider()),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Text('və ya', style: AppTextStyles.caption),
-          ),
-          const Expanded(child: Divider()),
-        ]),
+        if (hasPrograms) ...<Widget>[
+          const SizedBox(height: AppSpacing.xs),
+          Row(children: <Widget>[
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Text('və ya', style: AppTextStyles.caption),
+            ),
+            const Expanded(child: Divider()),
+          ]),
+        ],
         const SizedBox(height: AppSpacing.sm),
         PrimaryButton(
           label: 'Coin ver',
@@ -326,6 +403,16 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
           loading: _grantingCoins,
           onPressed: _busyProgramId == null && !_grantingCoins
               ? _grantCoins
+              : null,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        PrimaryButton(
+          label: 'Mükafat ver (coinlə)',
+          icon: AppIcons.gift,
+          variant: PrimaryButtonVariant.tonal,
+          loading: _redeeming,
+          onPressed: _busyProgramId == null && !_redeeming
+              ? _redeemReward
               : null,
         ),
         const SizedBox(height: AppSpacing.sm),

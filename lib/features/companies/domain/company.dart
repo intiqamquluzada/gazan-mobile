@@ -21,6 +21,7 @@ class Company {
     this.amenities = const <String>[],
     this.photoUrls = const <String>[],
     this.menuUrl,
+    this.coinRate,
   });
 
   final String id;
@@ -50,6 +51,9 @@ class Company {
   final List<String> amenities;
   final List<String> photoUrls;
   final String? menuUrl;
+
+  /// Coins earned per 1 currency unit spent (e.g. 0.1 → 1000 ₼ = 100 coin).
+  final double? coinRate;
 
   static List<String> _splitList(String? raw) {
     if (raw == null || raw.trim().isEmpty) return const <String>[];
@@ -81,6 +85,7 @@ class Company {
       amenities: _splitList(json['amenities'] as String?),
       photoUrls: _splitList(json['photoUrls'] as String?),
       menuUrl: json['menuUrl'] as String?,
+      coinRate: (json['coinRate'] as num?)?.toDouble(),
     );
   }
 }

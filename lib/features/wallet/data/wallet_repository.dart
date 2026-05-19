@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../domain/coin_reward.dart';
 import '../domain/coin_summary.dart';
 
 abstract class WalletRepository {
@@ -8,9 +9,30 @@ abstract class WalletRepository {
     String? companyId,
     String? note,
   });
+
+  /// Reward catalog a customer can claim with coins at one business.
+  Future<List<CoinReward>> rewardsForCompany(String companyId);
+
+  /// Owner adds a coin reward to their business.
+  Future<CoinReward> createReward({
+    required String companyId,
+    required String title,
+    String? description,
+    required int coinCost,
+  });
+
+  /// Owner removes a coin reward.
+  Future<void> deleteReward(String rewardId);
+
+  /// Cashier confirms a customer claiming a reward (after scanning QR).
+  Future<Map<String, dynamic>> redeemReward({
+    required String customerId,
+    required String rewardId,
+  });
 }
 
-/// Backend-backed implementation — maps to `CoinController`.
+/// Backend-backed implementation — maps to `CoinController` /
+/// `CoinRewardController`.
 class RemoteWalletRepository implements WalletRepository {
   RemoteWalletRepository(this._api);
 
@@ -39,5 +61,53 @@ class RemoteWalletRepository implements WalletRepository {
       },
     );
     return CoinSummary.fromJson(json);
+  }
+
+  @override
+  Future<List<CoinReward>> rewardsForCompany(String companyId) async {
+    final List<dynamic> raw = await _api.get<List<dynamic>>(
+      '/api/v1/companies/$companyId/coin-rewards',
+    );
+    return raw
+        .cast<Map<String, dynamic>>()
+        .map(CoinReward.fromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<CoinReward> createReward({
+    required String companyId,
+    required String title,
+    String? description,
+    required int coinCost,
+  }) async {
+    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
+      '/api/v1/companies/$companyId/coin-rewards',
+      body: <String, dynamic>{
+        'title': title,
+        if (description != null) 'description': description,
+        'coinCost': coinCost,
+      },
+    );
+    return CoinReward.fromJson(json);
+  }
+
+  @override
+  Future<void> deleteReward(String rewardId) async {
+    await _api.delete('/api/v1/coin-rewards/$rewardId');
+  }
+
+  @override
+  Future<Map<String, dynamic>> redeemReward({
+    required String customerId,
+    required String rewardId,
+  }) async {
+    return _api.post<Map<String, dynamic>>(
+      '/api/v1/coins/redeem-reward',
+      body: <String, dynamic>{
+        'customerId': customerId,
+        'rewardId': rewardId,
+      },
+    );
   }
 }

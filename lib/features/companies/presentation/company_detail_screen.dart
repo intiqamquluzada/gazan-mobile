@@ -12,6 +12,9 @@ import '../../../core/widgets/empty_state.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_card.dart';
 import '../../loyalty/domain/loyalty_program.dart';
+import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/domain/coin_reward.dart';
+import '../../wallet/domain/coin_summary.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
 
@@ -118,6 +121,8 @@ class _Body extends ConsumerWidget {
                       },
                       onShowQr: () => context.go('/qr'),
                     ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _CoinRewardsSection(company: company),
                     const SizedBox(height: AppSpacing.xxxl),
                   ],
                 ),
@@ -734,6 +739,158 @@ class _CampaignRow extends StatelessWidget {
                 ),
         ),
       ],
+    );
+  }
+}
+
+/// Customer-facing "Coinlə al" — the company's reward catalog plus the
+/// customer's coin balance at this business. Actual redemption is
+/// confirmed by the cashier scanning the customer's QR.
+class _CoinRewardsSection extends ConsumerWidget {
+  const _CoinRewardsSection({required this.company});
+
+  final Company company;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<List<CoinReward>> rewardsAsync =
+        ref.watch(coinRewardsProvider(company.id));
+    final AsyncValue<CoinSummary> summaryAsync =
+        ref.watch(coinSummaryProvider);
+
+    final int balance = summaryAsync.maybeWhen(
+      data: (CoinSummary s) => s.companies
+          .where((CompanyBalance b) => b.companyId == company.id)
+          .fold<int>(0, (int acc, CompanyBalance b) => acc + b.balance),
+      orElse: () => 0,
+    );
+
+    return rewardsAsync.maybeWhen(
+      data: (List<CoinReward> rewards) {
+        if (rewards.isEmpty) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.xxl),
+            boxShadow: AppShadows.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                      child: Text('Coinlə al', style: AppTextStyles.h2)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(AppIcons.token,
+                            size: 16, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text('$balance',
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Seç, kassada QR kodunu göstər — kassir təsdiqləyəcək.',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              for (final CoinReward r in rewards) ...<Widget>[
+                _RewardTile(reward: r, affordable: balance >= r.coinCost),
+                if (r != rewards.last)
+                  const SizedBox(height: AppSpacing.sm),
+              ],
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _RewardTile extends StatelessWidget {
+  const _RewardTile({required this.reward, required this.affordable});
+
+  final CoinReward reward;
+  final bool affordable;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: affordable
+            ? AppColors.primarySoft
+            : AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              gradient: kHeroGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(AppIcons.gift, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(reward.title,
+                    style: AppTextStyles.bodyLg
+                        .copyWith(fontWeight: FontWeight.w700)),
+                if ((reward.description ?? '').isNotEmpty)
+                  Text(reward.description!,
+                      style: AppTextStyles.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Text('${reward.coinCost}',
+                  style: AppTextStyles.h3.copyWith(
+                    color: affordable
+                        ? AppColors.primary
+                        : AppColors.textTertiary,
+                  )),
+              Text(affordable ? 'hazırdır' : 'coin',
+                  style: AppTextStyles.caption.copyWith(
+                    color: affordable
+                        ? AppColors.success
+                        : AppColors.textTertiary,
+                  )),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
