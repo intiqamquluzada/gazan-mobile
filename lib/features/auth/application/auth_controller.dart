@@ -80,9 +80,7 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (e, st) {
       developer.log('signIn: FAILED type=${e.runtimeType}',
           name: 'qazan.auth', error: e, stackTrace: st);
-      final String msg =
-          '${e.runtimeType}: $e\n\n${_shortStack(st)}';
-      state = AuthState(error: msg);
+      state = AuthState(error: _friendlyMessage(e));
       rethrow;
     } finally {
       if (state.user == null) {
@@ -91,8 +89,10 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
-  String _shortStack(StackTrace st) {
-    return st.toString().split('\n').take(6).join('\n');
+  /// Turns any thrown error into a short, user-facing message.
+  String _friendlyMessage(Object e) {
+    if (e is ApiException) return e.message;
+    return 'Xəta baş verdi. Bir azdan yenidən cəhd et.';
   }
 
   Future<void> signUp({
@@ -117,8 +117,7 @@ class AuthController extends StateNotifier<AuthState> {
       state = AuthState(user: session.user);
     } catch (e, st) {
       developer.log('signUp: failed', name: 'qazan.auth', error: e, stackTrace: st);
-      final String msg = e is ApiException ? e.message : e.toString();
-      state = AuthState(error: msg);
+      state = AuthState(error: _friendlyMessage(e));
       rethrow;
     } finally {
       if (state.user == null) {

@@ -43,36 +43,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _password.text,
             role: widget.role,
           );
-    } catch (e, st) {
+    } catch (_) {
       if (!mounted) return;
-      await _showError('Login failed', e, st);
+      final String msg =
+          ref.read(authControllerProvider).error ?? 'Daxil olmaq alınmadı';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
       return;
     }
     if (!mounted) return;
     final UserRole effective =
         ref.read(currentUserProvider)?.role ?? widget.role;
     context.go(effective == UserRole.business ? '/business' : '/home');
-  }
-
-  Future<void> _showError(String title, Object e, StackTrace st) async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            '${e.runtimeType}: $e\n\n${st.toString().split('\n').take(10).join('\n')}',
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override

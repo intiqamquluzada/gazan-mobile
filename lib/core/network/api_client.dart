@@ -6,6 +6,7 @@ import '../storage/token_storage.dart';
 import 'api_exception.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/locale_interceptor.dart';
+import 'interceptors/refresh_interceptor.dart';
 
 /// Thin wrapper over Dio with project conventions baked in.
 ///
@@ -122,6 +123,7 @@ final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
 
   dio.interceptors.add(AuthInterceptor(tokens));
   dio.interceptors.add(LocaleInterceptor(ref));
+  dio.interceptors.add(RefreshInterceptor(dio, tokens));
 
   return ApiClient(dio);
 });
