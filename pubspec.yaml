@@ -30,6 +30,12 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^5.2.3
 
+  # Media
+  image_picker: ^1.1.2
+
+  # Links (mailto / tel / whatsapp)
+  url_launcher: ^6.3.1
+
   # Utils
   intl: ^0.20.2
   uuid: ^4.5.1

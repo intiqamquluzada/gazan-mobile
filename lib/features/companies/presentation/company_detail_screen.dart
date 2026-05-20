@@ -1,16 +1,22 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/company_logo.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/primary_button.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_card.dart';
 import '../../loyalty/domain/loyalty_program.dart';
-import '../../loyalty/presentation/widgets/loyalty_card_widget.dart';
+import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/domain/coin_reward.dart';
+import '../../wallet/domain/coin_summary.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
 
@@ -32,14 +38,15 @@ class CompanyDetailScreen extends ConsumerWidget {
       body: companyAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
-          title: 'Xəta', subtitle: e.toString(),
-          icon: Icons.error_outline_rounded,
+          title: 'Xəta',
+          subtitle: e.toString(),
+          icon: AppIcons.error,
         ),
         data: (Company? company) {
           if (company == null) {
             return const EmptyState(
               title: 'Tapılmadı',
-              icon: Icons.search_off_rounded,
+              icon: AppIcons.searchOff,
             );
           }
           return _Body(
@@ -64,235 +71,867 @@ class _Body extends ConsumerWidget {
   final AsyncValue<List<LoyaltyProgram>> programsAsync;
   final AsyncValue<List<LoyaltyCard>> cardsAsync;
 
-  LoyaltyCard? _cardFor(String programId) {
-    return cardsAsync.maybeWhen(
-      data: (List<LoyaltyCard> cards) {
-        for (final LoyaltyCard c in cards) {
-          if (c.programId == programId) return c;
-        }
-        return null;
-      },
-      orElse: () => null,
-    );
-  }
+  LoyaltyCard? _cardFor(String programId) => cardsAsync.maybeWhen(
+        data: (List<LoyaltyCard> cards) {
+          for (final LoyaltyCard c in cards) {
+            if (c.programId == programId) return c;
+          }
+          return null;
+        },
+        orElse: () => null,
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final Color brand = Color(company.coverColorHex);
-    return CustomScrollView(
-      slivers: <Widget>[
-        SliverAppBar.large(
-          backgroundColor: brand,
-          foregroundColor: Colors.white,
-          expandedHeight: 220,
-          pinned: true,
-          flexibleSpace: FlexibleSpaceBar(
-            collapseMode: CollapseMode.parallax,
-            title: Text(company.name,
-                style: AppTextStyles.h2.copyWith(color: Colors.white)),
-            background: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: <Color>[brand, _darken(brand, 0.2)],
-                ),
-              ),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
-              child: Container(
-                width: 96,
-                height: 96,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Text(company.logoEmoji,
-                    style: const TextStyle(fontSize: 56)),
-              ),
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge,
-          ),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate.fixed(<Widget>[
-              _MetaRow(company: company),
-              const SizedBox(height: AppSpacing.lg),
-              Text(company.tagline,
-                  style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
-                  )),
-              const SizedBox(height: AppSpacing.xxl),
-              Text('Sadiqlik proqramları', style: AppTextStyles.h2),
-              const SizedBox(height: AppSpacing.md),
-              programsAsync.when(
-                loading: () => const Center(
-                    child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.xxl),
-                  child: CircularProgressIndicator(),
-                )),
-                error: (Object e, _) => Text(e.toString()),
-                data: (List<LoyaltyProgram> programs) {
-                  if (programs.isEmpty) {
-                    return const EmptyState(
-                      title: 'Hələ proqram yoxdur',
-                      subtitle: 'Bu obyekt tezliklə təklif əlavə edəcək.',
-                      icon: Icons.card_giftcard_outlined,
-                    );
-                  }
-                  return Column(
-                    children: <Widget>[
-                      for (final LoyaltyProgram p in programs) ...<Widget>[
-                        LoyaltyCardWidget(
-                          company: company,
-                          program: p,
-                          card: _cardFor(p.id),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.lg),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.lg),
-                            border: Border.all(color: AppColors.border),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(p.title, style: AppTextStyles.h3),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(p.description, style: AppTextStyles.bodySm),
-                              const SizedBox(height: AppSpacing.lg),
-                              if (_cardFor(p.id) == null)
-                                PrimaryButton(
-                                  label: 'Sadiqlik kartı al',
-                                  icon: Icons.add_card_rounded,
-                                  onPressed: () async {
-                                    await ref
-                                        .read(loyaltyActionsProvider)
-                                        .joinProgram(p.id);
-                                    if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('${company.name} kartı əlavə olundu'),
-                                      ),
-                                    );
-                                  },
-                                )
-                              else
-                                PrimaryButton(
-                                  label: 'QR-i göstər',
-                                  icon: Icons.qr_code_2_rounded,
-                                  variant: PrimaryButtonVariant.tonal,
-                                  onPressed: () => context.go('/qr'),
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                      ],
-                    ],
-                  );
-                },
-              ),
-            ]),
-          ),
-        ),
-      ],
-    );
-  }
+    final double topInset = MediaQuery.paddingOf(context).top;
+    final bool hasCoinRewards = ref
+        .watch(coinRewardsProvider(company.id))
+        .maybeWhen(
+          data: (List<CoinReward> r) => r.isNotEmpty,
+          orElse: () => false,
+        );
 
-  Color _darken(Color color, double amount) {
-    final HSLColor hsl = HSLColor.fromColor(color);
-    return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
-  }
-}
-
-class _MetaRow extends StatelessWidget {
-  const _MetaRow({required this.company});
-
-  final Company company;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+    return Stack(
       children: <Widget>[
-        _MetaChip(
-          icon: Icons.star_rounded,
-          label: company.rating.toStringAsFixed(1),
-          subtitle: '${company.reviewCount} rəy',
-          tint: AppColors.warning,
-        ),
-        const SizedBox(width: AppSpacing.md),
-        if (company.distanceKm != null)
-          _MetaChip(
-            icon: Icons.location_on_outlined,
-            label: '${company.distanceKm!.toStringAsFixed(1)} km',
-            subtitle: company.address.isEmpty ? 'Yaxınlıqda' : company.address,
-            tint: AppColors.info,
-          ),
-      ],
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.tint,
-  });
-
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final Color tint;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
+        ListView(
+          padding: EdgeInsets.zero,
           children: <Widget>[
-            Container(
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: tint.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 18, color: tint),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(label,
-                      style: AppTextStyles.bodyLg
-                          .copyWith(fontWeight: FontWeight.w700)),
-                  Text(subtitle,
-                      style: AppTextStyles.caption,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
-                ],
+            _PhotoHeader(company: company, brand: brand),
+            Transform.translate(
+              offset: const Offset(0, -28),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                ),
+                child: Column(
+                  children: <Widget>[
+                    _InfoCard(company: company),
+                    const SizedBox(height: AppSpacing.lg),
+                    _OffersCard(
+                      company: company,
+                      programsAsync: programsAsync,
+                      hasCoinRewards: hasCoinRewards,
+                      cardFor: _cardFor,
+                      onJoin: (LoyaltyProgram p) async {
+                        await ref
+                            .read(loyaltyActionsProvider)
+                            .joinProgram(p.id);
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('${company.name} kartı əlavə olundu'),
+                          ),
+                        );
+                      },
+                      onShowQr: () => context.go('/qr'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _CoinRewardsSection(company: company),
+                    const SizedBox(height: AppSpacing.xxxl),
+                  ],
+                ),
               ),
             ),
           ],
         ),
+        // Floating back / actions over the photo.
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            topInset + AppSpacing.sm,
+            AppSpacing.lg,
+            0,
+          ),
+          child: Row(
+            children: <Widget>[
+              _GlassCircle(
+                icon: AppIcons.back,
+                onTap: () =>
+                    context.canPop() ? context.pop() : context.go('/home'),
+              ),
+              const Spacer(),
+              _GlassCircle(
+                icon: AppIcons.share,
+                onTap: () async {
+                  await Clipboard.setData(ClipboardData(
+                    text: '${AppConfig.apiBaseUrl}/companies/${company.id}',
+                  ));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Keçid kopyalandı')),
+                    );
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Branded "photo" carousel. The model has no images yet, so each slide
+/// is a tasteful brand-tinted panel with the monogram; it swaps to real
+/// photos the moment the backend exposes them.
+class _PhotoHeader extends StatefulWidget {
+  const _PhotoHeader({required this.company, required this.brand});
+
+  final Company company;
+  final Color brand;
+
+  @override
+  State<_PhotoHeader> createState() => _PhotoHeaderState();
+}
+
+class _PhotoHeaderState extends State<_PhotoHeader> {
+  final PageController _pc = PageController();
+  int _i = 0;
+
+  @override
+  void dispose() {
+    _pc.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color b = widget.brand;
+    final List<String> photos = widget.company.photoUrls;
+    final bool hasPhotos = photos.isNotEmpty;
+    final List<List<Color>> palettes = <List<Color>>[
+      <Color>[b, _shift(b, -0.16)],
+      <Color>[_shift(b, 0.08), _shift(b, -0.22)],
+      AppColors.heroGradient,
+      <Color>[_shift(b, -0.05), _shift(b, -0.30)],
+    ];
+    final int count = hasPhotos ? photos.length : 4;
+
+    Widget brandPanel(int idx) => DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: palettes[idx % palettes.length],
+            ),
+          ),
+          child: Center(
+            child: CompanyLogo(
+              name: widget.company.name,
+              brandColor: Colors.white,
+              imageUrl: widget.company.logoUrl,
+              size: 96,
+              radius: 28,
+            ),
+          ),
+        );
+
+    return SizedBox(
+      height: 300,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          PageView.builder(
+            controller: _pc,
+            onPageChanged: (int v) => setState(() => _i = v),
+            itemCount: count,
+            itemBuilder: (BuildContext _, int idx) {
+              if (!hasPhotos) return brandPanel(idx);
+              return CachedNetworkImage(
+                imageUrl: photos[idx],
+                fit: BoxFit.cover,
+                placeholder: (_, __) => brandPanel(idx),
+                errorWidget: (_, __, ___) => brandPanel(idx),
+              );
+            },
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 44,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List<Widget>.generate(count, (int d) {
+                final bool on = d == _i;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: on ? 22 : 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: on ? 1 : 0.5),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _shift(Color c, double amount) {
+    final HSLColor h = HSLColor.fromColor(c);
+    return h
+        .withLightness((h.lightness + amount).clamp(0.0, 1.0))
+        .toColor();
+  }
+}
+
+class _GlassCircle extends StatelessWidget {
+  const _GlassCircle({required this.icon, this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: Icon(icon, size: 19, color: AppColors.textPrimary),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.company});
+
+  final Company company;
+
+  static const List<_Amenity> _amenities = <_Amenity>[
+    _Amenity('WIFI', 'Wifi', Icons.wifi_rounded),
+    _Amenity('WORKSPACE', 'Çalışma', Icons.laptop_mac_rounded),
+    _Amenity('MEETING', 'Toplantı', Icons.groups_rounded),
+    _Amenity('GARDEN', 'Bağça', Icons.park_rounded),
+    _Amenity('PARKING', 'Avtopark', Icons.local_parking_rounded),
+    _Amenity('VEGAN', 'Vegan', Icons.eco_rounded),
+    _Amenity('PET', 'Pet', Icons.pets_rounded),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        boxShadow: AppShadows.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(company.name, style: AppTextStyles.h1),
+                    const SizedBox(height: 4),
+                    Text(
+                      <String>[
+                        if (company.address.isNotEmpty) company.address,
+                        company.category.label,
+                      ].join(' • '),
+                      style: AppTextStyles.bodySm,
+                    ),
+                    if ((company.workingHours ?? '').isNotEmpty ||
+                        (company.phone ?? '').isNotEmpty) ...<Widget>[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: <Widget>[
+                          if ((company.workingHours ?? '').isNotEmpty) ...<Widget>[
+                            const Icon(AppIcons.clock,
+                                size: 14, color: AppColors.primary),
+                            const SizedBox(width: 4),
+                            Text(company.workingHours!,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600,
+                                )),
+                          ],
+                          if ((company.workingHours ?? '').isNotEmpty &&
+                              (company.phone ?? '').isNotEmpty)
+                            Text('  ·  ', style: AppTextStyles.caption),
+                          if ((company.phone ?? '').isNotEmpty)
+                            Text(company.phone!,
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                )),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _RoundAction(icon: AppIcons.clock),
+              const SizedBox(width: 6),
+              _RoundAction(icon: AppIcons.star, label: company.rating
+                  .toStringAsFixed(1)),
+              const SizedBox(width: 6),
+              _RoundAction(icon: AppIcons.location),
+            ],
+          ),
+          // Amenities only render if the owner enabled at least one.
+          if (_activeAmenities.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.lg),
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.lg),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: <Widget>[
+                  for (final _Amenity a in _activeAmenities) ...<Widget>[
+                    _AmenityChip(amenity: a, active: true),
+                    const SizedBox(width: AppSpacing.lg),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<_Amenity> get _activeAmenities => _amenities
+      .where((_Amenity a) => company.amenities.contains(a.code))
+      .toList(growable: false);
+}
+
+class _RoundAction extends StatelessWidget {
+  const _RoundAction({required this.icon, this.label});
+
+  final IconData icon;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      padding: EdgeInsets.symmetric(horizontal: label == null ? 0 : 12),
+      width: label == null ? 40 : null,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        shape: label == null ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius:
+            label == null ? null : BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 18, color: AppColors.primary),
+          if (label != null) ...<Widget>[
+            const SizedBox(width: 4),
+            Text(label!,
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                )),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Amenity {
+  const _Amenity(this.code, this.label, this.icon);
+  final String code;
+  final String label;
+  final IconData icon;
+}
+
+class _AmenityChip extends StatelessWidget {
+  const _AmenityChip({required this.amenity, required this.active});
+
+  final _Amenity amenity;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool on = active;
+    return Column(
+      children: <Widget>[
+        Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: on ? AppColors.primarySoft : AppColors.surfaceAlt,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            amenity.icon,
+            size: 22,
+            color: on ? AppColors.primary : AppColors.textTertiary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          amenity.label,
+          style: AppTextStyles.caption.copyWith(
+            color: on ? AppColors.primary : AppColors.textTertiary,
+            fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OffersCard extends StatelessWidget {
+  const _OffersCard({
+    required this.company,
+    required this.programsAsync,
+    required this.hasCoinRewards,
+    required this.cardFor,
+    required this.onJoin,
+    required this.onShowQr,
+  });
+
+  final Company company;
+  final AsyncValue<List<LoyaltyProgram>> programsAsync;
+
+  /// True when this business runs the coin/gift system. When it does and
+  /// there are no stamp campaigns, the campaign block is hidden entirely
+  /// (no "no campaigns yet" text) — the two systems are mutually exclusive.
+  final bool hasCoinRewards;
+
+  final LoyaltyCard? Function(String programId) cardFor;
+  final Future<void> Function(LoyaltyProgram program) onJoin;
+  final VoidCallback onShowQr;
+
+  void _openMenu(BuildContext context) {
+    final String url = (company.menuUrl ?? '').trim();
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Menyu'),
+        content: SelectableText(url),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Bağla'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        boxShadow: AppShadows.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              // Menyu only shows if the owner added one.
+              if (company.hasMenu) ...<Widget>[
+                Expanded(
+                  child: _BigButton(
+                    label: 'Menyu',
+                    icon: Icons.restaurant_menu_rounded,
+                    filled: false,
+                    onTap: () => _openMenu(context),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+              ],
+              Expanded(
+                child: _BigButton(
+                  label: 'QR göstər',
+                  icon: AppIcons.qr,
+                  filled: true,
+                  onTap: onShowQr,
+                ),
+              ),
+            ],
+          ),
+          programsAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(AppSpacing.xxl),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (Object e, _) => Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.lg),
+              child: Text(e.toString()),
+            ),
+            data: (List<LoyaltyProgram> programs) {
+              final bool hasPrograms = programs.isNotEmpty;
+              // Coin-only business: hide the campaign block completely.
+              if (!hasPrograms && hasCoinRewards) {
+                return const SizedBox.shrink();
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  const SizedBox(height: AppSpacing.lg),
+                  const Divider(height: 1),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text('Kampaniyalar', style: AppTextStyles.h2),
+                  const SizedBox(height: AppSpacing.md),
+                  if (!hasPrograms)
+                    const EmptyState(
+                      title: 'Hələ kampaniya yoxdur',
+                      subtitle: 'Bu obyekt tezliklə təklif əlavə edəcək.',
+                      icon: AppIcons.gift,
+                    )
+                  else
+                    Column(
+                      children: <Widget>[
+                        for (int i = 0; i < programs.length; i++) ...<Widget>[
+                          _CampaignRow(
+                            program: programs[i],
+                            card: cardFor(programs[i].id),
+                            accent: i.isEven
+                                ? AppColors.primary
+                                : AppColors.accent,
+                            onJoin: () => onJoin(programs[i]),
+                            onShowQr: onShowQr,
+                          ),
+                          if (i != programs.length - 1) ...<Widget>[
+                            const SizedBox(height: AppSpacing.lg),
+                            const Divider(height: 1),
+                            const SizedBox(height: AppSpacing.lg),
+                          ],
+                        ],
+                      ],
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BigButton extends StatelessWidget {
+  const _BigButton({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool filled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fg = filled ? Colors.white : AppColors.primary;
+    return Material(
+      color: filled ? AppColors.primary : AppColors.primarySoft,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(icon, size: 20, color: fg),
+              const SizedBox(width: AppSpacing.sm),
+              Text(label,
+                  style: AppTextStyles.button.copyWith(color: fg)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CampaignRow extends StatelessWidget {
+  const _CampaignRow({
+    required this.program,
+    required this.card,
+    required this.accent,
+    required this.onJoin,
+    required this.onShowQr,
+  });
+
+  final LoyaltyProgram program;
+  final LoyaltyCard? card;
+  final Color accent;
+  final VoidCallback onJoin;
+  final VoidCallback onShowQr;
+
+  @override
+  Widget build(BuildContext context) {
+    final int total = program.stampsRequired;
+    final int done = card?.stamps ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(program.rewardType.icon, color: accent, size: 22),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(program.title, style: AppTextStyles.h3),
+                  const SizedBox(height: 2),
+                  Text(program.rewardLabel, style: AppTextStyles.bodySm),
+                ],
+              ),
+            ),
+            Text('$done / $total',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w800,
+                )),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: <Widget>[
+            for (int s = 0; s < total; s++) ...<Widget>[
+              Expanded(
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: s < done
+                          ? accent
+                          : accent.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      s < done ? AppIcons.check : program.rewardType.icon,
+                      size: 14,
+                      color: s < done ? Colors.white : accent,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
+            // Reward slot.
+            Expanded(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.06),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: accent.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  child: Icon(AppIcons.gift, size: 14, color: accent),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: card == null
+              ? OutlinedButton(
+                  onPressed: onJoin,
+                  child: const Text('Kampaniyaya qoşul'),
+                )
+              : OutlinedButton.icon(
+                  onPressed: onShowQr,
+                  icon: const Icon(AppIcons.qr, size: 18),
+                  label: const Text('QR göstər'),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Customer-facing "Coinlə al" — the company's reward catalog plus the
+/// customer's coin balance at this business. Actual redemption is
+/// confirmed by the cashier scanning the customer's QR.
+class _CoinRewardsSection extends ConsumerWidget {
+  const _CoinRewardsSection({required this.company});
+
+  final Company company;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<List<CoinReward>> rewardsAsync =
+        ref.watch(coinRewardsProvider(company.id));
+    final AsyncValue<CoinSummary> summaryAsync =
+        ref.watch(coinSummaryProvider);
+
+    final int balance = summaryAsync.maybeWhen(
+      data: (CoinSummary s) => s.companies
+          .where((CompanyBalance b) => b.companyId == company.id)
+          .fold<int>(0, (int acc, CompanyBalance b) => acc + b.balance),
+      orElse: () => 0,
+    );
+
+    return rewardsAsync.maybeWhen(
+      data: (List<CoinReward> rewards) {
+        if (rewards.isEmpty) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.xxl),
+            boxShadow: AppShadows.md,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Expanded(
+                      child: Text('Coinlə al', style: AppTextStyles.h2)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        const Icon(AppIcons.token,
+                            size: 16, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text('$balance',
+                            style: AppTextStyles.bodySm.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                            )),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Seç, kassada QR kodunu göstər — kassir təsdiqləyəcək.',
+                style: AppTextStyles.bodySm.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              for (final CoinReward r in rewards) ...<Widget>[
+                _RewardTile(reward: r, affordable: balance >= r.coinCost),
+                if (r != rewards.last)
+                  const SizedBox(height: AppSpacing.sm),
+              ],
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _RewardTile extends StatelessWidget {
+  const _RewardTile({required this.reward, required this.affordable});
+
+  final CoinReward reward;
+  final bool affordable;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: affordable
+            ? AppColors.primarySoft
+            : AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              gradient: kHeroGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(AppIcons.gift, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(reward.title,
+                    style: AppTextStyles.bodyLg
+                        .copyWith(fontWeight: FontWeight.w700)),
+                if ((reward.description ?? '').isNotEmpty)
+                  Text(reward.description!,
+                      style: AppTextStyles.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Text('${reward.coinCost}',
+                  style: AppTextStyles.h3.copyWith(
+                    color: affordable
+                        ? AppColors.primary
+                        : AppColors.textTertiary,
+                  )),
+              Text(affordable ? 'hazırdır' : 'coin',
+                  style: AppTextStyles.caption.copyWith(
+                    color: affordable
+                        ? AppColors.success
+                        : AppColors.textTertiary,
+                  )),
+            ],
+          ),
+        ],
       ),
     );
   }

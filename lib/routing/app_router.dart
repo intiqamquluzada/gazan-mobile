@@ -9,7 +9,15 @@ import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
 import '../features/auth/presentation/role_picker_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
+import '../features/admin/presentation/admin_businesses_screen.dart';
+import '../features/admin/presentation/admin_coins_screen.dart';
+import '../features/admin/presentation/admin_dashboard_screen.dart';
+import '../features/admin/presentation/admin_notifications_screen.dart';
+import '../features/admin/presentation/admin_shell.dart';
+import '../features/admin/presentation/admin_users_screen.dart';
+import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/business/presentation/business_dashboard_screen.dart';
+import '../features/business/presentation/business_profile_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
 import '../features/companies/presentation/company_detail_screen.dart';
@@ -18,6 +26,7 @@ import '../features/home/presentation/business_shell.dart';
 import '../features/home/presentation/customer_shell.dart';
 import '../features/loyalty/presentation/my_cards_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/wallet/presentation/wallet_screen.dart';
 import '../features/promotions/presentation/story_viewer_screen.dart';
 import '../features/qr/presentation/qr_display_screen.dart';
 import '../features/qr/presentation/qr_scanner_screen.dart';
@@ -28,6 +37,8 @@ final GlobalKey<NavigatorState> _customerShellKey =
     GlobalKey<NavigatorState>(debugLabel: 'customerShell');
 final GlobalKey<NavigatorState> _businessShellKey =
     GlobalKey<NavigatorState>(debugLabel: 'businessShell');
+final GlobalKey<NavigatorState> _adminShellKey =
+    GlobalKey<NavigatorState>(debugLabel: 'adminShell');
 
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
   return GoRouter(
@@ -46,7 +57,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
 
       if (!auth.isAuthenticated && !isPublic) return '/role';
       if (auth.isAuthenticated && isPublic && location != '/splash') {
-        return auth.user!.role == UserRole.business ? '/business' : '/home';
+        return auth.user!.role.landingPath;
       }
       return null;
     },
@@ -90,6 +101,10 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             routes: <RouteBase>[],
           ),
           GoRoute(
+            path: '/wallet',
+            builder: (_, __) => const WalletScreen(),
+          ),
+          GoRoute(
             path: '/cards',
             builder: (_, __) => const MyCardsScreen(),
           ),
@@ -117,6 +132,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         builder: (BuildContext _, GoRouterState state) =>
             StoryViewerScreen(companyId: state.pathParameters['id']!),
       ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/notifications',
+        builder: (_, __) => const NotificationsScreen(),
+      ),
 
       // ───────────────────── Business shell ─────────────────────
       ShellRoute(
@@ -139,6 +159,39 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/business/programs',
             builder: (_, __) => const ManageProgramsScreen(),
+          ),
+          GoRoute(
+            path: '/business/profile',
+            builder: (_, __) => const BusinessProfileScreen(),
+          ),
+        ],
+      ),
+
+      // ───────────────────── Admin shell ─────────────────────
+      ShellRoute(
+        navigatorKey: _adminShellKey,
+        builder: (BuildContext _, GoRouterState __, Widget child) =>
+            AdminShell(child: child),
+        routes: <RouteBase>[
+          GoRoute(
+            path: '/admin',
+            builder: (_, __) => const AdminDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/admin/users',
+            builder: (_, __) => const AdminUsersScreen(),
+          ),
+          GoRoute(
+            path: '/admin/businesses',
+            builder: (_, __) => const AdminBusinessesScreen(),
+          ),
+          GoRoute(
+            path: '/admin/coins',
+            builder: (_, __) => const AdminCoinsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/notifications',
+            builder: (_, __) => const AdminNotificationsScreen(),
           ),
         ],
       ),

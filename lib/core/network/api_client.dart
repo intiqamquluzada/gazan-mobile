@@ -56,6 +56,18 @@ class ApiClient {
         ));
   }
 
+  Future<T> patch<T>(
+    String path, {
+    Object? body,
+    Options? options,
+  }) async {
+    return _send<T>(() => _dio.patch<dynamic>(
+          path,
+          data: body,
+          options: options,
+        ));
+  }
+
   Future<void> delete(String path, {Options? options}) async {
     await _send<void>(() => _dio.delete<dynamic>(path, options: options));
   }

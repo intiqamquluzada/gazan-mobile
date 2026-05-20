@@ -58,7 +58,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!mounted) return;
     final UserRole effective =
         ref.read(currentUserProvider)?.role ?? widget.role;
-    context.go(effective == UserRole.business ? '/business' : '/home');
+    context.go(effective.landingPath);
   }
 
   @override

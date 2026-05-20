@@ -99,13 +99,10 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'E-poçt',
+                label: 'E-poçt (dəyişdirilə bilməz)',
                 controller: _email,
-                keyboardType: TextInputType.emailAddress,
+                readOnly: true,
                 prefixIcon: Icons.alternate_email_rounded,
-                textInputAction: TextInputAction.next,
-                validator: (String? v) =>
-                    (v == null || !v.contains('@')) ? 'Düzgün e-poçt' : null,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/widgets/company_logo.dart';
 import '../../../companies/application/companies_providers.dart';
 import '../../../companies/domain/company.dart';
 import '../../application/promotions_providers.dart';
@@ -91,14 +92,13 @@ class _StoryBubble extends ConsumerWidget {
                       shape: BoxShape.circle,
                     ),
                     padding: const EdgeInsets.all(2),
-                    child: Container(
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: brand.withValues(alpha: 0.12),
-                        shape: BoxShape.circle,
+                    child: ClipOval(
+                      child: CompanyLogo(
+                        name: c.name,
+                        brandColor: brand,
+                        size: 60,
+                        radius: 999,
                       ),
-                      child: Text(c.logoEmoji,
-                          style: const TextStyle(fontSize: 28)),
                     ),
                   ),
                 ),

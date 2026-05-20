@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/app_icons.dart';
 
 /// Visualizes a customer's stamps for a single loyalty card.
 ///
@@ -75,13 +76,12 @@ class _StampDot extends StatelessWidget {
       ),
       child: filled
           ? Icon(
-              isRewardSlot ? Icons.card_giftcard_rounded : Icons.check_rounded,
+              isRewardSlot ? AppIcons.gift : AppIcons.check,
               size: size * 0.55,
               color: Theme.of(context).colorScheme.surface,
             )
           : isRewardSlot
-              ? Icon(Icons.card_giftcard_rounded,
-                  size: size * 0.55, color: onSurface)
+              ? Icon(AppIcons.gift, size: size * 0.55, color: onSurface)
               : null,
     );
   }

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../companies/application/companies_providers.dart';
@@ -26,7 +27,7 @@ class MyCardsScreen extends ConsumerWidget {
         title: const Text('Sadiqlik kartlarım'),
         actions: <Widget>[
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
+            icon: const Icon(AppIcons.refresh),
             onPressed: () => ref.invalidate(myCardsProvider),
           ),
         ],
@@ -35,17 +36,17 @@ class MyCardsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
           title: 'Xəta', subtitle: e.toString(),
-          icon: Icons.error_outline_rounded,
+          icon: AppIcons.error,
         ),
         data: (List<LoyaltyCard> list) {
           if (list.isEmpty) {
             return EmptyState(
               title: 'Hələ kartın yoxdur',
               subtitle: 'Kəşf et səhifəsindən sevimli yerini tap və kartını al.',
-              icon: Icons.card_giftcard_outlined,
+              icon: AppIcons.gift,
               action: PrimaryButton(
                 label: 'Kəşf et',
-                icon: Icons.explore_outlined,
+                icon: AppIcons.home,
                 expanded: false,
                 onPressed: () => context.go('/home'),
               ),
@@ -110,7 +111,7 @@ class _CardEntry extends ConsumerWidget {
                     ),
                     child: Row(
                       children: <Widget>[
-                        const Icon(Icons.celebration_rounded,
+                        const Icon(AppIcons.gift,
                             color: AppColors.success),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(

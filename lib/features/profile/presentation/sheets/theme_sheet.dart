@@ -39,7 +39,7 @@ class ThemeSheet extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: InkWell(
                 onTap: () {
-                  ref.read(themeModeProvider.notifier).state = o.mode;
+                  ref.read(themeModeProvider.notifier).setMode(o.mode);
                 },
                 borderRadius: BorderRadius.circular(AppRadius.md),
                 child: Container(

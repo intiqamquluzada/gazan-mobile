@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
-/// Primary CTA. Defaults to filled-orange — use [variant] for alternatives.
+/// Primary CTA. Defaults to filled-orange with a soft brand glow — use
+/// [variant] for the tonal / outlined alternatives.
 enum PrimaryButtonVariant { filled, tonal, outlined }
 
 class PrimaryButton extends StatelessWidget {
@@ -59,8 +61,19 @@ class PrimaryButton extends StatelessWidget {
           child: child,
         ),
     };
-    return SizedBox(
+
+    final bool glow = variant == PrimaryButtonVariant.filled &&
+        onPressed != null &&
+        !loading;
+
+    return Container(
       width: expanded ? double.infinity : null,
+      decoration: glow
+          ? BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: AppShadows.brand(AppColors.primary),
+            )
+          : null,
       child: button,
     );
   }

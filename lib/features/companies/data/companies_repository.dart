@@ -11,6 +11,12 @@ abstract class CompaniesRepository {
 
   /// Returns the company owned by the signed-in business user.
   Future<Company?> fetchMyCompany();
+
+  /// Owner updates their company profile. Only non-null fields change.
+  Future<Company> updateCompany(String id, Map<String, dynamic> patch);
+
+  /// Owner creates their business (one per owner).
+  Future<Company> createCompany(Map<String, dynamic> body);
 }
 
 /// Backend-backed implementation. Each method maps directly to one
@@ -68,5 +74,23 @@ class RemoteCompaniesRepository implements CompaniesRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  Future<Company> updateCompany(String id, Map<String, dynamic> patch) async {
+    final Map<String, dynamic> json = await _api.put<Map<String, dynamic>>(
+      '/api/v1/companies/$id',
+      body: patch,
+    );
+    return Company.fromJson(json);
+  }
+
+  @override
+  Future<Company> createCompany(Map<String, dynamic> body) async {
+    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
+      '/api/v1/companies',
+      body: body,
+    );
+    return Company.fromJson(json);
   }
 }

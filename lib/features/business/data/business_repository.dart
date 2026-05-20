@@ -4,6 +4,14 @@ import '../domain/customer_summary.dart';
 abstract class BusinessRepository {
   Future<List<CustomerSummary>> customersForBusiness(String businessId);
   Future<BusinessStats> statsForBusiness(String businessId);
+
+  /// Owner credits coins to a customer after scanning their QR.
+  Future<void> grantCoins({
+    required String customerId,
+    String? companyId,
+    required int amount,
+    String? note,
+  });
 }
 
 class BusinessStats {
@@ -29,9 +37,7 @@ class BusinessStats {
   }
 }
 
-/// Backend-backed business repository. Customer list endpoint will be
-/// added in a follow-up — for now we return empty until the backend
-/// surfaces it (the dashboard shows "no customers yet" gracefully).
+/// Backend-backed business repository.
 class RemoteBusinessRepository implements BusinessRepository {
   RemoteBusinessRepository(this._api);
 
@@ -46,7 +52,29 @@ class RemoteBusinessRepository implements BusinessRepository {
 
   @override
   Future<List<CustomerSummary>> customersForBusiness(String businessId) async {
-    // TODO(backend): expose `/api/v1/business/customers` and parse here.
-    return const <CustomerSummary>[];
+    final List<dynamic> raw =
+        await _api.get<List<dynamic>>('/api/v1/business/customers');
+    return raw
+        .cast<Map<String, dynamic>>()
+        .map(CustomerSummary.fromJson)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> grantCoins({
+    required String customerId,
+    String? companyId,
+    required int amount,
+    String? note,
+  }) async {
+    await _api.post<dynamic>(
+      '/api/v1/coins/grant',
+      body: <String, dynamic>{
+        'customerId': customerId,
+        if (companyId != null) 'companyId': companyId,
+        'amount': amount,
+        if (note != null) 'note': note,
+      },
+    );
   }
 }

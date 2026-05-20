@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/extensions.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../application/promotions_providers.dart';
@@ -188,8 +190,14 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                         color: Colors.white.withValues(alpha: 0.18),
                         shape: BoxShape.circle,
                       ),
-                      child: Text(companyAsync.value!.logoEmoji,
-                          style: const TextStyle(fontSize: 18)),
+                      child: Text(
+                        companyAsync.value!.name.initials,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Expanded(
@@ -204,7 +212,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                   ] else
                     const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                    icon: const Icon(AppIcons.close, color: Colors.white),
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                 ],
@@ -247,9 +255,15 @@ class _StoryBody extends StatelessWidget {
             children: <Widget>[
               const Spacer(),
               Center(
-                child: Text(
-                  story.emoji,
-                  style: const TextStyle(fontSize: 120),
+                child: Container(
+                  width: 132,
+                  height: 132,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(AppIcons.gift,
+                      size: 60, color: Colors.white),
                 ),
               ),
               const SizedBox(height: AppSpacing.huge),
@@ -299,7 +313,7 @@ class _StoryBody extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Icon(
-                            Icons.arrow_forward_rounded,
+                            AppIcons.forward,
                             size: 18,
                             color: Color(story.gradientStartHex),
                           ),

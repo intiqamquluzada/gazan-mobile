@@ -6,12 +6,16 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../business/application/business_providers.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
+import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/domain/coin_reward.dart';
 
 /// Used by business owners to scan a customer's identity QR. Once a code
 /// is detected we open a sheet that lets the owner pick a program and
@@ -172,6 +176,7 @@ class _ScanResultSheet extends ConsumerWidget {
         ),
         data: (List<LoyaltyProgram> programs) => _ProgramPicker(
           customerId: customerId,
+          companyId: company.id,
           programs: programs.where((LoyaltyProgram p) => p.isActive).toList(),
         ),
       ),
@@ -180,9 +185,14 @@ class _ScanResultSheet extends ConsumerWidget {
 }
 
 class _ProgramPicker extends ConsumerStatefulWidget {
-  const _ProgramPicker({required this.customerId, required this.programs});
+  const _ProgramPicker({
+    required this.customerId,
+    required this.companyId,
+    required this.programs,
+  });
 
   final String customerId;
+  final String companyId;
   final List<LoyaltyProgram> programs;
 
   @override
@@ -215,15 +225,115 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
     }
   }
 
+  bool _grantingCoins = false;
+
+  Future<void> _grantCoins() async {
+    final int? amount = await showDialog<int>(
+      context: context,
+      builder: (BuildContext ctx) => const _CoinAmountDialog(),
+    );
+    if (amount == null || amount <= 0) return;
+    setState(() => _grantingCoins = true);
+    try {
+      await ref.read(businessRepositoryProvider).grantCoins(
+            customerId: widget.customerId,
+            companyId: widget.companyId,
+            amount: amount,
+            note: 'Skan bonusu',
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('+$amount coin müştəriyə verildi')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _grantingCoins = false);
+    }
+  }
+
+  bool _redeeming = false;
+
+  Future<void> _redeemReward() async {
+    setState(() => _redeeming = true);
+    try {
+      final List<CoinReward> rewards = await ref
+          .read(walletRepositoryProvider)
+          .rewardsForCompany(widget.companyId);
+      if (!mounted) return;
+      if (rewards.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bu biznesdə mükafat yoxdur')),
+        );
+        return;
+      }
+      final CoinReward? picked = await showModalBottomSheet<CoinReward>(
+        context: context,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        ),
+        builder: (BuildContext _) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const SizedBox(height: AppSpacing.lg),
+              Text('Mükafat seç', style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.md),
+              for (final CoinReward r in rewards)
+                ListTile(
+                  leading: const Icon(AppIcons.gift,
+                      color: AppColors.primary),
+                  title: Text(r.title),
+                  subtitle: (r.description ?? '').isEmpty
+                      ? null
+                      : Text(r.description!),
+                  trailing: Text('${r.coinCost} coin',
+                      style: AppTextStyles.bodySm.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      )),
+                  onTap: () => Navigator.of(context).pop(r),
+                ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
+      );
+      if (picked == null || !mounted) return;
+      final Map<String, dynamic> res = await ref
+          .read(walletRepositoryProvider)
+          .redeemReward(
+            customerId: widget.customerId,
+            rewardId: picked.id,
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      final Object? remaining = res['remainingAtCompany'];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              '${picked.title} verildi · qalıq: ${remaining ?? '-'} coin'),
+        ),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } finally {
+      if (mounted) setState(() => _redeeming = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (widget.programs.isEmpty) {
-      return const EmptyState(
-        title: 'Aktiv proqram yoxdur',
-        subtitle: 'Əvvəlcə proqram yarat.',
-        icon: Icons.tune_outlined,
-      );
-    }
+    final bool hasPrograms = widget.programs.isNotEmpty;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -256,8 +366,12 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
         Text('Müştəri tapıldı',
             textAlign: TextAlign.center, style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.xs),
-        Text('Hansı proqrama möhür əlavə edək?',
-            textAlign: TextAlign.center, style: AppTextStyles.bodySm),
+        Text(
+            hasPrograms
+                ? 'Möhür, coin və ya mükafat:'
+                : 'Coin ver və ya mükafat:',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySm),
         const SizedBox(height: AppSpacing.lg),
         for (final LoyaltyProgram p in widget.programs)
           Padding(
@@ -270,10 +384,86 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
               onPressed: _busyProgramId == null ? () => _addStamp(p) : null,
             ),
           ),
+        if (hasPrograms) ...<Widget>[
+          const SizedBox(height: AppSpacing.xs),
+          Row(children: <Widget>[
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Text('və ya', style: AppTextStyles.caption),
+            ),
+            const Expanded(child: Divider()),
+          ]),
+        ],
+        const SizedBox(height: AppSpacing.sm),
+        PrimaryButton(
+          label: 'Coin ver',
+          icon: AppIcons.token,
+          variant: PrimaryButtonVariant.outlined,
+          loading: _grantingCoins,
+          onPressed: _busyProgramId == null && !_grantingCoins
+              ? _grantCoins
+              : null,
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        PrimaryButton(
+          label: 'Mükafat ver (coinlə)',
+          icon: AppIcons.gift,
+          variant: PrimaryButtonVariant.tonal,
+          loading: _redeeming,
+          onPressed: _busyProgramId == null && !_redeeming
+              ? _redeemReward
+              : null,
+        ),
         const SizedBox(height: AppSpacing.sm),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Ləğv et'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tiny dialog to enter how many coins to award.
+class _CoinAmountDialog extends StatefulWidget {
+  const _CoinAmountDialog();
+
+  @override
+  State<_CoinAmountDialog> createState() => _CoinAmountDialogState();
+}
+
+class _CoinAmountDialogState extends State<_CoinAmountDialog> {
+  final TextEditingController _c = TextEditingController(text: '50');
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Neçə coin?'),
+      content: TextField(
+        controller: _c,
+        autofocus: true,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(
+          hintText: 'Məbləğ',
+          prefixIcon: Icon(AppIcons.token),
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Ləğv et'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              Navigator.of(context).pop(int.tryParse(_c.text.trim())),
+          child: const Text('Ver'),
         ),
       ],
     );

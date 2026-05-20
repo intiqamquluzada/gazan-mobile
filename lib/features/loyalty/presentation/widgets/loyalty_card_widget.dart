@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/extensions.dart';
+import '../../../../core/widgets/app_icons.dart';
 import '../../../companies/domain/company.dart';
 import '../../domain/loyalty_card.dart';
 import '../../domain/loyalty_program.dart';
@@ -64,8 +66,13 @@ class LoyaltyCardWidget extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
-                  child: Text(company.logoEmoji,
-                      style: const TextStyle(fontSize: 24)),
+                  child: Text(
+                    company.name.initials,
+                    style: AppTextStyles.h3.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -94,7 +101,7 @@ class LoyaltyCardWidget extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        const Icon(Icons.card_giftcard_rounded,
+                        const Icon(AppIcons.gift,
                             size: 14, color: AppColors.success),
                         const SizedBox(width: 4),
                         Text('$rewards',
@@ -115,7 +122,7 @@ class LoyaltyCardWidget extends StatelessWidget {
               children: <Widget>[
                 Text(
                   rewards > 0
-                      ? '$rewards mükafat hazırdır 🎉'
+                      ? '$rewards mükafat hazırdır'
                       : '$stamps / $required möhür',
                   style: AppTextStyles.bodySm.copyWith(
                     color: Colors.white,
