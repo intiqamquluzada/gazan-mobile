@@ -914,6 +914,8 @@ class _RewardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Color bgColor =
+        affordable ? AppColors.primary : AppColors.borderStrong;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -921,6 +923,7 @@ class _RewardTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           Container(
             width: 44,
@@ -936,15 +939,24 @@ class _RewardTile extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Text(reward.title,
-                    style: AppTextStyles.bodyLg
-                        .copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  reward.title,
+                  style: AppTextStyles.bodyLg
+                      .copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                ),
                 if ((reward.description ?? '').isNotEmpty)
-                  Text(reward.description!,
-                      style: AppTextStyles.caption,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis),
+                  Text(
+                    reward.description!,
+                    style: AppTextStyles.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                  ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -968,20 +980,25 @@ class _RewardTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          FilledButton(
-            onPressed: onBuy,
-            style: FilledButton.styleFrom(
-              backgroundColor:
-                  affordable ? AppColors.primary : AppColors.borderStrong,
-              disabledBackgroundColor: AppColors.borderStrong,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.full),
+          Material(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+            child: InkWell(
+              onTap: onBuy,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg, vertical: 10),
+                child: Text(
+                  affordable ? 'Al' : 'Çatmır',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
               ),
             ),
-            child: Text(affordable ? 'Al' : 'Çatmır'),
           ),
         ],
       ),
