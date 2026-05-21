@@ -219,18 +219,18 @@ class ProfileScreen extends ConsumerWidget {
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
     final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (BuildContext _) => AlertDialog(
+      builder: (BuildContext ctx) => AlertDialog(
         title: const Text('Çıxmaq istəyirsən?'),
         content: const Text(
           'Hesabından çıxacaqsan. Yenidən daxil olaraq qayıda bilərsən.',
         ),
         actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Ləğv et'),
           ),
           FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Çıxış'),
           ),
         ],

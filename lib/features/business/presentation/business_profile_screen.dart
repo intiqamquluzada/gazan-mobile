@@ -64,6 +64,7 @@ class _BusinessProfileScreenState
   final Set<String> _amenities = <String>{};
   final List<String> _photoUrls = <String>[];
   String? _logoUrl;
+  String? _companyId;
   final ImagePicker _picker = ImagePicker();
   bool _loaded = false;
   bool _saving = false;
@@ -73,6 +74,7 @@ class _BusinessProfileScreenState
   void _hydrate(Company c) {
     if (_loaded) return;
     _loaded = true;
+    _companyId = c.id;
     _name.text = c.name;
     _tagline.text = c.tagline;
     _address.text = c.address;
@@ -172,6 +174,16 @@ class _BusinessProfileScreenState
                 );
         if (mounted) setState(() => _photoUrls.add(url));
       }
+      // Auto-save: persist the new gallery immediately so the change
+      // sticks even if the owner doesn't press "Yadda saxla".
+      await _autoSave(<String, dynamic>{
+        'photoUrls': _photoUrls.join('\n'),
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Şəkillər yadda saxlanıldı ✓')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -206,6 +218,13 @@ class _BusinessProfileScreenState
             contentType: x.mimeType ?? _guessType(x.name),
           );
       if (mounted) setState(() => _logoUrl = url);
+      // Auto-save: persist the new logo immediately.
+      await _autoSave(<String, dynamic>{'logoUrl': url});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil şəkli yeniləndi ✓')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -215,6 +234,19 @@ class _BusinessProfileScreenState
     } finally {
       if (mounted) setState(() => _uploadingLogo = false);
     }
+  }
+
+  /// Persists a single-field change without requiring "Yadda saxla".
+  /// Used for image uploads so the user never wonders whether the
+  /// change was saved.
+  Future<void> _autoSave(Map<String, dynamic> patch) async {
+    final String? id = _companyId;
+    if (id == null) return;
+    await ref.read(companiesRepositoryProvider).updateCompany(id, patch);
+    ref.invalidate(myCompanyProvider);
+    ref.invalidate(companyByIdProvider(id));
+    ref.invalidate(companiesProvider);
+    ref.invalidate(featuredCompaniesProvider);
   }
 
   String _guessType(String name) {
