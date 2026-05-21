@@ -14,6 +14,8 @@ import '../../../core/widgets/empty_state.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_card.dart';
 import '../../loyalty/domain/loyalty_program.dart';
+import '../../rewards/application/rewards_providers.dart';
+import '../../rewards/data/rewards_repository.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../../wallet/domain/coin_reward.dart';
 import '../../wallet/domain/coin_summary.dart';
@@ -786,12 +788,35 @@ class _CampaignRow extends StatelessWidget {
 }
 
 /// Customer-facing "Coinlə al" — the company's reward catalog plus the
-/// customer's coin balance at this business. Actual redemption is
-/// confirmed by the cashier scanning the customer's QR.
+/// customer's coin balance at this business. Tapping "Al" buys the
+/// voucher (coins deduct, ACTIVE claim created); the cashier later
+/// marks it used at the counter.
 class _CoinRewardsSection extends ConsumerWidget {
   const _CoinRewardsSection({required this.company});
 
   final Company company;
+
+  Future<void> _buy(
+      BuildContext context, WidgetRef ref, CoinReward r) async {
+    try {
+      await ref.read(rewardsRepositoryProvider).purchase(r.id);
+      // Refresh affected state.
+      ref.invalidate(coinSummaryProvider);
+      ref.invalidate(myActiveRewardsProvider);
+      ref.invalidate(myUsedRewardsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${r.title} alındı — Hədiyyələrim-də gör')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Alınmadı: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -849,14 +874,21 @@ class _CoinRewardsSection extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                'Seç, kassada QR kodunu göstər — kassir təsdiqləyəcək.',
+                '"Al" toxun — coin çıxılır, hədiyyə Hədiyyələrim-ə əlavə '
+                'olunur. Sonra kassada QR kodunu göstərib təsdiqlət.',
                 style: AppTextStyles.bodySm.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
               for (final CoinReward r in rewards) ...<Widget>[
-                _RewardTile(reward: r, affordable: balance >= r.coinCost),
+                _RewardTile(
+                  reward: r,
+                  affordable: balance >= r.coinCost,
+                  onBuy: balance >= r.coinCost
+                      ? () => _buy(context, ref, r)
+                      : null,
+                ),
                 if (r != rewards.last)
                   const SizedBox(height: AppSpacing.sm),
               ],
@@ -870,19 +902,22 @@ class _CoinRewardsSection extends ConsumerWidget {
 }
 
 class _RewardTile extends StatelessWidget {
-  const _RewardTile({required this.reward, required this.affordable});
+  const _RewardTile({
+    required this.reward,
+    required this.affordable,
+    required this.onBuy,
+  });
 
   final CoinReward reward;
   final bool affordable;
+  final VoidCallback? onBuy;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: affordable
-            ? AppColors.primarySoft
-            : AppColors.surfaceAlt,
+        color: affordable ? AppColors.primarySoft : AppColors.surfaceAlt,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -910,26 +945,43 @@ class _RewardTile extends StatelessWidget {
                       style: AppTextStyles.caption,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(AppIcons.token,
+                        size: 14,
+                        color: affordable
+                            ? AppColors.primary
+                            : AppColors.textTertiary),
+                    const SizedBox(width: 2),
+                    Text('${reward.coinCost}',
+                        style: AppTextStyles.bodySm.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: affordable
+                              ? AppColors.primary
+                              : AppColors.textTertiary,
+                        )),
+                  ],
+                ),
               ],
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Text('${reward.coinCost}',
-                  style: AppTextStyles.h3.copyWith(
-                    color: affordable
-                        ? AppColors.primary
-                        : AppColors.textTertiary,
-                  )),
-              Text(affordable ? 'hazırdır' : 'coin',
-                  style: AppTextStyles.caption.copyWith(
-                    color: affordable
-                        ? AppColors.success
-                        : AppColors.textTertiary,
-                  )),
-            ],
+          FilledButton(
+            onPressed: onBuy,
+            style: FilledButton.styleFrom(
+              backgroundColor:
+                  affordable ? AppColors.primary : AppColors.borderStrong,
+              disabledBackgroundColor: AppColors.borderStrong,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+            ),
+            child: Text(affordable ? 'Al' : 'Çatmır'),
           ),
         ],
       ),

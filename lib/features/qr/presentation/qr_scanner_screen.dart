@@ -14,8 +14,9 @@ import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
-import '../../wallet/application/wallet_providers.dart';
-import '../../wallet/domain/coin_reward.dart';
+import '../../rewards/application/rewards_providers.dart';
+import '../../rewards/data/rewards_repository.dart';
+import '../../rewards/domain/reward_claim.dart';
 
 /// Used by business owners to scan a customer's identity QR. Once a code
 /// is detected we open a sheet that lets the owner pick a program and
@@ -256,84 +257,51 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
     }
   }
 
-  bool _redeeming = false;
+  String? _usingId;
 
-  Future<void> _redeemReward() async {
-    setState(() => _redeeming = true);
+  Future<void> _useReward(AppRewardClaim claim) async {
+    setState(() => _usingId = claim.id);
     try {
-      final List<CoinReward> rewards = await ref
-          .read(walletRepositoryProvider)
-          .rewardsForCompany(widget.companyId);
-      if (!mounted) return;
-      if (rewards.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bu biznesdə mükafat yoxdur')),
-        );
-        return;
-      }
-      final CoinReward? picked = await showModalBottomSheet<CoinReward>(
-        context: context,
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: const RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
-        ),
-        builder: (BuildContext _) => SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const SizedBox(height: AppSpacing.lg),
-              Text('Mükafat seç', style: AppTextStyles.h2),
-              const SizedBox(height: AppSpacing.md),
-              for (final CoinReward r in rewards)
-                ListTile(
-                  leading: const Icon(AppIcons.gift,
-                      color: AppColors.primary),
-                  title: Text(r.title),
-                  subtitle: (r.description ?? '').isEmpty
-                      ? null
-                      : Text(r.description!),
-                  trailing: Text('${r.coinCost} coin',
-                      style: AppTextStyles.bodySm.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w800,
-                      )),
-                  onTap: () => Navigator.of(context).pop(r),
-                ),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-          ),
-        ),
-      );
-      if (picked == null || !mounted) return;
-      final Map<String, dynamic> res = await ref
-          .read(walletRepositoryProvider)
-          .redeemReward(
+      await ref.read(rewardsRepositoryProvider).use(
+            kind: claim.kind,
+            id: claim.id,
             customerId: widget.customerId,
-            rewardId: picked.id,
           );
+      // Refresh: the customer's active list (here + global) and the
+      // owner's customer list/stats (a card-redeem changes counts).
+      ref.invalidate(activeRewardsAtCompanyProvider((
+        customerId: widget.customerId,
+        companyId: widget.companyId,
+      )));
       if (!mounted) return;
-      Navigator.of(context).pop();
-      final Object? remaining = res['remainingAtCompany'];
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              '${picked.title} verildi · qalıq: ${remaining ?? '-'} coin'),
-        ),
+        SnackBar(content: Text('${claim.title} istifadə olundu ✓')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.message)),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Alınmadı: $e')),
+      );
     } finally {
-      if (mounted) setState(() => _redeeming = false);
+      if (mounted) setState(() => _usingId = null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bool hasPrograms = widget.programs.isNotEmpty;
+    final AsyncValue<List<AppRewardClaim>> rewardsAsync = ref.watch(
+      activeRewardsAtCompanyProvider((
+        customerId: widget.customerId,
+        companyId: widget.companyId,
+      )),
+    );
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -365,37 +333,53 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
         const SizedBox(height: AppSpacing.lg),
         Text('Müştəri tapıldı',
             textAlign: TextAlign.center, style: AppTextStyles.h2),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-            hasPrograms
-                ? 'Möhür, coin və ya mükafat:'
-                : 'Coin ver və ya mükafat:',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodySm),
         const SizedBox(height: AppSpacing.lg),
-        for (final LoyaltyProgram p in widget.programs)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: PrimaryButton(
-              label: '+1 möhür  ·  ${p.title}',
-              icon: p.rewardType.icon,
-              variant: PrimaryButtonVariant.tonal,
-              loading: _busyProgramId == p.id,
-              onPressed: _busyProgramId == null ? () => _addStamp(p) : null,
-            ),
-          ),
+
+        // ── Customer's active vouchers at this company ──
+        rewardsAsync.maybeWhen(
+          data: (List<AppRewardClaim> list) {
+            if (list.isEmpty) return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text('Aktiv hədiyyələr',
+                    style: AppTextStyles.h3),
+                const SizedBox(height: AppSpacing.sm),
+                for (final AppRewardClaim claim in list) ...<Widget>[
+                  _ActiveRewardTile(
+                    claim: claim,
+                    busy: _usingId == claim.id,
+                    onUse: _usingId == null ? () => _useReward(claim) : null,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
+                const Divider(),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+            );
+          },
+          orElse: () => const SizedBox.shrink(),
+        ),
+
+        // ── Stamp programs ──
         if (hasPrograms) ...<Widget>[
-          const SizedBox(height: AppSpacing.xs),
-          Row(children: <Widget>[
-            const Expanded(child: Divider()),
+          Text('Möhür ver', style: AppTextStyles.overline),
+          const SizedBox(height: AppSpacing.sm),
+          for (final LoyaltyProgram p in widget.programs)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: Text('və ya', style: AppTextStyles.caption),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: PrimaryButton(
+                label: '+1 möhür  ·  ${p.title}',
+                icon: p.rewardType.icon,
+                variant: PrimaryButtonVariant.tonal,
+                loading: _busyProgramId == p.id,
+                onPressed: _busyProgramId == null ? () => _addStamp(p) : null,
+              ),
             ),
-            const Expanded(child: Divider()),
-          ]),
+          const SizedBox(height: AppSpacing.sm),
         ],
-        const SizedBox(height: AppSpacing.sm),
+
+        // ── Coin grant ──
         PrimaryButton(
           label: 'Coin ver',
           icon: AppIcons.token,
@@ -406,21 +390,91 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
               : null,
         ),
         const SizedBox(height: AppSpacing.sm),
-        PrimaryButton(
-          label: 'Mükafat ver (coinlə)',
-          icon: AppIcons.gift,
-          variant: PrimaryButtonVariant.tonal,
-          loading: _redeeming,
-          onPressed: _busyProgramId == null && !_redeeming
-              ? _redeemReward
-              : null,
-        ),
-        const SizedBox(height: AppSpacing.sm),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Ləğv et'),
         ),
       ],
+    );
+  }
+}
+
+class _ActiveRewardTile extends StatelessWidget {
+  const _ActiveRewardTile({
+    required this.claim,
+    required this.busy,
+    required this.onUse,
+  });
+
+  final AppRewardClaim claim;
+  final bool busy;
+  final VoidCallback? onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              gradient: kHeroGradient,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(AppIcons.gift, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(claim.title,
+                    style: AppTextStyles.bodyLg
+                        .copyWith(fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                Text(
+                  claim.isCoin
+                      ? '${claim.coinCost} coin · alınmış'
+                      : 'Möhür mükafatı',
+                  style: AppTextStyles.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          FilledButton(
+            onPressed: onUse,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+            ),
+            child: busy
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white,
+                    ),
+                  )
+                : const Text('İstifadə et'),
+          ),
+        ],
+      ),
     );
   }
 }

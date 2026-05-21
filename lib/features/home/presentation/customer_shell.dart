@@ -27,9 +27,9 @@ class CustomerShell extends StatelessWidget {
       activeIcon: AppIcons.homeActive,
     ),
     AppNavItem(
-      label: 'Cüzdan',
-      icon: AppIcons.token,
-      activeIcon: AppIcons.token,
+      label: 'Hədiyyələrim',
+      icon: AppIcons.gift,
+      activeIcon: AppIcons.gift,
     ),
     AppNavItem(
       label: '',
