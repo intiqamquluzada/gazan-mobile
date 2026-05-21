@@ -26,7 +26,7 @@ import '../features/home/presentation/business_shell.dart';
 import '../features/home/presentation/customer_shell.dart';
 import '../features/loyalty/presentation/my_cards_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
-import '../features/wallet/presentation/wallet_screen.dart';
+import '../features/wallet/presentation/my_rewards_screen.dart';
 import '../features/promotions/presentation/story_viewer_screen.dart';
 import '../features/qr/presentation/qr_display_screen.dart';
 import '../features/qr/presentation/qr_scanner_screen.dart';
@@ -102,7 +102,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           ),
           GoRoute(
             path: '/wallet',
-            builder: (_, __) => const WalletScreen(),
+            builder: (_, __) => const MyRewardsScreen(),
           ),
           GoRoute(
             path: '/cards',
