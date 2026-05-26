@@ -109,6 +109,9 @@ class _NavCell extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             item.label,
+            maxLines: 1,
+            softWrap: false,
+            overflow: TextOverflow.ellipsis,
             style: AppTextStyles.caption.copyWith(
               color: tint,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w500,

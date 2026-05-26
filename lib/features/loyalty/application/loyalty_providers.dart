@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../auth/application/auth_controller.dart';
+import '../../profile/application/profile_settings_controller.dart';
 import '../data/loyalty_repository.dart';
 import '../domain/loyalty_card.dart';
 import '../domain/loyalty_program.dart';
@@ -14,19 +15,22 @@ final Provider<LoyaltyRepository> loyaltyRepositoryProvider =
 final FutureProviderFamily<List<LoyaltyProgram>, String>
     programsForCompanyProvider =
     FutureProvider.family<List<LoyaltyProgram>, String>(
-  (Ref ref, String companyId) =>
-      ref.read(loyaltyRepositoryProvider).programsForCompany(companyId),
-);
+        (Ref ref, String companyId) {
+  ref.watch(languageProvider);
+  return ref.read(loyaltyRepositoryProvider).programsForCompany(companyId);
+});
 
 final FutureProviderFamily<LoyaltyProgram?, String> programByIdProvider =
     FutureProvider.family<LoyaltyProgram?, String>(
-  (Ref ref, String programId) =>
-      ref.read(loyaltyRepositoryProvider).programById(programId),
-);
+        (Ref ref, String programId) {
+  ref.watch(languageProvider);
+  return ref.read(loyaltyRepositoryProvider).programById(programId);
+});
 
 /// Active loyalty cards for the signed-in user.
 final FutureProvider<List<LoyaltyCard>> myCardsProvider =
     FutureProvider<List<LoyaltyCard>>((Ref ref) async {
+  ref.watch(languageProvider);
   final String? userId = ref.watch(currentUserProvider)?.id;
   if (userId == null) return <LoyaltyCard>[];
   return ref.read(loyaltyRepositoryProvider).cardsForUser(userId);

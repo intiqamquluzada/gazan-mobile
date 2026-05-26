@@ -126,9 +126,18 @@ class AuthController extends StateNotifier<AuthState> {
     }
   }
 
+  /// Signs the user out. The remote logout is best-effort — even if the
+  /// network call or token storage fails, the local session is *always*
+  /// cleared so the app can never get stuck in a half-logged-out state.
   Future<void> signOut() async {
-    await _remote.logout();
-    state = const AuthState();
+    try {
+      await _remote.logout();
+    } catch (e, st) {
+      developer.log('signOut: remote logout failed (ignored)',
+          name: 'qazan.auth', error: e, stackTrace: st);
+    } finally {
+      state = const AuthState();
+    }
   }
 
   void updateProfile({String? fullName, String? email, String? phone}) {

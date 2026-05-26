@@ -1,8 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_colors.dart';
@@ -130,7 +130,7 @@ class _Body extends ConsumerWidget {
                           ),
                         );
                       },
-                      onShowQr: () => context.go('/qr'),
+                      onShowQr: () => context.push('/qr/show'),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     _CoinRewardsSection(company: company),
@@ -160,14 +160,15 @@ class _Body extends ConsumerWidget {
               _GlassCircle(
                 icon: AppIcons.share,
                 onTap: () async {
-                  await Clipboard.setData(ClipboardData(
-                    text: '${AppConfig.apiBaseUrl}/companies/${company.id}',
-                  ));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Keçid kopyalandı')),
-                    );
-                  }
+                  final String url =
+                      '${AppConfig.apiBaseUrl}/companies/${company.id}';
+                  // Native share sheet — lets the user pick WhatsApp,
+                  // Messages, Mail, copy-link, etc. instead of forcing
+                  // a clipboard copy.
+                  await Share.share(
+                    '${company.name}\n$url',
+                    subject: company.name,
+                  );
                 },
               ),
             ],

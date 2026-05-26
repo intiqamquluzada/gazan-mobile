@@ -269,7 +269,7 @@ class _CardEntry extends ConsumerWidget {
                           ),
                         ),
                         TextButton(
-                          onPressed: () => context.go('/qr'),
+                          onPressed: () => context.push('/qr/show'),
                           child: const Text('QR'),
                         ),
                       ],

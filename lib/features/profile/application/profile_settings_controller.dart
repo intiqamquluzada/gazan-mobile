@@ -85,6 +85,39 @@ final StateNotifierProvider<NotificationPrefsController, NotificationPrefs>
   (Ref ref) => NotificationPrefsController(),
 );
 
-/// Selected interface language code: 'az', 'en', 'ru'.
-final StateProvider<String> languageProvider =
-    StateProvider<String>((Ref ref) => 'az');
+/// All UI languages the app supports. The order here drives the
+/// language picker sheet, and adding a new entry is the only place
+/// you need to touch when introducing another locale.
+const List<String> kSupportedLanguages = <String>['az', 'en', 'ru', 'tr'];
+
+/// Holds the current UI language code and persists every change.
+class LanguageController extends StateNotifier<String> {
+  LanguageController() : super('az') {
+    _restore();
+  }
+
+  static const String _kKey = 'qazan.lang';
+
+  Future<void> _restore() async {
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    final String? saved = p.getString(_kKey);
+    if (saved != null && kSupportedLanguages.contains(saved)) {
+      state = saved;
+    }
+  }
+
+  /// Switches the current language and writes it to disk so it
+  /// survives app restarts.
+  Future<void> setLanguage(String code) async {
+    if (!kSupportedLanguages.contains(code) || code == state) return;
+    state = code;
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    await p.setString(_kKey, code);
+  }
+}
+
+/// Selected interface language code: 'az', 'en', 'ru', 'tr'.
+final StateNotifierProvider<LanguageController, String> languageProvider =
+    StateNotifierProvider<LanguageController, String>(
+  (Ref ref) => LanguageController(),
+);

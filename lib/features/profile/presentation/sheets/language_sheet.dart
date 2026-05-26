@@ -14,6 +14,7 @@ class LanguageSheet extends ConsumerWidget {
     _Lang('az', 'Azərbaycanca', '🇦🇿'),
     _Lang('en', 'English', '🇬🇧'),
     _Lang('ru', 'Русский', '🇷🇺'),
+    _Lang('tr', 'Türkçe', '🇹🇷'),
   ];
 
   @override
@@ -36,7 +37,7 @@ class LanguageSheet extends ConsumerWidget {
               lang: l,
               selected: l.code == selected,
               onTap: () {
-                ref.read(languageProvider.notifier).state = l.code;
+                ref.read(languageProvider.notifier).setLanguage(l.code);
                 Navigator.of(context).pop();
               },
             ),

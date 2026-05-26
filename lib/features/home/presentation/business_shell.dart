@@ -64,12 +64,20 @@ class BusinessShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: AppBottomNav(
-        items: _items,
-        currentIndex: _indexFor(location),
-        onSelect: (int i) => context.go(_routes[i]),
+    final int currentIdx = _indexFor(location);
+    return PopScope(
+      canPop: currentIdx == 0,
+      onPopInvokedWithResult: (bool didPop, Object? _) {
+        if (didPop) return;
+        context.go(_routes[0]);
+      },
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: AppBottomNav(
+          items: _items,
+          currentIndex: currentIdx,
+          onSelect: (int i) => context.go(_routes[i]),
+        ),
       ),
     );
   }

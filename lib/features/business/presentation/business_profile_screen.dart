@@ -12,6 +12,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../auth/application/auth_controller.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/business_category.dart';
 import '../../companies/domain/company.dart';
@@ -60,6 +61,16 @@ class _BusinessProfileScreenState
   final TextEditingController _lng = TextEditingController();
   final TextEditingController _coinRate = TextEditingController();
 
+  // Per-language overrides — optional. Empty value clears the
+  // translation and the AZ default is used on read.
+  final TextEditingController _nameEn = TextEditingController();
+  final TextEditingController _nameRu = TextEditingController();
+  final TextEditingController _nameTr = TextEditingController();
+  final TextEditingController _taglineEn = TextEditingController();
+  final TextEditingController _taglineRu = TextEditingController();
+  final TextEditingController _taglineTr = TextEditingController();
+  bool _translationsExpanded = false;
+
   BusinessCategory _category = BusinessCategory.other;
   final Set<String> _amenities = <String>{};
   final List<String> _photoUrls = <String>[];
@@ -89,6 +100,12 @@ class _BusinessProfileScreenState
     _lat.text = c.latitude?.toString() ?? '';
     _lng.text = c.longitude?.toString() ?? '';
     _coinRate.text = c.coinRate?.toString() ?? '';
+    _nameEn.text = c.nameEn ?? '';
+    _nameRu.text = c.nameRu ?? '';
+    _nameTr.text = c.nameTr ?? '';
+    _taglineEn.text = c.taglineEn ?? '';
+    _taglineRu.text = c.taglineRu ?? '';
+    _taglineTr.text = c.taglineTr ?? '';
     _category = c.category;
     _amenities
       ..clear()
@@ -100,6 +117,8 @@ class _BusinessProfileScreenState
     for (final TextEditingController c in <TextEditingController>[
       _name, _tagline, _address, _phone, _instagram, _hours,
       _menuUrl, _lat, _lng, _coinRate,
+      _nameEn, _nameRu, _nameTr,
+      _taglineEn, _taglineRu, _taglineTr,
     ]) {
       c.dispose();
     }
@@ -127,6 +146,14 @@ class _BusinessProfileScreenState
           'longitude': double.parse(_lng.text.trim()),
         if (double.tryParse(_coinRate.text.trim()) != null)
           'coinRate': double.parse(_coinRate.text.trim()),
+        // Translations: always sent so an emptied field clears the
+        // override back to the AZ default on the server.
+        'nameEn': _nameEn.text.trim(),
+        'nameRu': _nameRu.text.trim(),
+        'nameTr': _nameTr.text.trim(),
+        'taglineEn': _taglineEn.text.trim(),
+        'taglineRu': _taglineRu.text.trim(),
+        'taglineTr': _taglineTr.text.trim(),
       };
       await ref
           .read(companiesRepositoryProvider)
@@ -257,12 +284,47 @@ class _BusinessProfileScreenState
     return 'image/jpeg';
   }
 
+  Future<void> _confirmSignOut() async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Çıxmaq istəyirsən?'),
+        content: const Text(
+          'Biznes hesabından çıxacaqsan. Yenidən daxil olaraq qayıda bilərsən.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Ləğv et'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Çıxış'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      // Router's auth refresh listener redirects to the role picker.
+      await ref.read(authControllerProvider.notifier).signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final AsyncValue<Company?> async = ref.watch(myCompanyProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mənim biznesim')),
+      appBar: AppBar(
+        title: const Text('Mənim biznesim'),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'Çıxış',
+            icon: const Icon(AppIcons.logout),
+            onPressed: _confirmSignOut,
+          ),
+        ],
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
@@ -510,6 +572,59 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.xl),
               _RewardCatalog(companyId: company.id),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // ── Translations (optional) ──────────────────────────
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                  ),
+                  child: ExpansionTile(
+                    initiallyExpanded: _translationsExpanded,
+                    onExpansionChanged: (bool v) =>
+                        setState(() => _translationsExpanded = v),
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
+                    childrenPadding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      0,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                    ),
+                    title: Text('Tərcümələr (ixtiyari)',
+                        style: AppTextStyles.h3),
+                    subtitle: Text(
+                      'Adı və şüarı EN / RU / TR dillərində doldura bilərsən.',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    children: <Widget>[
+                      AppTextField(label: 'Ad (EN)', controller: _nameEn),
+                      const SizedBox(height: AppSpacing.md),
+                      AppTextField(
+                          label: 'Şüar (EN)', controller: _taglineEn),
+                      const SizedBox(height: AppSpacing.lg),
+                      AppTextField(label: 'Ad (RU)', controller: _nameRu),
+                      const SizedBox(height: AppSpacing.md),
+                      AppTextField(
+                          label: 'Şüar (RU)', controller: _taglineRu),
+                      const SizedBox(height: AppSpacing.lg),
+                      AppTextField(label: 'Ad (TR)', controller: _nameTr),
+                      const SizedBox(height: AppSpacing.md),
+                      AppTextField(
+                          label: 'Şüar (TR)', controller: _taglineTr),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: AppSpacing.xxl),
 
               PrimaryButton(

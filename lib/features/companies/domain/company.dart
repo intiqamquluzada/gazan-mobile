@@ -23,6 +23,12 @@ class Company {
     this.menuUrl,
     this.coinRate,
     this.logoUrl,
+    this.nameEn,
+    this.nameRu,
+    this.nameTr,
+    this.taglineEn,
+    this.taglineRu,
+    this.taglineTr,
   });
 
   final String id;
@@ -59,6 +65,17 @@ class Company {
   /// Uploaded logo / profile picture. Null → brand monogram fallback.
   final String? logoUrl;
 
+  /// Per-language overrides for the owner-facing editor. `name` /
+  /// `tagline` above are already localized for the current request; these
+  /// raw fields show what's currently set for each language so the owner
+  /// can edit translations side-by-side.
+  final String? nameEn;
+  final String? nameRu;
+  final String? nameTr;
+  final String? taglineEn;
+  final String? taglineRu;
+  final String? taglineTr;
+
   bool get hasMenu => (menuUrl ?? '').trim().isNotEmpty;
 
   static List<String> _splitList(String? raw) {
@@ -93,6 +110,12 @@ class Company {
       menuUrl: json['menuUrl'] as String?,
       coinRate: (json['coinRate'] as num?)?.toDouble(),
       logoUrl: json['logoUrl'] as String?,
+      nameEn: json['nameEn'] as String?,
+      nameRu: json['nameRu'] as String?,
+      nameTr: json['nameTr'] as String?,
+      taglineEn: json['taglineEn'] as String?,
+      taglineRu: json['taglineRu'] as String?,
+      taglineTr: json['taglineTr'] as String?,
     );
   }
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -18,8 +17,27 @@ class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    await ref.read(authControllerProvider.notifier).signOut();
-    if (context.mounted) context.go('/role');
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Çıxmaq istəyirsən?'),
+        content: const Text('Admin hesabından çıxacaqsan.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Ləğv et'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Çıxış'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      // Router's auth refresh listener handles the redirect to /role.
+      await ref.read(authControllerProvider.notifier).signOut();
+    }
   }
 
   @override

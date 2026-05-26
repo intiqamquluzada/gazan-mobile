@@ -108,6 +108,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: AppStrings.email,
+                  hint: 'sən@qazan.az',
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.alternate_email_rounded,
@@ -118,6 +119,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: AppStrings.phone,
+                  hint: '+994 ...',
                   controller: _phone,
                   keyboardType: TextInputType.phone,
                   prefixIcon: Icons.phone_outlined,
@@ -126,6 +128,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: AppStrings.password,
+                  hint: '6+ simvol',
                   controller: _password,
                   obscure: true,
                   prefixIcon: Icons.lock_outline_rounded,

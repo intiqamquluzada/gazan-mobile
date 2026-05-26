@@ -32,6 +32,7 @@ class QazanApp extends ConsumerWidget {
         Locale('az'),
         Locale('en'),
         Locale('ru'),
+        Locale('tr'),
       ],
     );
   }

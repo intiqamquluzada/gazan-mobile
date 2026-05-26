@@ -40,11 +40,31 @@ final GlobalKey<NavigatorState> _businessShellKey =
 final GlobalKey<NavigatorState> _adminShellKey =
     GlobalKey<NavigatorState>(debugLabel: 'adminShell');
 
+/// Bridges Riverpod auth changes into GoRouter. Whenever the user signs
+/// in or out, [redirect] is re-evaluated automatically — so logout
+/// buttons only need to clear auth state, never navigate by hand.
+class _AuthRefresh extends ChangeNotifier {
+  _AuthRefresh(Ref ref) {
+    ref.listen<AuthState>(
+      authControllerProvider,
+      (AuthState? prev, AuthState next) {
+        if (prev?.isAuthenticated != next.isAuthenticated) {
+          notifyListeners();
+        }
+      },
+    );
+  }
+}
+
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
+  final _AuthRefresh authRefresh = _AuthRefresh(ref);
+  ref.onDispose(authRefresh.dispose);
+
   return GoRouter(
     navigatorKey: _rootKey,
     initialLocation: '/splash',
     debugLogDiagnostics: false,
+    refreshListenable: authRefresh,
     redirect: (BuildContext context, GoRouterState state) {
       final AuthState auth = ref.read(authControllerProvider);
       final String location = state.matchedLocation;
@@ -136,6 +156,14 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         parentNavigatorKey: _rootKey,
         path: '/notifications',
         builder: (_, __) => const NotificationsScreen(),
+      ),
+      // Standalone "show my QR" route — pushed on top of any screen
+      // (e.g. a company detail) so back returns to the caller instead
+      // of dropping the user out of the app.
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/qr/show',
+        builder: (_, __) => const QrDisplayScreen(),
       ),
 
       // ───────────────────── Business shell ─────────────────────

@@ -27,7 +27,7 @@ class CustomerShell extends StatelessWidget {
       activeIcon: AppIcons.homeActive,
     ),
     AppNavItem(
-      label: 'Hədiyyələrim',
+      label: 'Hədiyyə',
       icon: AppIcons.gift,
       activeIcon: AppIcons.gift,
     ),
@@ -64,12 +64,25 @@ class CustomerShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String location = GoRouterState.of(context).uri.toString();
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: AppBottomNav(
-        items: _items,
-        currentIndex: _indexFor(location),
-        onSelect: (int i) => context.go(_routes[i]),
+    final int currentIdx = _indexFor(location);
+    // Back button:
+    //   - On the home tab → let the OS pop (exits the app cleanly).
+    //   - On any other tab → switch back to the home tab first, so
+    //     users don't accidentally drop out of the app from a deep
+    //     destination.
+    return PopScope(
+      canPop: currentIdx == 0,
+      onPopInvokedWithResult: (bool didPop, Object? _) {
+        if (didPop) return;
+        context.go(_routes[0]);
+      },
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: AppBottomNav(
+          items: _items,
+          currentIndex: currentIdx,
+          onSelect: (int i) => context.go(_routes[i]),
+        ),
       ),
     );
   }

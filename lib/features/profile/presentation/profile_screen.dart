@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -11,7 +10,6 @@ import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
-import '../../auth/domain/user_role.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_card.dart';
 import '../application/profile_settings_controller.dart';
@@ -193,6 +191,7 @@ class ProfileScreen extends ConsumerWidget {
   String _langLabel(String code) => switch (code) {
         'en' => 'English',
         'ru' => 'Русский',
+        'tr' => 'Türkçe',
         _ => 'Azərbaycanca',
       };
 
@@ -236,13 +235,11 @@ class ProfileScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (ok == true && context.mounted) {
-      final UserRole role =
-          ref.read(currentUserProvider)?.role ?? UserRole.customer;
+    if (ok == true) {
+      // Just clear the session — the router's auth refresh listener
+      // redirects to the role picker on its own. No manual navigation,
+      // so there's no race between sign-out and screen disposal.
       await ref.read(authControllerProvider.notifier).signOut();
-      if (context.mounted) {
-        context.go('/login?role=${role.name}');
-      }
     }
   }
 

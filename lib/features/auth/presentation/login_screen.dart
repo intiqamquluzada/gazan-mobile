@@ -21,11 +21,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _email = TextEditingController(
-    text: 'demo@qazan.az',
-  );
-  final TextEditingController _password =
-      TextEditingController(text: 'password123');
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _password = TextEditingController();
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
   bool _obscure = true;
 
@@ -121,6 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: AppStrings.password,
+                  hint: '••••••••',
                   controller: _password,
                   obscure: _obscure,
                   prefixIcon: Icons.lock_outline_rounded,
