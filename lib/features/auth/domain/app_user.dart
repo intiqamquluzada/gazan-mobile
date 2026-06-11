@@ -7,6 +7,7 @@ class AppUser {
     required this.email,
     required this.role,
     this.phone,
+    this.birthDate,
     this.avatarUrl,
     this.businessId,
   });
@@ -15,6 +16,7 @@ class AppUser {
   final String fullName;
   final String email;
   final String? phone;
+  final DateTime? birthDate;
   final String? avatarUrl;
   final UserRole role;
 
@@ -25,6 +27,7 @@ class AppUser {
     String? fullName,
     String? email,
     String? phone,
+    DateTime? birthDate,
     String? avatarUrl,
     UserRole? role,
     String? businessId,
@@ -34,6 +37,7 @@ class AppUser {
         fullName: fullName ?? this.fullName,
         email: email ?? this.email,
         phone: phone ?? this.phone,
+        birthDate: birthDate ?? this.birthDate,
         avatarUrl: avatarUrl ?? this.avatarUrl,
         role: role ?? this.role,
         businessId: businessId ?? this.businessId,

@@ -68,8 +68,9 @@ class ApiClient {
         ));
   }
 
-  Future<void> delete(String path, {Options? options}) async {
-    await _send<void>(() => _dio.delete<dynamic>(path, options: options));
+  Future<void> delete(String path, {Object? body, Options? options}) async {
+    await _send<void>(
+        () => _dio.delete<dynamic>(path, data: body, options: options));
   }
 
   // ─────────────────────────── internals ───────────────────────────

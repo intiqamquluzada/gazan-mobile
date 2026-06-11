@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -13,6 +14,7 @@ import '../../auth/domain/app_user.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_card.dart';
 import '../application/profile_settings_controller.dart';
+import '../data/profile_remote_data_source.dart';
 import 'sheets/edit_profile_sheet.dart';
 import 'sheets/help_sheet.dart';
 import 'sheets/language_sheet.dart';
@@ -57,7 +59,11 @@ class ProfileScreen extends ConsumerWidget {
             ),
             child: Row(
               children: <Widget>[
-                Avatar(name: user?.fullName ?? 'Qonaq', size: 56),
+                Avatar(
+                  name: user?.fullName ?? 'Qonaq',
+                  imageUrl: user?.avatarUrl,
+                  size: 56,
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -121,6 +127,11 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => _showSheet(context, const EditProfileSheet()),
           ),
           _MenuTile(
+            icon: Icons.favorite_border_rounded,
+            label: 'Sevimlilər',
+            onTap: () => context.push('/favorites'),
+          ),
+          _MenuTile(
             icon: Icons.notifications_none_rounded,
             label: 'Bildirişlər',
             trailing: _notifTrailing(ref),
@@ -162,7 +173,7 @@ class ProfileScreen extends ConsumerWidget {
           _MenuTile(
             icon: Icons.info_outline_rounded,
             label: 'Tətbiq haqqında',
-            trailing: 'v 0.1.0',
+            trailing: 'v 1.0.0',
             onTap: () => _showAbout(context),
           ),
 
@@ -171,6 +182,14 @@ class ProfileScreen extends ConsumerWidget {
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Çıxış'),
             onPressed: () => _confirmSignOut(context, ref),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextButton.icon(
+            icon: const Icon(Icons.delete_forever_rounded,
+                color: AppColors.error),
+            label: const Text('Hesabı sil',
+                style: TextStyle(color: AppColors.error)),
+            onPressed: () => _confirmDeleteAccount(context, ref),
           ),
           const SizedBox(height: AppSpacing.lg),
         ],
@@ -243,6 +262,45 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _confirmDeleteAccount(
+      BuildContext context, WidgetRef ref) async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Hesabı silmək istəyirsən?'),
+        content: const Text(
+          'Bu, hesabını həmişəlik silir. Profil məlumatların silinəcək və '
+          'bu əməliyyat geri qaytarıla bilməz.\n\n'
+          'Qazandığın coinlər və kartlar da əlçatmaz olacaq.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Ləğv et'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Hesabı sil'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(profileRemoteDataSourceProvider).deleteAccount();
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Hesab silinmədi: $e')),
+      );
+      return;
+    }
+    // Drop the (now revoked) session — the router redirects to /role.
+    await ref.read(authControllerProvider.notifier).signOut();
+  }
+
   Future<void> _showContactSheet(BuildContext context) async {
     return _showSheet(
       context,
@@ -296,7 +354,7 @@ class ProfileScreen extends ConsumerWidget {
     showAboutDialog(
       context: context,
       applicationName: 'Qazan',
-      applicationVersion: '0.1.0',
+      applicationVersion: '1.0.0',
       applicationLegalese: '© 2026 Qazan. Bütün hüquqlar qorunur.',
       children: <Widget>[
         const SizedBox(height: AppSpacing.md),

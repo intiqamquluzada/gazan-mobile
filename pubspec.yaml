@@ -1,7 +1,7 @@
 name: qazan
 description: "Qazan — sadiqlik və müştəri izləmə platforması. Loyalty & customer tracking platform."
 publish_to: "none"
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -36,6 +36,10 @@ dependencies:
   # Links (mailto / tel / whatsapp)
   url_launcher: ^6.3.1
 
+  # Maps (OpenStreetMap tiles — no API key needed)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
   # Native share sheet (system "Share via..." dialog)
   share_plus: ^10.1.4
 
@@ -48,10 +52,44 @@ dependencies:
   dio: ^5.7.0
   shared_preferences: ^2.3.4
 
+  # Push notifications (FCM → real phone notifications).
+  # Needs Firebase config files to function — see PUSH_SETUP.md.
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.3
+
+# Native launch screen (shown before Flutter boots) — brand purple + white Q.
+# Regenerate with: dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#6C2BD9"
+  image: assets/branding/app_icon_foreground.png
+  android_12:
+    color: "#6C2BD9"
+    image: assets/branding/app_icon_foreground.png
+  web: false
+
+# App launcher icons — regenerate with:
+#   flutter pub run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/branding/app_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  adaptive_icon_background: "assets/branding/app_icon_bg.png"
+  adaptive_icon_foreground: "assets/branding/app_icon_foreground.png"
+  web:
+    generate: true
+    image_path: "assets/branding/app_icon.png"
+    background_color: "#6C2BD9"
+    theme_color: "#6C2BD9"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/

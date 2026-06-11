@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
-import '../domain/user_role.dart';
+import '../../../core/widgets/qazan_logo.dart';
 
 class RolePickerScreen extends StatelessWidget {
   const RolePickerScreen({super.key});
@@ -20,7 +20,12 @@ class RolePickerScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              const SizedBox(height: AppSpacing.xxxl),
+              const SizedBox(height: AppSpacing.xxl),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: QazanLogo(size: 72),
+              ),
+              const SizedBox(height: AppSpacing.xl),
               Text('Sən kimsən?', style: AppTextStyles.display),
               const SizedBox(height: AppSpacing.sm),
               Text(

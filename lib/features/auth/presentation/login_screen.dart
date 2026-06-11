@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/qazan_logo.dart';
 import '../application/auth_controller.dart';
 import '../domain/user_role.dart';
 
@@ -56,23 +57,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     context.go(effective.landingPath);
   }
 
-  Future<void> _forgotPassword(BuildContext context) async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Şifrəni unutmusan?'),
-        content: const Text(
-          'Şifrə bərpası üçün dəstəklə əlaqə saxla:\n\n'
-          'hello@qazan.az\n+994 12 555 00 00\n\n'
-          'Komandamız hesabını yoxlayıb şifrəni sıfırlayacaq.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Bağla'),
-          ),
-        ],
-      ),
+  void _forgotPassword(BuildContext context) {
+    // Carry whatever the user already typed into the email field so the
+    // reset screen can pre-fill it.
+    final String email = _email.text.trim();
+    context.push(
+      email.isEmpty
+          ? '/forgot-password'
+          : '/forgot-password?email=${Uri.encodeQueryComponent(email)}',
     );
   }
 
@@ -94,6 +86,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             key: _form,
             child: ListView(
               children: <Widget>[
+                const Center(child: QazanLogo(size: 76)),
+                const SizedBox(height: AppSpacing.xl),
                 Text('Xoş gəldin 👋', style: AppTextStyles.display),
                 const SizedBox(height: AppSpacing.sm),
                 Text(

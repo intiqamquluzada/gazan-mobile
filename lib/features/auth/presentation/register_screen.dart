@@ -26,6 +26,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final TextEditingController _password = TextEditingController();
   final TextEditingController _phone = TextEditingController();
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
+  bool _obscure = true;
+  DateTime? _birthDate;
+
+  static final RegExp _phonePattern = RegExp(r'^\+?[0-9 ()-]{6,32}$');
 
   @override
   void dispose() {
@@ -36,6 +40,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _pickBirthDate() async {
+    final DateTime now = DateTime.now();
+    final DateTime initial =
+        _birthDate ?? DateTime(now.year - 18, now.month, now.day);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1920),
+      lastDate: now,
+      helpText: 'Doğum tarixini seç',
+      cancelText: 'Ləğv et',
+      confirmText: 'Seç',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}.'
+      '${d.month.toString().padLeft(2, '0')}.${d.year}';
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     try {
@@ -45,6 +69,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             password: _password.text,
             role: widget.role,
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+            birthDate: _birthDate,
           );
     } catch (_) {
       if (!mounted) return;
@@ -59,6 +84,44 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final UserRole effective =
         ref.read(currentUserProvider)?.role ?? widget.role;
     context.go(effective.landingPath);
+  }
+
+  /// A tappable, read-only field that opens the date picker. Built by hand
+  /// (not [AppTextField]) because that widget disables itself when read-only,
+  /// which would swallow the tap.
+  Widget _birthDateField(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool hasValue = _birthDate != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'Doğum tarixi (istəyə bağlı)',
+          style: AppTextStyles.bodySm.copyWith(
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        InkWell(
+          onTap: _pickBirthDate,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.cake_outlined, size: 20),
+            ),
+            child: Text(
+              hasValue ? _formatDate(_birthDate!) : 'Tarixi seç',
+              style: AppTextStyles.body.copyWith(
+                color: hasValue
+                    ? theme.colorScheme.onSurface
+                    : AppColors.textTertiary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -124,17 +187,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   keyboardType: TextInputType.phone,
                   prefixIcon: Icons.phone_outlined,
                   textInputAction: TextInputAction.next,
+                  validator: (String? v) {
+                    final String s = (v ?? '').trim();
+                    if (s.isEmpty) return null; // optional
+                    return _phonePattern.hasMatch(s)
+                        ? null
+                        : 'Telefon nömrəsi düzgün deyil';
+                  },
                 ),
+                const SizedBox(height: AppSpacing.lg),
+                _birthDateField(context),
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
                   label: AppStrings.password,
-                  hint: '6+ simvol',
+                  hint: '8+ simvol',
                   controller: _password,
-                  obscure: true,
+                  obscure: _obscure,
                   prefixIcon: Icons.lock_outline_rounded,
                   textInputAction: TextInputAction.done,
+                  suffix: IconButton(
+                    icon: Icon(_obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined),
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                  ),
                   validator: (String? v) =>
-                      (v == null || v.length < 6) ? '6+ simvol olsun' : null,
+                      (v == null || v.length < 8) ? '8+ simvol olsun' : null,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 PrimaryButton(

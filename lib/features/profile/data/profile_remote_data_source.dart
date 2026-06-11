@@ -41,6 +41,12 @@ class ProfileRemoteDataSource {
       },
     );
   }
+
+  /// Permanently deletes the signed-in account (anonymized server-side,
+  /// all sessions revoked). After this the caller must clear local state.
+  Future<void> deleteAccount() async {
+    await _api.delete('/api/v1/users/me');
+  }
 }
 
 final Provider<ProfileRemoteDataSource> profileRemoteDataSourceProvider =

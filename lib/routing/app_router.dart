@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/domain/user_role.dart';
+import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
@@ -22,6 +23,7 @@ import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
 import '../features/companies/presentation/company_detail_screen.dart';
 import '../features/companies/presentation/discover_screen.dart';
+import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/home/presentation/business_shell.dart';
 import '../features/home/presentation/customer_shell.dart';
 import '../features/loyalty/presentation/my_cards_screen.dart';
@@ -71,6 +73,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
 
       const Set<String> publicPaths = <String>{
         '/splash', '/onboarding', '/role', '/login', '/register',
+        '/forgot-password',
       };
       final bool isPublic =
           publicPaths.any((String p) => location.startsWith(p));
@@ -107,6 +110,12 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           final UserRole role = _roleFromQuery(state);
           return RegisterScreen(role: role);
         },
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (BuildContext _, GoRouterState state) => ForgotPasswordScreen(
+          initialEmail: state.uri.queryParameters['email'],
+        ),
       ),
 
       // ───────────────────── Customer shell ─────────────────────
@@ -156,6 +165,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         parentNavigatorKey: _rootKey,
         path: '/notifications',
         builder: (_, __) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/favorites',
+        builder: (_, __) => const FavoritesScreen(),
       ),
       // Standalone "show my QR" route — pushed on top of any screen
       // (e.g. a company detail) so back returns to the caller instead

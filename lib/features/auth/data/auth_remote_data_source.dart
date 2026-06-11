@@ -28,6 +28,7 @@ class AuthRemoteDataSource {
     required String fullName,
     required UserRole role,
     String? phone,
+    DateTime? birthDate,
     String locale = 'AZ',
   }) async {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
@@ -37,6 +38,8 @@ class AuthRemoteDataSource {
         'password': password,
         'fullName': fullName.trim(),
         'phone': phone,
+        // Backend expects an ISO date (yyyy-MM-dd), not a full timestamp.
+        'birthDate': birthDate?.toIso8601String().split('T').first,
         'role': RoleMapping.toBackend(role),
         'locale': locale,
       },
@@ -53,6 +56,31 @@ class AuthRemoteDataSource {
       body: <String, dynamic>{'email': email.trim(), 'password': password},
     );
     return _consume(json);
+  }
+
+  /// Step 1 of password reset — asks the backend to email a 6-digit code.
+  /// Always succeeds (the server never reveals whether the email exists).
+  Future<void> requestPasswordReset(String email) async {
+    await _api.post<dynamic>(
+      '/api/v1/auth/forgot-password',
+      body: <String, dynamic>{'email': email.trim()},
+    );
+  }
+
+  /// Step 2 — verifies the code and sets the new password.
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _api.post<dynamic>(
+      '/api/v1/auth/reset-password',
+      body: <String, dynamic>{
+        'email': email.trim(),
+        'code': code.trim(),
+        'newPassword': newPassword,
+      },
+    );
   }
 
   Future<void> logout() async {
@@ -96,11 +124,13 @@ class AuthRemoteDataSource {
   static AppUser userFromJson(Map<String, dynamic> json) => _userFromJson(json);
 
   static AppUser _userFromJson(Map<String, dynamic> json) {
+    final String? birth = json['birthDate'] as String?;
     return AppUser(
       id: json['id'] as String,
       fullName: (json['fullName'] as String?) ?? '',
       email: (json['email'] as String?) ?? '',
       phone: json['phone'] as String?,
+      birthDate: birth == null ? null : DateTime.tryParse(birth),
       avatarUrl: json['avatarUrl'] as String?,
       role: RoleMapping.fromBackend((json['role'] as String?) ?? 'CUSTOMER'),
       businessId: null,

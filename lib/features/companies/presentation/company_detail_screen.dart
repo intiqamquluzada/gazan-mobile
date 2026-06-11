@@ -11,7 +11,10 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/company_logo.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../favorites/application/favorites_providers.dart';
 import '../../loyalty/application/loyalty_providers.dart';
+import '../../reviews/presentation/reviews_section.dart';
+import 'widgets/location_map.dart';
 import '../../loyalty/domain/loyalty_card.dart';
 import '../../loyalty/domain/loyalty_program.dart';
 import '../../rewards/application/rewards_providers.dart';
@@ -134,6 +137,20 @@ class _Body extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     _CoinRewardsSection(company: company),
+                    if (company.latitude != null &&
+                        company.longitude != null) ...<Widget>[
+                      const SizedBox(height: AppSpacing.lg),
+                      LocationMap(
+                        latitude: company.latitude!,
+                        longitude: company.longitude!,
+                        companyName: company.name,
+                      ),
+                    ],
+                    const SizedBox(height: AppSpacing.lg),
+                    ReviewsSection(
+                      companyId: company.id,
+                      companyName: company.name,
+                    ),
                     const SizedBox(height: AppSpacing.xxxl),
                   ],
                 ),
@@ -157,6 +174,22 @@ class _Body extends ConsumerWidget {
                     context.canPop() ? context.pop() : context.go('/home'),
               ),
               const Spacer(),
+              Consumer(
+                builder: (BuildContext context, WidgetRef ref, _) {
+                  final bool fav =
+                      ref.watch(favoritesProvider).contains(company.id);
+                  return _GlassCircle(
+                    icon: fav
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    iconColor: fav ? AppColors.error : null,
+                    onTap: () => ref
+                        .read(favoritesProvider.notifier)
+                        .toggle(company.id),
+                  );
+                },
+              ),
+              const SizedBox(width: AppSpacing.sm),
               _GlassCircle(
                 icon: AppIcons.share,
                 onTap: () async {
@@ -288,10 +321,11 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
 }
 
 class _GlassCircle extends StatelessWidget {
-  const _GlassCircle({required this.icon, this.onTap});
+  const _GlassCircle({required this.icon, this.onTap, this.iconColor});
 
   final IconData icon;
   final VoidCallback? onTap;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -304,7 +338,7 @@ class _GlassCircle extends StatelessWidget {
         child: SizedBox(
           width: 42,
           height: 42,
-          child: Icon(icon, size: 19, color: AppColors.textPrimary),
+          child: Icon(icon, size: 19, color: iconColor ?? AppColors.textPrimary),
         ),
       ),
     );
