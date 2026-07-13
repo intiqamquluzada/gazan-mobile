@@ -45,6 +45,11 @@ Release build:
 flutter build appbundle --release   # Play Store üçün .aab
 flutter build apk --release         # birbaşa paylaşım üçün .apk
 ```
+Release build-lər `AppConfig._productionBaseUrl` (`http://46.36.201.105`) ünvanına
+qoşulur. Başqa serverə yönəltmək üçün:
+```
+flutter build apk --release --dart-define=API_BASE_URL=http://<server-ip>
+```
 `key.properties` yoxdursa, build debug açarla imzalanır (lokal sınaq üçün).
 
 ## İmzalama (iOS)
@@ -64,7 +69,7 @@ flutter build ipa --release
 
 ## ⚠️ Dərc etməzdən əvvəl QALAN manual addımlar
 
-1. **HTTPS** — backend hazırda HTTP-dir (`http://209.97.135.206`). Buna görə
+1. **HTTPS** — backend hazırda HTTP-dir (`http://46.36.201.105`, 443 açıq deyil). Buna görə
    `usesCleartextTraffic=true` (Android) və `NSAllowsArbitraryLoads=true` (iOS)
    açıqdır. Apple App Review bunu sorğulaya bilər. **iOS submission-dan əvvəl
    domen + HTTPS qurulmalıdır** (HANDOVER-də gözləyən iş). Sonra `AppConfig`
