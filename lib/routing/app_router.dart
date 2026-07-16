@@ -13,14 +13,19 @@ import '../features/auth/presentation/splash_screen.dart';
 import '../features/admin/presentation/admin_businesses_screen.dart';
 import '../features/admin/presentation/admin_coins_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
+import '../features/admin/presentation/admin_menus_screen.dart';
 import '../features/admin/presentation/admin_notifications_screen.dart';
+import '../features/admin/presentation/admin_promotions_screen.dart';
 import '../features/admin/presentation/admin_shell.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
+import '../features/business/presentation/business_account_screen.dart';
 import '../features/business/presentation/business_dashboard_screen.dart';
 import '../features/business/presentation/business_profile_screen.dart';
+import '../features/business/presentation/customer_detail_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
+import '../features/companies/presentation/companies_screen.dart';
 import '../features/companies/presentation/company_detail_screen.dart';
 import '../features/companies/presentation/discover_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
@@ -28,7 +33,6 @@ import '../features/home/presentation/business_shell.dart';
 import '../features/home/presentation/customer_shell.dart';
 import '../features/loyalty/presentation/my_cards_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
-import '../features/wallet/presentation/my_rewards_screen.dart';
 import '../features/promotions/presentation/story_viewer_screen.dart';
 import '../features/qr/presentation/qr_display_screen.dart';
 import '../features/qr/presentation/qr_scanner_screen.dart';
@@ -130,8 +134,8 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             routes: <RouteBase>[],
           ),
           GoRoute(
-            path: '/wallet',
-            builder: (_, __) => const MyRewardsScreen(),
+            path: '/companies',
+            builder: (_, __) => const CompaniesScreen(),
           ),
           GoRoute(
             path: '/cards',
@@ -178,6 +182,20 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         parentNavigatorKey: _rootKey,
         path: '/qr/show',
         builder: (_, __) => const QrDisplayScreen(),
+      ),
+      // Business owner's personal account settings (name/phone, password,
+      // language, theme, sign-out). Pushed on top of the business shell.
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/business/account',
+        builder: (_, __) => const BusinessAccountScreen(),
+      ),
+      // Business — rich detail for one customer (contact + purchase log).
+      GoRoute(
+        parentNavigatorKey: _rootKey,
+        path: '/business/customers/:id',
+        builder: (BuildContext _, GoRouterState state) =>
+            CustomerDetailScreen(userId: state.pathParameters['id']!),
       ),
 
       // ───────────────────── Business shell ─────────────────────
@@ -234,6 +252,14 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/admin/notifications',
             builder: (_, __) => const AdminNotificationsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/promotions',
+            builder: (_, __) => const AdminPromotionsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/menus',
+            builder: (_, __) => const AdminMenusScreen(),
           ),
         ],
       ),

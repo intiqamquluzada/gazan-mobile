@@ -1,6 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'push_repository.dart';
@@ -9,70 +6,34 @@ import 'push_repository.dart';
 /// phone notifications (lock screen / notification tray), not just the
 /// in-app inbox.
 ///
-/// Entirely optional and fail-safe: if Firebase isn't configured on this
-/// build (no `google-services.json` / `GoogleService-Info.plist`, or web
-/// without a VAPID key) every method becomes a silent no-op, so the rest of
-/// the app is unaffected. See `PUSH_SETUP.md` to switch it on.
+/// **Temporarily disabled.** Firebase isn't configured on this build (no
+/// `google-services.json` / `GoogleService-Info.plist`), so every method is
+/// a silent no-op and the `firebase_core` / `firebase_messaging` packages
+/// are removed from `pubspec.yaml`. This keeps the app free of Firebase
+/// native code — no connection errors, no crashes — while still leaving the
+/// call sites (sign-in / sign-out) intact.
+///
+/// To switch push back on:
+///   1. Re-add `firebase_core` + `firebase_messaging` to `pubspec.yaml`.
+///   2. Drop in `google-services.json` (Android) / `GoogleService-Info.plist`
+///      (iOS) — see `PUSH_SETUP.md`.
+///   3. Restore the FCM init + `getToken()` logic below.
 class PushService {
   PushService(this._tokens);
 
+  // Retained so re-enabling push is a one-file change; unused while the
+  // service is a no-op.
+  // ignore: unused_field
   final PushRepository _tokens;
 
-  bool _ready = false;
-  FirebaseMessaging? _fm;
-
-  Future<void> _init() async {
-    if (_ready) return;
-    try {
-      await Firebase.initializeApp();
-      _fm = FirebaseMessaging.instance;
-      await _fm!.requestPermission(); // iOS/web prompt; no-op on Android <13
-      _ready = true;
-    } catch (_) {
-      // Firebase not configured for this platform/build — push stays off.
-      _ready = false;
-    }
-  }
-
-  String get _platform {
-    if (kIsWeb) return 'WEB';
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.iOS:
-        return 'IOS';
-      default:
-        return 'ANDROID';
-    }
-  }
-
-  /// Call right after sign-in: fetch the device token and register it so the
-  /// backend can target this device. Re-registers automatically on rotation.
+  /// Call right after sign-in. No-op until Firebase is configured.
   Future<void> syncToken() async {
-    await _init();
-    if (!_ready || _fm == null) return;
-    try {
-      final String? token = await _fm!.getToken();
-      if (token == null || token.isEmpty) return;
-      await _tokens.register(token, _platform);
-      _fm!.onTokenRefresh.listen((String t) {
-        _tokens.register(t, _platform);
-      });
-    } catch (_) {
-      // No token (e.g. web without VAPID key) — push simply stays off.
-    }
+    // Intentionally does nothing — push is disabled on this build.
   }
 
-  /// Call on sign-out so this device stops receiving the account's pushes.
+  /// Call on sign-out. No-op until Firebase is configured.
   Future<void> clearToken() async {
-    if (!_ready || _fm == null) return;
-    try {
-      final String? token = await _fm!.getToken();
-      if (token != null && token.isNotEmpty) {
-        await _tokens.unregister(token);
-      }
-      await _fm!.deleteToken();
-    } catch (_) {
-      // Best-effort — sign-out must never block on push cleanup.
-    }
+    // Intentionally does nothing — push is disabled on this build.
   }
 }
 

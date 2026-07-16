@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/push/push_service.dart';
@@ -35,7 +36,7 @@ class AuthState {
 }
 
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._remote, this._tokens, this._push)
+  AuthController(this._remote, this._tokens, this._push, this._ref)
       : super(const AuthState()) {
     _restoreSession();
   }
@@ -43,6 +44,7 @@ class AuthController extends StateNotifier<AuthState> {
   final AuthRemoteDataSource _remote;
   final TokenStorage _tokens;
   final PushService _push;
+  final Ref _ref;
 
   final Completer<void> _restoreCompleter = Completer<void>();
 
@@ -99,6 +101,24 @@ class AuthController extends StateNotifier<AuthState> {
       );
       developer.log('signIn: got session user=${session.user.email}',
           name: 'qazan.auth');
+
+      // Role-entrance guard: a business owner must sign in from the
+      // business entrance and a customer from the customer entrance.
+      // Admins are exempt — they can sign in from any entrance.
+      final UserRole actual = session.user.role;
+      if (actual != UserRole.admin && actual != role) {
+        // Undo the login on the server side and surface a clear message.
+        try {
+          await _remote.logout();
+        } catch (_) {/* best-effort */}
+        final S s = _ref.read(sProvider);
+        final String msg = role == UserRole.business
+            ? s.roleMismatchBusiness
+            : s.roleMismatchCustomer;
+        state = AuthState(error: msg);
+        throw ApiException(code: 'ROLE_MISMATCH', message: msg, status: 403);
+      }
+
       state = AuthState(user: session.user);
       unawaited(_push.syncToken());
       developer.log('signIn: state updated', name: 'qazan.auth');
@@ -117,7 +137,7 @@ class AuthController extends StateNotifier<AuthState> {
   /// Turns any thrown error into a short, user-facing message.
   String _friendlyMessage(Object e) {
     if (e is ApiException) return e.message;
-    return 'Xəta baş verdi. Bir azdan yenidən cəhd et.';
+    return _ref.read(sProvider).errorTryAgain;
   }
 
   Future<void> signUp({
@@ -190,6 +210,7 @@ final StateNotifierProvider<AuthController, AuthState> authControllerProvider =
     ref.read(authRemoteDataSourceProvider),
     ref.read(tokenStorageProvider),
     ref.read(pushServiceProvider),
+    ref,
   ),
 );
 

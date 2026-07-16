@@ -1,9 +1,13 @@
 import '../../../core/network/api_client.dart';
+import '../domain/customer_detail.dart';
 import '../domain/customer_summary.dart';
 
 abstract class BusinessRepository {
   Future<List<CustomerSummary>> customersForBusiness(String businessId);
   Future<BusinessStats> statsForBusiness(String businessId);
+
+  /// Rich detail for one customer at the signed-in owner's business.
+  Future<CustomerDetail> customerDetail(String userId);
 
   /// Owner credits coins to a customer after scanning their QR.
   Future<void> grantCoins({
@@ -58,6 +62,14 @@ class RemoteBusinessRepository implements BusinessRepository {
         .cast<Map<String, dynamic>>()
         .map(CustomerSummary.fromJson)
         .toList(growable: false);
+  }
+
+  @override
+  Future<CustomerDetail> customerDetail(String userId) async {
+    final Map<String, dynamic> json = await _api.get<Map<String, dynamic>>(
+      '/api/v1/business/customers/$userId',
+    );
+    return CustomerDetail.fromJson(json);
   }
 
   @override

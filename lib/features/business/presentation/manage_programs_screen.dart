@@ -7,23 +7,26 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/i18n/strings.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
+import 'widgets/reward_catalog.dart';
 
 class ManageProgramsScreen extends ConsumerWidget {
   const ManageProgramsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<Company?> companyAsync = ref.watch(myCompanyProvider);
     final Company? company = companyAsync.value;
     if (company == null) {
       return Scaffold(
         body: companyAsync.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : const EmptyState(title: 'Biznes profili yoxdur'),
+            : EmptyState(title: s.noBusinessProfile),
       );
     }
     final String businessId = company.id;
@@ -32,48 +35,60 @@ class ManageProgramsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sadiqlik proqramları'),
+        title: Text(s.loyaltyPrograms),
       ),
       body: programs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
-          title: 'Xəta',
+          title: s.error,
           subtitle: e.toString(),
           icon: Icons.error_outline_rounded,
         ),
         data: (List<LoyaltyProgram> list) {
-          if (list.isEmpty) {
-            return EmptyState(
-              title: 'Hələ proqram yoxdur',
-              subtitle: 'İlk təklifini yarat və müştəriləri qaytar.',
-              icon: Icons.tune_outlined,
-              action: PrimaryButton(
-                label: 'Yeni proqram',
-                icon: Icons.add_rounded,
-                expanded: false,
-                onPressed: () =>
-                    _openProgramSheet(context, ref, companyId: businessId),
-              ),
-            );
-          }
           return RefreshIndicator(
             onRefresh: () async =>
                 ref.invalidate(programsForCompanyProvider(businessId)),
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge,
               ),
-              itemCount: list.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: AppSpacing.md),
-              itemBuilder: (BuildContext _, int i) => _ProgramTile(
-                program: list[i],
-                onEdit: () => _openProgramSheet(
-                  context, ref,
-                  companyId: businessId,
-                  existing: list[i],
-                ),
-              ),
+              children: <Widget>[
+                // ── Stamp / loyalty programs ──
+                Text(s.stampPrograms, style: AppTextStyles.h3),
+                const SizedBox(height: AppSpacing.md),
+                if (list.isEmpty)
+                  EmptyState(
+                    title: s.noProgramsYet,
+                    subtitle: s.createFirstOffer,
+                    icon: Icons.tune_outlined,
+                    action: PrimaryButton(
+                      label: s.newProgram,
+                      icon: Icons.add_rounded,
+                      expanded: false,
+                      onPressed: () =>
+                          _openProgramSheet(context, ref, companyId: businessId),
+                    ),
+                  )
+                else
+                  for (final LoyaltyProgram p in list) ...<Widget>[
+                    _ProgramTile(
+                      program: p,
+                      onEdit: () => _openProgramSheet(
+                        context, ref,
+                        companyId: businessId,
+                        existing: p,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+
+                const SizedBox(height: AppSpacing.xl),
+                const Divider(),
+                const SizedBox(height: AppSpacing.xl),
+
+                // ── Coin reward catalog (moved here from "Mənim biznesim") ──
+                RewardCatalog(companyId: businessId),
+              ],
             ),
           );
         },
@@ -81,7 +96,7 @@ class ManageProgramsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openProgramSheet(context, ref, companyId: businessId),
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Yeni proqram'),
+        label: Text(s.newProgram),
       ),
     );
   }
@@ -117,6 +132,7 @@ class _ProgramTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color tint = _tintFor(program.rewardType);
     return Container(
       decoration: BoxDecoration(
@@ -144,7 +160,7 @@ class _ProgramTile extends ConsumerWidget {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                '${program.stampsRequired} möhür → ${program.rewardLabel}',
+                '${program.stampsRequired} ${s.stampWord} → ${program.rewardLabelOf(s)}',
                 style: AppTextStyles.bodySm,
               ),
             ),
@@ -169,7 +185,7 @@ class _ProgramTile extends ConsumerWidget {
                 child: TextButton.icon(
                   onPressed: onEdit,
                   icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text('Düzəliş et'),
+                  label: Text(s.edit),
                 ),
               ),
               Container(
@@ -182,7 +198,7 @@ class _ProgramTile extends ConsumerWidget {
                   onPressed: () => _confirmDelete(context, ref, program),
                   style: TextButton.styleFrom(foregroundColor: AppColors.error),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: const Text('Sil'),
+                  label: Text(s.delete),
                 ),
               ),
             ],
@@ -197,22 +213,21 @@ class _ProgramTile extends ConsumerWidget {
     WidgetRef ref,
     LoyaltyProgram p,
   ) async {
+    final S s = ref.read(sProvider);
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext _) => AlertDialog(
-        title: const Text('Proqramı silək?'),
-        content: Text(
-          '"${p.title}" silinəcək. Bu addım geri alına bilməz.',
-        ),
+        title: Text(s.deleteProgramTitle),
+        content: Text('"${p.title}" ${s.willBeDeletedSuffix}'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Ləğv et'),
+            child: Text(s.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sil'),
+            child: Text(s.delete),
           ),
         ],
       ),
@@ -284,17 +299,18 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
   bool get _needsItem =>
       _rewardType != LoyaltyRewardType.cashback;
 
-  String get _previewLabel {
+  String _previewLabelOf(S s) {
     final num value = num.tryParse(_rewardValue.text) ?? 0;
-    final String item =
-        _rewardItem.text.trim().isEmpty ? 'məhsul' : _rewardItem.text.trim();
+    final String item = _rewardItem.text.trim().isEmpty
+        ? s.productFallback
+        : _rewardItem.text.trim();
     switch (_rewardType) {
       case LoyaltyRewardType.freeItem:
-        return '1 pulsuz $item';
+        return '1 ${s.freeWord} $item';
       case LoyaltyRewardType.percentageDiscount:
-        return '$item üzrə ${_fmt(value)}% endirim';
+        return '$item ${s.onWord} ${_fmt(value)}% ${s.discountWord}';
       case LoyaltyRewardType.fixedDiscount:
-        return '$item üzrə ${_fmt(value)} ₼ endirim';
+        return '$item ${s.onWord} ${_fmt(value)} ₼ ${s.discountWord}';
       case LoyaltyRewardType.cashback:
         return '${_fmt(value)} ₼ cashback';
     }
@@ -310,7 +326,9 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
       final num? value = _needsValue
           ? num.tryParse(_rewardValue.text.trim())
           : null;
-      final String item = _needsItem ? _rewardItem.text.trim() : 'məhsul';
+      final String item = _needsItem
+          ? _rewardItem.text.trim()
+          : ref.read(sProvider).productFallback;
 
       if (widget.existing == null) {
         await ref.read(loyaltyActionsProvider).createProgram(
@@ -340,8 +358,8 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(widget.existing == null
-              ? 'Proqram yaradıldı'
-              : 'Proqram yeniləndi'),
+              ? ref.read(sProvider).programCreated
+              : ref.read(sProvider).programUpdated),
         ),
       );
     } finally {
@@ -351,6 +369,7 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
@@ -377,31 +396,31 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
               const SizedBox(height: AppSpacing.lg),
               Text(
                 widget.existing == null
-                    ? 'Yeni sadiqlik proqramı'
-                    : 'Proqramı düzəliş et',
+                    ? s.newLoyaltyProgram
+                    : s.editProgram,
                 style: AppTextStyles.h2,
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text('Müştərinin nə qazanacağını sən özün təyin et.',
-                  style: AppTextStyles.bodySm),
-              const SizedBox(height: AppSpacing.xl),
-
-              // Title
-              AppTextField(
-                label: 'Proqram adı',
-                hint: 'Məs: 5 al, 6-cı pulsuz',
-                controller: _title,
-                textInputAction: TextInputAction.next,
-                validator: (String? v) =>
-                    (v == null || v.trim().length < 3) ? 'Adı yaz' : null,
-              ),
+              Text(s.threeSimpleSteps,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.textSecondary,
+                  )),
               const SizedBox(height: AppSpacing.lg),
 
-              // Reward type
-              Text('Mükafat növü',
-                  style: AppTextStyles.bodySm.copyWith(
-                    fontWeight: FontWeight.w600,
-                  )),
+              // Live preview — always on top so the owner sees exactly
+              // what the customer's card will say as they build it.
+              _PreviewCard(
+                title: _title.text.trim().isEmpty
+                    ? s.newProgramPlaceholder
+                    : _title.text.trim(),
+                stamps: _stamps,
+                rewardLabel: _previewLabelOf(s),
+                rewardType: _rewardType,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Step 1 — reward type
+              _StepHeader(n: 1, label: s.whatCustomerEarns),
               const SizedBox(height: AppSpacing.sm),
               Wrap(
                 spacing: AppSpacing.sm,
@@ -415,17 +434,15 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
                     ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.lg),
-
-              // Reward value (% or AZN) — only when needed
-              if (_needsValue) ...<Widget>[
+              const SizedBox(height: AppSpacing.md),
+              if (_needsValue)
                 AppTextField(
                   label: _rewardType == LoyaltyRewardType.percentageDiscount
-                      ? 'Endirim faizi (%)'
-                      : 'Məbləğ (₼)',
+                      ? s.discountPercentLabel
+                      : s.amountManatLabel,
                   hint: _rewardType == LoyaltyRewardType.percentageDiscount
-                      ? 'Məs: 50'
-                      : 'Məs: 5',
+                      ? s.egFifty
+                      : s.egFive,
                   controller: _rewardValue,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -437,65 +454,60 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
                   onChanged: (_) => setState(() {}),
                   validator: (String? v) {
                     final num? n = num.tryParse((v ?? '').trim());
-                    if (n == null || n <= 0) return 'Düzgün rəqəm daxil et';
+                    if (n == null || n <= 0) return s.validNumber;
                     if (_rewardType ==
                             LoyaltyRewardType.percentageDiscount &&
                         n > 100) {
-                      return '0–100 arası olmalıdır';
+                      return s.range0to100;
                     }
                     return null;
                   },
                 ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
-
-              // Reward item
-              if (_needsItem) ...<Widget>[
+              if (_needsValue && _needsItem)
+                const SizedBox(height: AppSpacing.md),
+              if (_needsItem)
                 AppTextField(
-                  label: 'Hansı məhsul üçündür?',
-                  hint: 'Məs: qəhvə, burger, manikür',
+                  label: s.whichProduct,
+                  hint: s.productExampleHint,
                   controller: _rewardItem,
                   textInputAction: TextInputAction.next,
                   onChanged: (_) => setState(() {}),
                   validator: (String? v) =>
-                      (v == null || v.trim().isEmpty) ? 'Məhsulu yaz' : null,
+                      (v == null || v.trim().isEmpty) ? s.enterProduct : null,
                 ),
-                const SizedBox(height: AppSpacing.lg),
-              ],
+              const SizedBox(height: AppSpacing.xl),
 
-              // Stamps required
-              Text('Tələb olunan möhür sayı',
-                  style: AppTextStyles.bodySm.copyWith(
-                    fontWeight: FontWeight.w600,
-                  )),
+              // Step 2 — stamps required
+              _StepHeader(n: 2, label: s.howManyStamps),
               const SizedBox(height: AppSpacing.sm),
               _StampStepper(
                 value: _stamps,
                 onChanged: (int v) => setState(() => _stamps = v),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xl),
 
-              // Description
+              // Step 3 — name + optional description
+              _StepHeader(n: 3, label: s.nameYourProgram),
+              const SizedBox(height: AppSpacing.sm),
               AppTextField(
-                label: 'Açıqlama (istəyə bağlı)',
-                hint: 'Müştərinin görəcəyi qısa təsvir',
+                label: s.programNameLabel,
+                hint: s.programNameHint,
+                controller: _title,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) => setState(() {}),
+                validator: (String? v) =>
+                    (v == null || v.trim().length < 3) ? s.enterName2 : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(
+                label: s.descriptionOptional,
+                hint: s.descriptionShortHint,
                 controller: _description,
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Live preview
-              _PreviewCard(
-                title: _title.text.trim().isEmpty
-                    ? 'Yeni proqram'
-                    : _title.text.trim(),
-                stamps: _stamps,
-                rewardLabel: _previewLabel,
-                rewardType: _rewardType,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-
               PrimaryButton(
-                label: widget.existing == null ? 'Yarat' : 'Yadda saxla',
+                label: widget.existing == null ? s.createAction : s.save,
                 icon: Icons.check_rounded,
                 loading: _saving,
                 onPressed: _save,
@@ -503,7 +515,7 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
               const SizedBox(height: AppSpacing.sm),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Ləğv et'),
+                child: Text(s.cancel),
               ),
             ],
           ),
@@ -513,7 +525,41 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
   }
 }
 
-class _RewardTypeChip extends StatelessWidget {
+/// Numbered step label ("① Müştəri nə qazanır?") used to break the
+/// program form into three clear, guided steps.
+class _StepHeader extends StatelessWidget {
+  const _StepHeader({required this.n, required this.label});
+
+  final int n;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 24,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.primary,
+            shape: BoxShape.circle,
+          ),
+          child: Text('$n',
+              style: AppTextStyles.caption.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              )),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(label,
+            style: AppTextStyles.bodyLg.copyWith(fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+}
+
+class _RewardTypeChip extends ConsumerWidget {
   const _RewardTypeChip({
     required this.type,
     required this.selected,
@@ -525,7 +571,8 @@ class _RewardTypeChip extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color bg =
         selected ? AppColors.primary : Theme.of(context).colorScheme.surface;
     final Color fg = selected ? Colors.white : AppColors.textPrimary;
@@ -547,7 +594,7 @@ class _RewardTypeChip extends StatelessWidget {
           children: <Widget>[
             Icon(type.icon, size: 16, color: fg),
             const SizedBox(width: 6),
-            Text(type.label,
+            Text(type.labelOf(s),
                 style: AppTextStyles.bodySm.copyWith(
                   color: fg,
                   fontWeight: FontWeight.w600,
@@ -559,14 +606,15 @@ class _RewardTypeChip extends StatelessWidget {
   }
 }
 
-class _StampStepper extends StatelessWidget {
+class _StampStepper extends ConsumerWidget {
   const _StampStepper({required this.value, required this.onChanged});
 
   final int value;
   final ValueChanged<int> onChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md, vertical: AppSpacing.sm,
@@ -586,7 +634,7 @@ class _StampStepper extends StatelessWidget {
               child: Column(
                 children: <Widget>[
                   Text('$value', style: AppTextStyles.display.copyWith(fontSize: 28)),
-                  Text('möhür', style: AppTextStyles.caption),
+                  Text(s.stampWord, style: AppTextStyles.caption),
                 ],
               ),
             ),
@@ -601,7 +649,7 @@ class _StampStepper extends StatelessWidget {
   }
 }
 
-class _PreviewCard extends StatelessWidget {
+class _PreviewCard extends ConsumerWidget {
   const _PreviewCard({
     required this.title,
     required this.stamps,
@@ -615,7 +663,8 @@ class _PreviewCard extends StatelessWidget {
   final LoyaltyRewardType rewardType;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -642,7 +691,7 @@ class _PreviewCard extends StatelessWidget {
                 child: Icon(rewardType.icon, color: Colors.white, size: 20),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text('Önbaxış',
+              Text(s.previewWord,
                   style: AppTextStyles.caption.copyWith(
                     color: Colors.white.withValues(alpha: 0.9),
                   )),
@@ -651,7 +700,7 @@ class _PreviewCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Text(title, style: AppTextStyles.h3.copyWith(color: Colors.white)),
           const SizedBox(height: 4),
-          Text('$stamps möhür → $rewardLabel',
+          Text('$stamps ${s.stampWord} → $rewardLabel',
               style: AppTextStyles.bodySm.copyWith(
                 color: Colors.white.withValues(alpha: 0.9),
               )),

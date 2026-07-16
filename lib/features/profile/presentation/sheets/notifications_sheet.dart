@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -12,6 +13,7 @@ class NotificationsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final NotificationPrefs prefs = ref.watch(notificationPrefsProvider);
     final NotificationPrefsController ctrl =
         ref.read(notificationPrefsProvider.notifier);
@@ -25,38 +27,37 @@ class NotificationsSheet extends ConsumerWidget {
         children: <Widget>[
           const SheetHandle(),
           const SizedBox(height: AppSpacing.lg),
-          Text('Bildirişlər', style: AppTextStyles.h2),
+          Text(s.notifications, style: AppTextStyles.h2),
           const SizedBox(height: AppSpacing.xs),
-          Text('Hansı hadisələrdən xəbərdar olmaq istəyirsən?',
-              style: AppTextStyles.bodySm),
+          Text(s.notifWhichEvents, style: AppTextStyles.bodySm),
           const SizedBox(height: AppSpacing.lg),
           _NotifTile(
-            title: 'Yeni mükafat',
-            subtitle: 'Bir kart tamamlananda dərhal məlumat ver',
+            title: s.notifNewReward,
+            subtitle: s.notifNewRewardSub,
             icon: Icons.celebration_rounded,
             tint: AppColors.success,
             value: prefs.newRewards,
             onChanged: ctrl.toggleNewRewards,
           ),
           _NotifTile(
-            title: 'Yaxınlıqdakı təkliflər',
-            subtitle: 'Sənin yerlərində yeni promo başlayanda xəbərdar et',
+            title: s.notifNearby,
+            subtitle: s.notifNearbySub,
             icon: Icons.location_on_outlined,
             tint: AppColors.info,
             value: prefs.nearbyOffers,
             onChanged: ctrl.toggleNearbyOffers,
           ),
           _NotifTile(
-            title: 'Həftəlik xülasə',
-            subtitle: 'Hər bazar nə qədər qazandığını göndər',
+            title: s.notifWeekly,
+            subtitle: s.notifWeeklySub,
             icon: Icons.calendar_today_outlined,
             tint: AppColors.warning,
             value: prefs.weeklyRecap,
             onChanged: ctrl.toggleWeeklyRecap,
           ),
           _NotifTile(
-            title: 'Marketinq və promosiyalar',
-            subtitle: 'Yeni biznes və xüsusi kampaniyalar',
+            title: s.notifMarketing,
+            subtitle: s.notifMarketingSub,
             icon: Icons.campaign_outlined,
             tint: AppColors.primary,
             value: prefs.marketing,
@@ -66,7 +67,7 @@ class NotificationsSheet extends ConsumerWidget {
           Center(
             child: TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Bağla'),
+              child: Text(s.close),
             ),
           ),
         ],

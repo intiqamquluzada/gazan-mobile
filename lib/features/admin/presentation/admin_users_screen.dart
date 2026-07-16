@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -97,22 +98,25 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     Navigator.of(context).pop();
     try {
       await ref.read(adminRepositoryProvider).setUserRole(u.id, role);
-      _snack('${u.email} → ${roleLabel(role)}');
+      _snack('${u.email} → ${roleLabel(ref.read(sProvider), role)}');
       await _load(reset: true);
       ref.invalidate(adminStatsProvider);
     } catch (e) {
-      _snack('Alınmadı: $e', error: true);
+      _snack('${ref.read(sProvider).failed}: $e', error: true);
     }
   }
 
   Future<void> _toggleActive(AdminUser u) async {
     Navigator.of(context).pop();
+    final S s = ref.read(sProvider);
     try {
       await ref.read(adminRepositoryProvider).setUserActive(u.id, !u.active);
-      _snack(u.active ? '${u.email} bloklandı' : '${u.email} aktivləşdi');
+      _snack(u.active
+          ? '${u.email} ${s.userBlocked}'
+          : '${u.email} ${s.userActivated}');
       await _load(reset: true);
     } catch (e) {
-      _snack('Alınmadı: $e', error: true);
+      _snack('${s.failed}: $e', error: true);
     }
   }
 
@@ -126,6 +130,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -140,7 +145,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   Row(
                     children: <Widget>[
                       Expanded(
-                          child: Text('İstifadəçilər',
+                          child: Text(s.usersTitle,
                               style: AppTextStyles.h1)),
                       Text('$_total',
                           style: AppTextStyles.bodySm),
@@ -152,7 +157,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => _load(reset: true),
                     decoration: InputDecoration(
-                      hintText: 'Ad və ya e-poçt axtar',
+                      hintText: s.searchNameEmail,
                       prefixIcon: const Icon(AppIcons.search),
                       suffixIcon: IconButton(
                         icon: const Icon(AppIcons.search),
@@ -167,10 +172,10 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   Wrap(
                     spacing: AppSpacing.sm,
                     children: <Widget>[
-                      _filterChip('Hamısı', null),
-                      _filterChip('Müştəri', 'CUSTOMER'),
-                      _filterChip('Biznes', 'BUSINESS_OWNER'),
-                      _filterChip('Admin', 'ADMIN'),
+                      _filterChip(s.all, null),
+                      _filterChip(s.roleCustomer, 'CUSTOMER'),
+                      _filterChip(s.roleBusiness, 'BUSINESS_OWNER'),
+                      _filterChip(s.roleAdmin, 'ADMIN'),
                     ],
                   ),
                 ],
@@ -193,17 +198,18 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   }
 
   Widget _body() {
+    final S s = ref.read(sProvider);
     if (_loading && _users.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null && _users.isEmpty) {
       return EmptyState(
-          title: 'Yüklənmədi', subtitle: _error, icon: AppIcons.error);
+          title: s.notLoaded, subtitle: _error, icon: AppIcons.error);
     }
     if (_users.isEmpty) {
-      return const EmptyState(
-        title: 'Tapılmadı',
-        subtitle: 'Filtri dəyişib yenidən cəhd et.',
+      return EmptyState(
+        title: s.notFound,
+        subtitle: s.filterTryAgain,
         icon: AppIcons.searchOff,
       );
     }
@@ -221,7 +227,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
               child: Center(
                 child: OutlinedButton(
                   onPressed: _loading ? null : _loadMore,
-                  child: Text(_loading ? 'Yüklənir...' : 'Daha çox'),
+                  child: Text(_loading ? s.loading : s.loadMore),
                 ),
               ),
             );
@@ -234,14 +240,15 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   }
 }
 
-class _UserTile extends StatelessWidget {
+class _UserTile extends ConsumerWidget {
   const _UserTile({required this.user, required this.onTap});
 
   final AdminUser user;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Material(
@@ -292,7 +299,7 @@ class _UserTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        user.fullName.isEmpty ? '(adsız)' : user.fullName,
+                        user.fullName.isEmpty ? s.unnamed : user.fullName,
                         style: AppTextStyles.bodyLg,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -315,7 +322,7 @@ class _UserTile extends StatelessWidget {
   }
 }
 
-class _UserActionsSheet extends StatelessWidget {
+class _UserActionsSheet extends ConsumerWidget {
   const _UserActionsSheet({
     required this.user,
     required this.onChangeRole,
@@ -327,7 +334,8 @@ class _UserActionsSheet extends StatelessWidget {
   final VoidCallback onToggleActive;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -340,7 +348,7 @@ class _UserActionsSheet extends StatelessWidget {
                 style: AppTextStyles.h3),
             Text(user.email, style: AppTextStyles.caption),
             const SizedBox(height: AppSpacing.lg),
-            Text('Rol təyin et', style: AppTextStyles.overline),
+            Text(s.assignRole, style: AppTextStyles.overline),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
               spacing: AppSpacing.sm,
@@ -351,7 +359,7 @@ class _UserActionsSheet extends StatelessWidget {
                   'ADMIN'
                 ])
                   ChoiceChip(
-                    label: Text(roleLabel(r)),
+                    label: Text(roleLabel(s, r)),
                     selected: user.role == r,
                     onSelected:
                         user.role == r ? null : (_) => onChangeRole(r),
@@ -364,9 +372,7 @@ class _UserActionsSheet extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onToggleActive,
                 icon: Icon(user.active ? Icons.block_rounded : AppIcons.check),
-                label: Text(user.active
-                    ? 'İstifadəçini blokla'
-                    : 'İstifadəçini aktivləşdir'),
+                label: Text(user.active ? s.blockUser : s.activateUser),
                 style: OutlinedButton.styleFrom(
                   foregroundColor:
                       user.active ? AppColors.error : AppColors.success,

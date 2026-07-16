@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/extensions.dart';
@@ -115,9 +116,9 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
           backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
         ),
-        body: const Center(
-          child: Text('Hekayə yoxdur',
-              style: TextStyle(color: Colors.white)),
+        body: Center(
+          child: Text(ref.read(sProvider).noStories,
+              style: const TextStyle(color: Colors.white)),
         ),
       );
     }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/constants/app_strings.dart';
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -13,6 +13,7 @@ class CategoryChips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final BusinessCategory? selected = ref.watch(selectedCategoryProvider);
 
     return SizedBox(
@@ -22,7 +23,7 @@ class CategoryChips extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
         children: <Widget>[
           _Chip(
-            label: AppStrings.all,
+            label: s.all,
             icon: Icons.apps_rounded,
             tint: AppColors.primary,
             selected: selected == null,
@@ -33,7 +34,7 @@ class CategoryChips extends ConsumerWidget {
           for (final BusinessCategory c in BusinessCategory.values) ...<Widget>[
             const SizedBox(width: AppSpacing.sm),
             _Chip(
-              label: c.label,
+              label: c.labelOf(s),
               icon: c.icon,
               tint: c.tint,
               selected: selected == c,

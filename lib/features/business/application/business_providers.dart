@@ -4,6 +4,7 @@ import '../../../core/network/api_client.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/user_role.dart';
 import '../data/business_repository.dart';
+import '../domain/customer_detail.dart';
 import '../domain/customer_summary.dart';
 
 final Provider<BusinessRepository> businessRepositoryProvider =
@@ -26,3 +27,10 @@ final FutureProvider<BusinessStats?> myBusinessStatsProvider =
   }
   return ref.read(businessRepositoryProvider).statsForBusiness('me');
 });
+
+/// Rich detail for one customer at the signed-in owner's business.
+final FutureProviderFamily<CustomerDetail, String> customerDetailProvider =
+    FutureProvider.family<CustomerDetail, String>(
+  (Ref ref, String userId) =>
+      ref.read(businessRepositoryProvider).customerDetail(userId),
+);

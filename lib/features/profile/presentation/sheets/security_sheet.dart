@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -42,7 +43,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Şifrə yeniləndi ✓')),
+        SnackBar(content: Text(ref.read(sProvider).passwordUpdated)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -52,7 +53,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xəta: $e')),
+        SnackBar(content: Text('${ref.read(sProvider).error}: $e')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -61,6 +62,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
@@ -76,37 +78,37 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
             children: <Widget>[
               const SheetHandle(),
               const SizedBox(height: AppSpacing.lg),
-              Text('Şifrəni dəyiş', style: AppTextStyles.h2),
+              Text(s.changePassword, style: AppTextStyles.h2),
               const SizedBox(height: AppSpacing.xl),
               AppTextField(
-                label: 'Hazırkı şifrə',
+                label: s.currentPassword,
                 controller: _current,
                 obscure: true,
                 prefixIcon: Icons.lock_outline_rounded,
                 validator: (String? v) =>
-                    (v == null || v.isEmpty) ? 'Daxil et' : null,
+                    (v == null || v.isEmpty) ? s.enter : null,
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
-                label: 'Yeni şifrə',
+                label: s.newPassword,
                 controller: _new,
                 obscure: true,
                 prefixIcon: Icons.lock_reset_rounded,
                 validator: (String? v) =>
-                    (v == null || v.length < 8) ? '8+ simvol olsun' : null,
+                    (v == null || v.length < 8) ? s.min8Chars : null,
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
-                label: 'Yeni şifrəni təkrarla',
+                label: s.repeatNewPassword,
                 controller: _confirm,
                 obscure: true,
                 prefixIcon: Icons.lock_reset_rounded,
                 validator: (String? v) =>
-                    v != _new.text ? 'Şifrələr uyğun gəlmir' : null,
+                    v != _new.text ? s.passwordsDontMatch : null,
               ),
               const SizedBox(height: AppSpacing.xxl),
               PrimaryButton(
-                label: 'Yadda saxla',
+                label: s.save,
                 icon: Icons.check_rounded,
                 loading: _saving,
                 onPressed: _saving ? null : _save,
@@ -114,7 +116,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
               const SizedBox(height: AppSpacing.sm),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Ləğv et'),
+                child: Text(s.cancel),
               ),
             ],
           ),

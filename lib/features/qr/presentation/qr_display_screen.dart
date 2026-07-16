@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -15,11 +16,12 @@ class QrDisplayScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AppUser? user = ref.watch(currentUserProvider);
     final String payload = _payloadFor(user);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('QR kodum')),
+      appBar: AppBar(title: Text(s.myQrTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -27,7 +29,7 @@ class QrDisplayScreen extends ConsumerWidget {
             children: <Widget>[
               const SizedBox(height: AppSpacing.lg),
               Text(
-                'Bu kodu obyektə göstər — möhürün avtomatik əlavə olunacaq.',
+                s.showThisCodeHint,
                 textAlign: TextAlign.center,
                 style: AppTextStyles.body.copyWith(
                   color: AppColors.textSecondary,
@@ -87,7 +89,7 @@ class QrDisplayScreen extends ConsumerWidget {
                         size: 18, color: AppColors.primary),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
-                      user?.fullName ?? 'Qonaq',
+                      user?.fullName ?? s.guest,
                       style: AppTextStyles.bodySm.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.w600,

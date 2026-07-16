@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -21,37 +22,52 @@ class MyRewardsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    return Scaffold(
+      appBar: AppBar(title: Text(s.tabRewards)),
+      body: const MyRewardsBody(),
+    );
+  }
+}
+
+/// The "Hədiyyələrim" content (Aktiv / İstifadə olunmuş sub-tabs) with no
+/// Scaffold or AppBar — so it can be embedded as a sub-tab inside the
+/// Kartlarım screen as well as shown standalone.
+class MyRewardsBody extends ConsumerWidget {
+  const MyRewardsBody({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return DefaultTabController(
       length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Hədiyyələrim'),
-          bottom: const TabBar(
+      child: Column(
+        children: <Widget>[
+          TabBar(
             tabs: <Widget>[
-              Tab(text: 'Aktiv'),
-              Tab(text: 'İstifadə olunmuş'),
+              Tab(text: s.rewardsActiveTab),
+              Tab(text: s.rewardsUsedTab),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: <Widget>[
-            _RewardsList(
-              provider: myActiveRewardsProvider,
-              emptyTitle: 'Hələ aktiv hədiyyən yoxdur',
-              emptySubtitle:
-                  'İşlətmə səhifəsində coinlə hədiyyə al və ya '
-                  'möhür kartını tamamla.',
-              activeMode: true,
+          Expanded(
+            child: TabBarView(
+              children: <Widget>[
+                _RewardsList(
+                  provider: myActiveRewardsProvider,
+                  emptyTitle: s.noActiveRewards,
+                  emptySubtitle: s.noActiveRewardsSub,
+                  activeMode: true,
+                ),
+                _RewardsList(
+                  provider: myUsedRewardsProvider,
+                  emptyTitle: s.noUsageHistory,
+                  emptySubtitle: s.noUsageHistorySub,
+                  activeMode: false,
+                ),
+              ],
             ),
-            _RewardsList(
-              provider: myUsedRewardsProvider,
-              emptyTitle: 'Hələ istifadə tarixçəsi yoxdur',
-              emptySubtitle:
-                  'Kassada istifadə etdiyin hədiyyələr burada görünəcək.',
-              activeMode: false,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -81,7 +97,7 @@ class _RewardsList extends ConsumerWidget {
       child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
-          title: 'Yüklənmədi',
+          title: ref.read(sProvider).notLoaded,
           subtitle: e.toString(),
           icon: AppIcons.error,
         ),
@@ -115,23 +131,24 @@ class _RewardsList extends ConsumerWidget {
   }
 }
 
-class _RewardTile extends StatelessWidget {
+class _RewardTile extends ConsumerWidget {
   const _RewardTile({required this.claim, required this.activeMode});
 
   final AppRewardClaim claim;
   final bool activeMode;
 
-  String _ago(DateTime? d) {
+  String _ago(S s, DateTime? d) {
     if (d == null) return '';
     final Duration diff = DateTime.now().difference(d);
-    if (diff.inMinutes < 1) return 'indi';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} dəq əvvəl';
-    if (diff.inHours < 24) return '${diff.inHours} saat əvvəl';
-    return '${diff.inDays} gün əvvəl';
+    if (diff.inMinutes < 1) return s.nowWord;
+    if (diff.inMinutes < 60) return '${diff.inMinutes} ${s.minAgo}';
+    if (diff.inHours < 24) return '${diff.inHours} ${s.hourAgo}';
+    return '${diff.inDays} ${s.dayAgo}';
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final bool dark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Theme.of(context).colorScheme.surface,
@@ -184,7 +201,7 @@ class _RewardTile extends StatelessWidget {
                                 BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(
-                            claim.isCoin ? 'Coin' : 'Möhür',
+                            claim.isCoin ? s.coinLabel : s.stampLabel,
                             style: AppTextStyles.caption.copyWith(
                               color: claim.isCoin
                                   ? AppColors.primary
@@ -196,8 +213,8 @@ class _RewardTile extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           activeMode
-                              ? 'Kassada QR göstər'
-                              : 'İstifadə olunub · ${_ago(claim.usedAt)}',
+                              ? s.showQrCashier
+                              : '${s.usedPrefix} · ${_ago(s, claim.usedAt)}',
                           style: AppTextStyles.caption,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

@@ -10,6 +10,8 @@
 		<string>Biznes loqosu və şəkillərini yükləmək üçün foto qalereyasına icazə lazımdır.</string>
 		<key>NSPhotoLibraryAddUsageDescription</key>
 		<string>QR kodu və qəbzləri yadda saxlamaq üçün foto qalereyasına icazə lazımdır.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Yaxınlıqdakı yerlərə məsafəni göstərmək üçün məkan icazəsi lazımdır.</string>
 		<key>NSAppTransportSecurity</key>
 		<dict>
 			<key>NSAllowsArbitraryLoads</key>

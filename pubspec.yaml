@@ -40,6 +40,12 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
 
+  # Device location — used to show distance from the user to each place.
+  geolocator: ^13.0.2
+
+  # Phone number country-code picker (flags + dial codes).
+  country_code_picker: ^3.1.0
+
   # Native share sheet (system "Share via..." dialog)
   share_plus: ^10.1.4
 
@@ -52,10 +58,10 @@ dependencies:
   dio: ^5.7.0
   shared_preferences: ^2.3.4
 
-  # Push notifications (FCM → real phone notifications).
-  # Needs Firebase config files to function — see PUSH_SETUP.md.
-  firebase_core: ^3.8.0
-  firebase_messaging: ^15.1.5
+  # Push notifications (FCM) are temporarily disabled — Firebase isn't
+  # configured yet (no google-services.json). PushService is a no-op
+  # until then. Re-add firebase_core / firebase_messaging + config files
+  # to switch it back on (see PUSH_SETUP.md).
 
 dev_dependencies:
   flutter_test:
@@ -93,3 +99,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/branding/
+    # Bundled Inter fonts — used by google_fonts offline (no gstatic).
+    - assets/google_fonts/

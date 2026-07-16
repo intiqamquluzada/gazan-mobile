@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
@@ -17,24 +20,15 @@ class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Çıxmaq istəyirsən?'),
-        content: const Text('Admin hesabından çıxacaqsan.'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Ləğv et'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Çıxış'),
-          ),
-        ],
-      ),
+    final S s = ref.read(sProvider);
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.logoutTitle,
+      body: s.signOutAdminBody,
+      confirmLabel: s.logout,
+      cancelLabel: s.stay,
     );
-    if (ok == true) {
+    if (ok) {
       // Router's auth refresh listener handles the redirect to /role.
       await ref.read(authControllerProvider.notifier).signOut();
     }
@@ -42,6 +36,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<AdminStats?> statsAsync = ref.watch(adminStatsProvider);
 
     return Scaffold(
@@ -58,14 +53,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Qazan Admin', style: AppTextStyles.bodySm),
+                        Text(s.qazanAdmin, style: AppTextStyles.bodySm),
                         const SizedBox(height: 2),
-                        Text('Platforma paneli', style: AppTextStyles.h1),
+                        Text(s.platformPanel, style: AppTextStyles.h1),
                       ],
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Çıxış',
+                    tooltip: s.logout,
                     icon: const Icon(AppIcons.logout),
                     onPressed: () => _signOut(context, ref),
                   ),
@@ -75,19 +70,19 @@ class AdminDashboardScreen extends ConsumerWidget {
               statsAsync.when(
                 loading: () => const _DashboardSkeleton(),
                 error: (Object e, _) => EmptyState(
-                  title: 'Yüklənmədi',
+                  title: s.notLoaded,
                   subtitle: e.toString(),
                   icon: AppIcons.error,
                 ),
-                data: (AdminStats? s) {
-                  if (s == null) {
-                    return const EmptyState(
-                      title: 'Məlumat yoxdur',
-                      subtitle: 'Statistika əlçatan deyil.',
+                data: (AdminStats? stats) {
+                  if (stats == null) {
+                    return EmptyState(
+                      title: s.noData,
+                      subtitle: s.statsUnavailable,
                       icon: AppIcons.info,
                     );
                   }
-                  return _Dashboard(stats: s);
+                  return _Dashboard(stats: stats);
                 },
               ),
               const SizedBox(height: AppSpacing.huge),
@@ -99,22 +94,46 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 }
 
-class _Dashboard extends StatelessWidget {
+class _Dashboard extends ConsumerWidget {
   const _Dashboard({required this.stats});
 
   final AdminStats stats;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        // Content management shortcuts.
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _MgmtCard(
+                icon: AppIcons.star,
+                label: s.promotions,
+                tint: AppColors.warning,
+                onTap: () => context.go('/admin/promotions'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _MgmtCard(
+                icon: Icons.restaurant_menu_rounded,
+                label: s.menus,
+                tint: AppColors.accent,
+                onTap: () => context.go('/admin/menus'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
         Row(
           children: <Widget>[
             Expanded(
               child: AdminStatTile(
                 value: '${stats.totalUsers}',
-                label: 'İstifadəçi',
+                label: s.usersLabel,
                 icon: AppIcons.customersActive,
                 tint: AppColors.primary,
               ),
@@ -123,7 +142,7 @@ class _Dashboard extends StatelessWidget {
             Expanded(
               child: AdminStatTile(
                 value: '${stats.totalCompanies}',
-                label: 'Biznes',
+                label: s.businessLabel,
                 icon: AppIcons.store,
                 tint: AppColors.info,
               ),
@@ -136,7 +155,7 @@ class _Dashboard extends StatelessWidget {
             Expanded(
               child: AdminStatTile(
                 value: '${stats.totalLoyaltyCards}',
-                label: 'Loyallıq kartı',
+                label: s.loyaltyCard,
                 icon: AppIcons.programsActive,
                 tint: AppColors.success,
               ),
@@ -145,7 +164,7 @@ class _Dashboard extends StatelessWidget {
             Expanded(
               child: AdminStatTile(
                 value: '${stats.coinTransactions}',
-                label: 'Coin əməliyyatı',
+                label: s.coinTransaction,
                 icon: AppIcons.token,
                 tint: AppColors.warning,
               ),
@@ -167,24 +186,24 @@ class _Dashboard extends StatelessWidget {
                 children: <Widget>[
                   const Icon(AppIcons.token, color: Colors.white, size: 22),
                   const SizedBox(width: AppSpacing.sm),
-                  Text('Coin dövriyyəsi',
+                  Text(s.coinCirculation,
                       style: AppTextStyles.h3.copyWith(color: Colors.white)),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
               Text('${stats.coinsCirculating}',
                   style: AppTextStyles.display.copyWith(color: Colors.white)),
-              Text('cari balans (coin)',
+              Text(s.currentBalanceCoin,
                   style: AppTextStyles.bodySm.copyWith(
                       color: Colors.white.withValues(alpha: 0.85))),
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: <Widget>[
                   _MiniMetric(
-                      label: 'Qazanılıb', value: '${stats.coinsEarned}'),
+                      label: s.earnedLabel, value: '${stats.coinsEarned}'),
                   const SizedBox(width: AppSpacing.xl),
                   _MiniMetric(
-                      label: 'Xərclənib', value: '${stats.coinsSpent}'),
+                      label: s.spentLabel, value: '${stats.coinsSpent}'),
                 ],
               ),
             ],
@@ -193,23 +212,23 @@ class _Dashboard extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         _RoleBreakdown(stats: stats),
         const SizedBox(height: AppSpacing.xxl),
-        SectionHeader(title: 'Son qeydiyyatlar'),
+        SectionHeader(title: s.recentSignups),
         const SizedBox(height: AppSpacing.md),
         if (stats.recentUsers.isEmpty)
-          const EmptyState(
-            title: 'Hələ istifadəçi yoxdur',
-            subtitle: 'Qeydiyyatlar burada görünəcək.',
+          EmptyState(
+            title: s.noUsersYet,
+            subtitle: s.signupsHere,
             icon: AppIcons.customers,
           )
         else
           for (final AdminUser u in stats.recentUsers) _RecentUserTile(u: u),
         const SizedBox(height: AppSpacing.xxl),
-        SectionHeader(title: 'Son bizneslər'),
+        SectionHeader(title: s.recentBusinesses),
         const SizedBox(height: AppSpacing.md),
         if (stats.recentCompanies.isEmpty)
-          const EmptyState(
-            title: 'Hələ biznes yoxdur',
-            subtitle: 'Yeni bizneslər burada görünəcək.',
+          EmptyState(
+            title: s.noBusinessesYet,
+            subtitle: s.newBusinessesHere,
             icon: AppIcons.store,
           )
         else
@@ -241,13 +260,14 @@ class _MiniMetric extends StatelessWidget {
   }
 }
 
-class _RoleBreakdown extends StatelessWidget {
+class _RoleBreakdown extends ConsumerWidget {
   const _RoleBreakdown({required this.stats});
 
   final AdminStats stats;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -258,9 +278,9 @@ class _RoleBreakdown extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          _RolePill(label: 'Müştəri', count: stats.customers),
-          _RolePill(label: 'Biznes', count: stats.businessOwners),
-          _RolePill(label: 'Admin', count: stats.admins),
+          _RolePill(label: s.roleCustomer, count: stats.customers),
+          _RolePill(label: s.roleBusiness, count: stats.businessOwners),
+          _RolePill(label: s.roleAdmin, count: stats.admins),
         ],
       ),
     );
@@ -288,13 +308,14 @@ class _RolePill extends StatelessWidget {
   }
 }
 
-class _RecentUserTile extends StatelessWidget {
+class _RecentUserTile extends ConsumerWidget {
   const _RecentUserTile({required this.u});
 
   final AdminUser u;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
@@ -313,7 +334,7 @@ class _RecentUserTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(u.fullName.isEmpty ? '(adsız)' : u.fullName,
+                  Text(u.fullName.isEmpty ? s.unnamed : u.fullName,
                       style: AppTextStyles.bodyLg),
                   Text(u.email, style: AppTextStyles.caption),
                 ],
@@ -370,6 +391,50 @@ class _RecentCompanyTile extends StatelessWidget {
             ),
             if (c.featured)
               const Icon(AppIcons.star, color: AppColors.warning, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Tappable content-management shortcut card on the admin dashboard.
+class _MgmtCard extends StatelessWidget {
+  const _MgmtCard({
+    required this.icon,
+    required this.label,
+    required this.tint,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color tint;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: tint.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: tint.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(icon, color: tint, size: 24),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(label,
+                  style: AppTextStyles.bodyLg
+                      .copyWith(fontWeight: FontWeight.w700)),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: tint.withValues(alpha: 0.7)),
           ],
         ),
       ),

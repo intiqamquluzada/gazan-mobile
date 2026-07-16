@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -10,7 +12,7 @@ import '../../../../core/theme/app_text_styles.dart';
 /// A static OpenStreetMap preview of a business location. Tapping it (or the
 /// "Yol göstər" button) opens the device's maps app for directions. No API
 /// key required — tiles come from the public OSM server.
-class LocationMap extends StatelessWidget {
+class LocationMap extends ConsumerWidget {
   const LocationMap({
     super.key,
     required this.latitude,
@@ -32,7 +34,8 @@ class LocationMap extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final LatLng point = LatLng(latitude, longitude);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -46,12 +49,12 @@ class LocationMap extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Text('Ünvan', style: AppTextStyles.h3),
+              Text(s.address, style: AppTextStyles.h3),
               const Spacer(),
               TextButton.icon(
                 onPressed: _openDirections,
                 icon: const Icon(Icons.directions_rounded, size: 18),
-                label: const Text('Yol göstər'),
+                label: Text(s.directions),
               ),
             ],
           ),

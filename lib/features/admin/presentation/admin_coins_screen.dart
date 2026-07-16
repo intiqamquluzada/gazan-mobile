@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -82,6 +83,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<CoinSummary?> summaryAsync =
         ref.watch(adminCoinSummaryProvider);
 
@@ -89,7 +91,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAdjust,
         icon: const Icon(AppIcons.add),
-        label: const Text('Coin düzəlişi'),
+        label: Text(s.coinAdjustment),
       ),
       body: SafeArea(
         bottom: false,
@@ -99,16 +101,17 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge),
             children: <Widget>[
-              Text('Coin nəzarəti', style: AppTextStyles.h1),
+              Text(s.coinControl, style: AppTextStyles.h1),
               const SizedBox(height: AppSpacing.lg),
               summaryAsync.when(
                 loading: () => const _SummarySkeleton(),
                 error: (Object e, _) => const SizedBox.shrink(),
-                data: (CoinSummary? s) =>
-                    s == null ? const SizedBox.shrink() : _SummaryCard(s: s),
+                data: (CoinSummary? sum) => sum == null
+                    ? const SizedBox.shrink()
+                    : _SummaryCard(s: sum),
               ),
               const SizedBox(height: AppSpacing.xl),
-              Text('Son əməliyyatlar', style: AppTextStyles.h3),
+              Text(s.recentTransactions, style: AppTextStyles.h3),
               const SizedBox(height: AppSpacing.md),
               if (_loading && _txns.isEmpty)
                 const Padding(
@@ -117,13 +120,13 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
                 )
               else if (_error != null && _txns.isEmpty)
                 EmptyState(
-                    title: 'Yüklənmədi',
+                    title: s.notLoaded,
                     subtitle: _error,
                     icon: AppIcons.error)
               else if (_txns.isEmpty)
-                const EmptyState(
-                  title: 'Əməliyyat yoxdur',
-                  subtitle: 'Coin hərəkətləri burada görünəcək.',
+                EmptyState(
+                  title: s.noTransactions,
+                  subtitle: s.transactionsWillShow,
                   icon: AppIcons.token,
                 )
               else ...<Widget>[
@@ -134,7 +137,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
                     child: Center(
                       child: OutlinedButton(
                         onPressed: _loading ? null : _loadMore,
-                        child: Text(_loading ? 'Yüklənir...' : 'Daha çox'),
+                        child: Text(_loading ? s.loading : s.loadMore),
                       ),
                     ),
                   ),
@@ -147,13 +150,14 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
   }
 }
 
-class _SummaryCard extends StatelessWidget {
+class _SummaryCard extends ConsumerWidget {
   const _SummaryCard({required this.s});
 
   final CoinSummary s;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S str = ref.watch(sProvider);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
@@ -164,7 +168,7 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text('Dövriyyədə',
+          Text(str.inCirculation,
               style: AppTextStyles.bodySm
                   .copyWith(color: Colors.white.withValues(alpha: 0.85))),
           Text('${s.circulating} coin',
@@ -172,11 +176,11 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: <Widget>[
-              _Metric(label: 'Qazanılıb', value: '${s.earned}'),
+              _Metric(label: str.earnedLabel, value: '${s.earned}'),
               const SizedBox(width: AppSpacing.xl),
-              _Metric(label: 'Xərclənib', value: '${s.spent}'),
+              _Metric(label: str.spentLabel, value: '${s.spent}'),
               const SizedBox(width: AppSpacing.xl),
-              _Metric(label: 'Əməliyyat', value: '${s.transactions}'),
+              _Metric(label: str.transactionWord, value: '${s.transactions}'),
             ],
           ),
         ],
@@ -205,13 +209,14 @@ class _Metric extends StatelessWidget {
   }
 }
 
-class _TxnTile extends StatelessWidget {
+class _TxnTile extends ConsumerWidget {
   const _TxnTile({required this.t});
 
   final AdminCoinTxn t;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S str = ref.watch(sProvider);
     final bool earn = t.amount >= 0;
     final Color c = earn ? AppColors.success : AppColors.error;
     return Padding(
@@ -245,7 +250,7 @@ class _TxnTile extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(t.userName ?? t.userEmail ?? '(naməlum)',
+                  Text(t.userName ?? t.userEmail ?? str.unknownParen,
                       style: AppTextStyles.bodyLg,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
@@ -338,7 +343,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
   Future<void> _submit() async {
     final int? amount = int.tryParse(_amount.text.trim());
     if (_picked == null || amount == null || amount == 0) {
-      setState(() => _error = 'İstifadəçi seç və sıfırdan fərqli məbləğ yaz.');
+      setState(() => _error = widget.ref.read(sProvider).pickUserAndAmount);
       return;
     }
     setState(() {
@@ -362,6 +367,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = widget.ref.watch(sProvider);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -370,9 +376,9 @@ class _AdjustSheetState extends State<_AdjustSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Coin düzəlişi', style: AppTextStyles.h2),
+            Text(s.coinAdjustment, style: AppTextStyles.h2),
             const SizedBox(height: AppSpacing.xs),
-            Text('Müsbət məbləğ əlavə edir, mənfi məbləğ silir.',
+            Text(s.adjustPositiveNegative,
                 style: AppTextStyles.bodySm),
             const SizedBox(height: AppSpacing.lg),
             if (_picked == null) ...<Widget>[
@@ -381,7 +387,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => _search(),
                 decoration: InputDecoration(
-                  hintText: 'İstifadəçini e-poçt ilə tap',
+                  hintText: s.searchUserByEmail,
                   prefixIcon: const Icon(AppIcons.search),
                   suffixIcon: IconButton(
                     icon: _searching
@@ -441,7 +447,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                     ),
                     TextButton(
                       onPressed: () => setState(() => _picked = null),
-                      child: const Text('Dəyiş'),
+                      child: Text(s.change),
                     ),
                   ],
                 ),
@@ -452,7 +458,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                 keyboardType: const TextInputType.numberWithOptions(
                     signed: true),
                 decoration: InputDecoration(
-                  labelText: 'Məbləğ (məs. 500 və ya -200)',
+                  labelText: s.amountExample,
                   prefixIcon: const Icon(AppIcons.token),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),
@@ -463,7 +469,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
               TextField(
                 controller: _note,
                 decoration: InputDecoration(
-                  labelText: 'Qeyd (istəyə bağlı)',
+                  labelText: s.noteOptional,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
@@ -474,7 +480,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _submitting ? null : _submit,
-                  child: Text(_submitting ? 'Tətbiq olunur...' : 'Tətbiq et'),
+                  child: Text(_submitting ? s.applyingWord : s.applyAction),
                 ),
               ),
             ],

@@ -1,53 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '_sheet_handle.dart';
 
-class HelpSheet extends StatelessWidget {
+class HelpSheet extends ConsumerWidget {
   const HelpSheet({super.key});
 
-  static const List<_FAQ> _items = <_FAQ>[
-    _FAQ(
-      question: 'Möhürü necə qazanıram?',
-      answer:
-          'Sevdiyin obyektdə alış-veriş edəndə kassada QR kodunu göstər. '
-          'Obyekt onu skan edən kimi möhürün avtomatik əlavə olunur.',
-    ),
-    _FAQ(
-      question: 'Mükafatı necə alıram?',
-      answer:
-          'Kart tam dolanda "Kartlarım" bölməsində bildiriş görəcəksən. '
-          'Növbəti ziyarətdə QR-ini göstər və mükafatını al.',
-    ),
-    _FAQ(
-      question: 'Birdən çox kartım ola bilərmi?',
-      answer:
-          'Bəli! Hər obyektin öz kartı var. Bir obyektin müxtəlif '
-          'proqramları üçün də ayrı kartlar yığa bilərsən.',
-    ),
-    _FAQ(
-      question: 'Müştəri məlumatlarım kimə görünür?',
-      answer:
-          'Yalnız sənin kart açdığın obyektlər səni görür — və yalnız '
-          'sənin onlardakı möhür və ziyarət sayını.',
-    ),
-    _FAQ(
-      question: 'Mükafatın vaxtı bitirmi?',
-      answer:
-          'Bir qisim proqramların bitmə tarixi olur. Detalı kartın açılan '
-          'səhifəsində görə bilərsən.',
-    ),
-    _FAQ(
-      question: 'Telefonumu dəyişsəm kartlarım itəcəkmi?',
-      answer:
-          'Yox. Hesabına yenidən daxil olduqda bütün kartların və möhür '
-          'tarixçən bərpa olunacaq.',
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    final List<_FAQ> items = <_FAQ>[
+      _FAQ(question: s.faqQ1, answer: s.faqA1),
+      _FAQ(question: s.faqQ2, answer: s.faqA2),
+      _FAQ(question: s.faqQ3, answer: s.faqA3),
+      _FAQ(question: s.faqQ4, answer: s.faqA4),
+      _FAQ(question: s.faqQ5, answer: s.faqA5),
+      _FAQ(question: s.faqQ6, answer: s.faqA6),
+    ];
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
@@ -57,9 +29,9 @@ class HelpSheet extends StatelessWidget {
         children: <Widget>[
           const SheetHandle(),
           const SizedBox(height: AppSpacing.lg),
-          Text('Tez-tez verilən suallar', style: AppTextStyles.h2),
+          Text(s.faq, style: AppTextStyles.h2),
           const SizedBox(height: AppSpacing.lg),
-          for (final _FAQ f in _items)
+          for (final _FAQ f in items)
             Theme(
               data: Theme.of(context).copyWith(
                 dividerColor: Colors.transparent,
@@ -82,7 +54,7 @@ class HelpSheet extends StatelessWidget {
           Center(
             child: TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Bağla'),
+              child: Text(s.close),
             ),
           ),
         ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -38,23 +39,26 @@ class PromotionsCarousel extends ConsumerWidget {
   }
 }
 
-class _PromoCard extends StatelessWidget {
+class _PromoCard extends ConsumerWidget {
   const _PromoCard({required this.promo});
 
   final Promotion promo;
 
-  String? _countdown() {
+  String? _countdown(S s) {
     if (promo.endsAt == null) return null;
     final Duration remaining = promo.endsAt!.difference(DateTime.now());
     if (remaining.isNegative) return null;
-    if (remaining.inDays > 0) return '${remaining.inDays} gün qalıb';
-    if (remaining.inHours > 0) return '${remaining.inHours} saat qalıb';
-    return '${remaining.inMinutes} dəq qalıb';
+    if (remaining.inDays > 0) return '${remaining.inDays} ${s.daysLeftSuffix}';
+    if (remaining.inHours > 0) {
+      return '${remaining.inHours} ${s.hoursLeftSuffix}';
+    }
+    return '${remaining.inMinutes} ${s.minsLeftSuffix}';
   }
 
   @override
-  Widget build(BuildContext context) {
-    final String? countdown = _countdown();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    final String? countdown = _countdown(s);
     return SizedBox(
       width: 290,
       child: InkWell(

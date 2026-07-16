@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 
 /// Top-level service categories shown on the discover feed.
@@ -23,6 +24,28 @@ enum BusinessCategory {
   final String label;
   final IconData icon;
   final Color tint;
+
+  /// Localized display label for the current language.
+  String labelOf(S s) {
+    switch (this) {
+      case BusinessCategory.coffee:
+        return s.catCoffee;
+      case BusinessCategory.restaurant:
+        return s.catRestaurant;
+      case BusinessCategory.beauty:
+        return s.catBeauty;
+      case BusinessCategory.barber:
+        return s.catBarber;
+      case BusinessCategory.carwash:
+        return s.catCarwash;
+      case BusinessCategory.fitness:
+        return s.catFitness;
+      case BusinessCategory.bakery:
+        return s.catBakery;
+      case BusinessCategory.other:
+        return s.catOther;
+    }
+  }
 
   String toJson() => wire;
 

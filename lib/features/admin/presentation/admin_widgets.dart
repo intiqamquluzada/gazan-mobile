@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 
-/// Azerbaijani label for a backend role code.
-String roleLabel(String role) {
+/// Localized label for a backend role code.
+String roleLabel(S s, String role) {
   switch (role) {
     case 'ADMIN':
-      return 'Admin';
+      return s.roleAdmin;
     case 'BUSINESS_OWNER':
-      return 'Biznes';
+      return s.roleBusiness;
     case 'CUSTOMER':
     default:
-      return 'Müştəri';
+      return s.roleCustomer;
   }
 }
 
@@ -78,13 +80,14 @@ class AdminStatTile extends StatelessWidget {
 }
 
 /// Small colored pill showing a user's role.
-class AdminRoleBadge extends StatelessWidget {
+class AdminRoleBadge extends ConsumerWidget {
   const AdminRoleBadge({super.key, required this.role});
 
   final String role;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color c = roleColor(role);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -93,7 +96,7 @@ class AdminRoleBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(
-        roleLabel(role),
+        roleLabel(s, role),
         style: AppTextStyles.caption.copyWith(
           color: c,
           fontWeight: FontWeight.w700,

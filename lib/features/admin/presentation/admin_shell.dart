@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
 import '../../../core/widgets/app_icons.dart';
 
 /// Bottom-nav shell for the platform admin experience. Mirrors the
 /// customer/business shells — one role, one shell.
-class AdminShell extends StatelessWidget {
+class AdminShell extends ConsumerWidget {
   const AdminShell({super.key, required this.child});
 
   final Widget child;
@@ -17,34 +19,6 @@ class AdminShell extends StatelessWidget {
     '/admin/businesses',
     '/admin/coins',
     '/admin/notifications',
-  ];
-
-  static const List<AppNavItem> _items = <AppNavItem>[
-    AppNavItem(
-      label: 'Panel',
-      icon: AppIcons.dashboard,
-      activeIcon: AppIcons.dashboardActive,
-    ),
-    AppNavItem(
-      label: 'İstifadəçilər',
-      icon: AppIcons.customers,
-      activeIcon: AppIcons.customersActive,
-    ),
-    AppNavItem(
-      label: 'Biznes',
-      icon: AppIcons.store,
-      activeIcon: AppIcons.store,
-    ),
-    AppNavItem(
-      label: 'Coin',
-      icon: AppIcons.token,
-      activeIcon: AppIcons.token,
-    ),
-    AppNavItem(
-      label: 'Bildiriş',
-      icon: AppIcons.bell,
-      activeIcon: AppIcons.bell,
-    ),
   ];
 
   int _indexFor(String location) {
@@ -60,9 +34,28 @@ class AdminShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final String location = GoRouterState.of(context).uri.toString();
     final int currentIdx = _indexFor(location);
+    final List<AppNavItem> items = <AppNavItem>[
+      AppNavItem(
+          label: s.tabPanel,
+          icon: AppIcons.dashboard,
+          activeIcon: AppIcons.dashboardActive),
+      AppNavItem(
+          label: s.tabUsers,
+          icon: AppIcons.customers,
+          activeIcon: AppIcons.customersActive),
+      AppNavItem(
+          label: s.tabBusinesses,
+          icon: AppIcons.store,
+          activeIcon: AppIcons.store),
+      AppNavItem(
+          label: s.tabCoins, icon: AppIcons.token, activeIcon: AppIcons.token),
+      AppNavItem(
+          label: s.tabNotify, icon: AppIcons.bell, activeIcon: AppIcons.bell),
+    ];
     return PopScope(
       canPop: currentIdx == 0,
       onPopInvokedWithResult: (bool didPop, Object? _) {
@@ -72,7 +65,7 @@ class AdminShell extends StatelessWidget {
       child: Scaffold(
         body: child,
         bottomNavigationBar: AppBottomNav(
-          items: _items,
+          items: items,
           currentIndex: currentIdx,
           onSelect: (int i) => context.go(_routes[i]),
         ),

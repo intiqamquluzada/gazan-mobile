@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -15,15 +16,16 @@ class FavoritesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<List<Company>> favorites =
         ref.watch(favoriteCompaniesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Sevimlilər')),
+      appBar: AppBar(title: Text(s.favorites)),
       body: favorites.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => Center(
-          child: Text('Yüklənmədi', style: AppTextStyles.body),
+          child: Text(s.notLoaded, style: AppTextStyles.body),
         ),
         data: (List<Company> list) {
           if (list.isEmpty) return const _Empty();
@@ -43,11 +45,12 @@ class FavoritesScreen extends ConsumerWidget {
   }
 }
 
-class _Empty extends StatelessWidget {
+class _Empty extends ConsumerWidget {
   const _Empty();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -57,11 +60,10 @@ class _Empty extends StatelessWidget {
             const Icon(Icons.favorite_border_rounded,
                 size: 56, color: AppColors.textTertiary),
             const SizedBox(height: AppSpacing.lg),
-            Text('Hələ sevimli yoxdur', style: AppTextStyles.h3),
+            Text(s.noFavoritesYet, style: AppTextStyles.h3),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Bəyəndiyin biznesin profilində ürək işarəsinə toxun — '
-              'burada toplansın.',
+              s.noFavoritesHint,
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySm
                   .copyWith(color: AppColors.textSecondary),

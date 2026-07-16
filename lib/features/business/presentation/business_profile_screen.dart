@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/application/auth_controller.dart';
@@ -17,8 +19,7 @@ import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/business_category.dart';
 import '../../companies/domain/company.dart';
 import '../../media/data/media_repository.dart';
-import '../../wallet/application/wallet_providers.dart';
-import '../../wallet/domain/coin_reward.dart';
+import 'sheets/map_picker.dart';
 
 /// "Mənim biznesim" — the owner manages every feature shown on the public
 /// restaurant profile: details, hours, contact, location, amenities,
@@ -32,21 +33,41 @@ class BusinessProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _Amenity {
-  const _Amenity(this.code, this.label, this.icon);
+  const _Amenity(this.code, this.icon);
   final String code;
-  final String label;
   final IconData icon;
 }
 
 const List<_Amenity> _kAmenities = <_Amenity>[
-  _Amenity('WIFI', 'Wifi', Icons.wifi_rounded),
-  _Amenity('WORKSPACE', 'Çalışma', Icons.laptop_mac_rounded),
-  _Amenity('MEETING', 'Toplantı', Icons.groups_rounded),
-  _Amenity('GARDEN', 'Bağça', Icons.park_rounded),
-  _Amenity('PARKING', 'Avtopark', Icons.local_parking_rounded),
-  _Amenity('VEGAN', 'Vegan', Icons.eco_rounded),
-  _Amenity('PET', 'Pet', Icons.pets_rounded),
+  _Amenity('WIFI', Icons.wifi_rounded),
+  _Amenity('WORKSPACE', Icons.laptop_mac_rounded),
+  _Amenity('MEETING', Icons.groups_rounded),
+  _Amenity('GARDEN', Icons.park_rounded),
+  _Amenity('PARKING', Icons.local_parking_rounded),
+  _Amenity('VEGAN', Icons.eco_rounded),
+  _Amenity('PET', Icons.pets_rounded),
 ];
+
+String _amenityLabel(S s, String code) {
+  switch (code) {
+    case 'WIFI':
+      return s.amWifi;
+    case 'WORKSPACE':
+      return s.amWorkspace;
+    case 'MEETING':
+      return s.amMeeting;
+    case 'GARDEN':
+      return s.amGarden;
+    case 'PARKING':
+      return s.amParking;
+    case 'VEGAN':
+      return s.amVegan;
+    case 'PET':
+      return s.amPet;
+    default:
+      return code;
+  }
+}
 
 class _BusinessProfileScreenState
     extends ConsumerState<BusinessProfileScreen> {
@@ -164,16 +185,31 @@ class _BusinessProfileScreenState
       ref.invalidate(featuredCompaniesProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biznes profili yeniləndi ✓')),
+        SnackBar(content: Text(ref.read(sProvider).businessProfileUpdated)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xəta: $e')),
+        SnackBar(content: Text('${ref.read(sProvider).error}: $e')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  /// Opens the interactive map picker and writes the chosen coordinates
+  /// straight into the lat/lng fields.
+  Future<void> _pickOnMap() async {
+    final ({double lat, double lng})? result = await pickLocationOnMap(
+      context,
+      initialLat: double.tryParse(_lat.text.trim()),
+      initialLng: double.tryParse(_lng.text.trim()),
+    );
+    if (result == null) return;
+    setState(() {
+      _lat.text = result.lat.toStringAsFixed(6);
+      _lng.text = result.lng.toStringAsFixed(6);
+    });
   }
 
   Future<void> _pickAndUpload() async {
@@ -183,7 +219,7 @@ class _BusinessProfileScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Şəkil seçilmədi: $e')),
+          SnackBar(content: Text('${ref.read(sProvider).photoNotPicked}: $e')),
         );
       }
       return;
@@ -208,13 +244,14 @@ class _BusinessProfileScreenState
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Şəkillər yadda saxlanıldı ✓')),
+          SnackBar(content: Text(ref.read(sProvider).photosSaved)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Şəkil yüklənmədi: $e')),
+          SnackBar(
+              content: Text('${ref.read(sProvider).photoNotUploaded}: $e')),
         );
       }
     } finally {
@@ -230,7 +267,7 @@ class _BusinessProfileScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Şəkil seçilmədi: $e')),
+          SnackBar(content: Text('${ref.read(sProvider).photoNotPicked}: $e')),
         );
       }
       return;
@@ -249,13 +286,13 @@ class _BusinessProfileScreenState
       await _autoSave(<String, dynamic>{'logoUrl': url});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil şəkli yeniləndi ✓')),
+          SnackBar(content: Text(ref.read(sProvider).logoUpdated)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Logo yüklənmədi: $e')),
+          SnackBar(content: Text('${ref.read(sProvider).logoNotUploaded}: $e')),
         );
       }
     } finally {
@@ -285,26 +322,15 @@ class _BusinessProfileScreenState
   }
 
   Future<void> _confirmSignOut() async {
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Çıxmaq istəyirsən?'),
-        content: const Text(
-          'Biznes hesabından çıxacaqsan. Yenidən daxil olaraq qayıda bilərsən.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Ləğv et'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Çıxış'),
-          ),
-        ],
-      ),
+    final S s = ref.read(sProvider);
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.logoutTitle,
+      body: s.signOutBusinessBody,
+      confirmLabel: s.logout,
+      cancelLabel: s.stay,
     );
-    if (ok == true) {
+    if (ok) {
       // Router's auth refresh listener redirects to the role picker.
       await ref.read(authControllerProvider.notifier).signOut();
     }
@@ -312,14 +338,15 @@ class _BusinessProfileScreenState
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<Company?> async = ref.watch(myCompanyProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mənim biznesim'),
+        title: Text(s.myBusiness),
         actions: <Widget>[
           IconButton(
-            tooltip: 'Çıxış',
+            tooltip: s.logout,
             icon: const Icon(AppIcons.logout),
             onPressed: _confirmSignOut,
           ),
@@ -328,7 +355,7 @@ class _BusinessProfileScreenState
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
-          title: 'Xəta',
+          title: s.error,
           subtitle: e.toString(),
           icon: AppIcons.error,
         ),
@@ -342,7 +369,7 @@ class _BusinessProfileScreenState
               AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge,
             ),
             children: <Widget>[
-              _section('Profil şəkli'),
+              _section(s.sectionProfilePhoto),
               Row(
                 children: <Widget>[
                   _LogoPreview(url: _logoUrl, name: _name.text),
@@ -352,8 +379,7 @@ class _BusinessProfileScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Text(
-                          'Müştəri ana səhifəsində bu şəkil görünür. '
-                          'Kvadrat / loqo şəkli yüklə.',
+                          s.logoHint,
                           style: AppTextStyles.bodySm.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -373,15 +399,15 @@ class _BusinessProfileScreenState
                                     )
                                   : const Icon(AppIcons.camera, size: 18),
                               label: Text(_logoUrl == null
-                                  ? 'Logo yüklə'
-                                  : 'Dəyiş'),
+                                  ? s.uploadLogo
+                                  : s.change),
                             ),
                             if (_logoUrl != null) ...<Widget>[
                               const SizedBox(width: AppSpacing.sm),
                               TextButton(
                                 onPressed: () =>
                                     setState(() => _logoUrl = null),
-                                child: const Text('Sil'),
+                                child: Text(s.delete),
                               ),
                             ],
                           ],
@@ -393,12 +419,12 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              _section('Əsas məlumat'),
-              AppTextField(label: 'Ad', controller: _name),
+              _section(s.sectionBasicInfo),
+              AppTextField(label: s.name, controller: _name),
               const SizedBox(height: AppSpacing.lg),
-              AppTextField(label: 'Şüar / qısa təsvir', controller: _tagline),
+              AppTextField(label: s.taglineLabel, controller: _tagline),
               const SizedBox(height: AppSpacing.lg),
-              Text('Kateqoriya',
+              Text(s.category,
                   style: AppTextStyles.bodySm.copyWith(
                     fontWeight: FontWeight.w600,
                   )),
@@ -409,7 +435,7 @@ class _BusinessProfileScreenState
                     .map((BusinessCategory c) => DropdownMenuItem<
                             BusinessCategory>(
                           value: c,
-                          child: Text(c.label),
+                          child: Text(c.labelOf(s)),
                         ))
                     .toList(),
                 onChanged: (BusinessCategory? v) =>
@@ -417,39 +443,48 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              _section('Əlaqə & saatlar'),
+              _section(s.sectionContactHours),
               AppTextField(
-                label: 'Ünvan',
+                label: s.address,
                 controller: _address,
                 prefixIcon: AppIcons.location,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'İş saatları',
-                hint: 'məs. 09:00 – 23:00',
+                label: s.workingHours,
+                hint: s.workingHoursHint,
                 controller: _hours,
                 prefixIcon: AppIcons.clock,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'Telefon',
+                label: s.phone,
                 controller: _phone,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
                 label: 'Instagram',
-                hint: '@hesab',
+                hint: s.instagramHint,
                 controller: _instagram,
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              _section('Yer (xəritə)'),
+              _section(s.sectionLocationMap),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _pickOnMap,
+                  icon: const Icon(Icons.map_outlined, size: 18),
+                  label: Text(s.pickOnMap),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
               Row(
                 children: <Widget>[
                   Expanded(
                     child: AppTextField(
-                      label: 'Enlik (lat)',
+                      label: s.latitude,
                       controller: _lat,
                       keyboardType: const TextInputType.numberWithOptions(
                           decimal: true, signed: true),
@@ -458,7 +493,7 @@ class _BusinessProfileScreenState
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: AppTextField(
-                      label: 'Uzunluq (lng)',
+                      label: s.longitude,
                       controller: _lng,
                       keyboardType: const TextInputType.numberWithOptions(
                           decimal: true, signed: true),
@@ -468,7 +503,7 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              _section('İmkanlar'),
+              _section(s.sectionAmenities),
               Wrap(
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
@@ -504,7 +539,7 @@ class _BusinessProfileScreenState
                                   ? AppColors.primary
                                   : AppColors.textTertiary),
                           const SizedBox(width: 6),
-                          Text(a.label,
+                          Text(_amenityLabel(s, a.code),
                               style: AppTextStyles.bodySm.copyWith(
                                 color: on
                                     ? AppColors.primary
@@ -521,10 +556,9 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              _section('Foto & menyu'),
+              _section(s.sectionPhotoMenu),
               Text(
-                'Biznes şəkilləri — telefon/kompüterindən yüklə '
-                '(profil və axtarış səhifəsində görünür).',
+                s.businessPhotosHint,
                 style: AppTextStyles.bodySm.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -548,16 +582,16 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'Menyu linki',
-                hint: 'https://... (PDF / sayt / şəkil)',
+                label: s.menuLink,
+                hint: s.menuLinkHint,
                 controller: _menuUrl,
               ),
               const SizedBox(height: AppSpacing.xxl),
 
-              _section('Coin sistemi'),
+              _section(s.sectionCoinSystem),
               AppTextField(
-                label: 'Coin dərəcəsi (1 ₼ üçün neçə coin)',
-                hint: 'məs. 0.1  → 1000 ₼ = 100 coin',
+                label: s.coinRate,
+                hint: s.coinRateHint,
                 controller: _coinRate,
                 keyboardType: const TextInputType.numberWithOptions(
                     decimal: true),
@@ -565,13 +599,11 @@ class _BusinessProfileScreenState
               ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Kassir skan edəndə çek məbləğini yazır — coin avtomatik hesablanır.',
+                s.coinRateNote,
                 style: AppTextStyles.caption.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
-              _RewardCatalog(companyId: company.id),
               const SizedBox(height: AppSpacing.xxl),
 
               // ── Translations (optional) ──────────────────────────
@@ -598,29 +630,29 @@ class _BusinessProfileScreenState
                       AppSpacing.lg,
                       AppSpacing.lg,
                     ),
-                    title: Text('Tərcümələr (ixtiyari)',
+                    title: Text(s.translationsOptional,
                         style: AppTextStyles.h3),
                     subtitle: Text(
-                      'Adı və şüarı EN / RU / TR dillərində doldura bilərsən.',
+                      s.translationsHint,
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
                     children: <Widget>[
-                      AppTextField(label: 'Ad (EN)', controller: _nameEn),
+                      AppTextField(label: s.nameEn, controller: _nameEn),
                       const SizedBox(height: AppSpacing.md),
                       AppTextField(
-                          label: 'Şüar (EN)', controller: _taglineEn),
+                          label: s.taglineEn, controller: _taglineEn),
                       const SizedBox(height: AppSpacing.lg),
-                      AppTextField(label: 'Ad (RU)', controller: _nameRu),
+                      AppTextField(label: s.nameRu, controller: _nameRu),
                       const SizedBox(height: AppSpacing.md),
                       AppTextField(
-                          label: 'Şüar (RU)', controller: _taglineRu),
+                          label: s.taglineRu, controller: _taglineRu),
                       const SizedBox(height: AppSpacing.lg),
-                      AppTextField(label: 'Ad (TR)', controller: _nameTr),
+                      AppTextField(label: s.nameTr, controller: _nameTr),
                       const SizedBox(height: AppSpacing.md),
                       AppTextField(
-                          label: 'Şüar (TR)', controller: _taglineTr),
+                          label: s.taglineTr, controller: _taglineTr),
                     ],
                   ),
                 ),
@@ -673,9 +705,10 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
   }
 
   Future<void> _create() async {
+    final S s = ref.read(sProvider);
     if (_name.text.trim().length < 2) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biznes adını yaz (ən az 2 hərf)')),
+        SnackBar(content: Text(s.enterBusinessName)),
       );
       return;
     }
@@ -695,12 +728,12 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
       ref.invalidate(featuredCompaniesProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Biznes yaradıldı ✓ İndi profili tamamla')),
+        SnackBar(content: Text(s.businessCreated)),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Xəta: $e')),
+        SnackBar(content: Text('${s.error}: $e')),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -709,6 +742,7 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge,
@@ -726,21 +760,20 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
               color: AppColors.primary, size: 30),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Text('Biznesini yarat', style: AppTextStyles.h1),
+        Text(s.createYourBusiness, style: AppTextStyles.h1),
         const SizedBox(height: AppSpacing.xs),
         Text(
-          'Bu hesabın hələ biznesi yoxdur. Aşağıdakıları doldur — '
-          'sonra foto, menyu, imkanlar və s. əlavə edə bilərsən.',
+          s.createBusinessHint,
           style: AppTextStyles.bodySm.copyWith(
             color: AppColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        AppTextField(label: 'Biznes adı', controller: _name),
+        AppTextField(label: s.businessName, controller: _name),
         const SizedBox(height: AppSpacing.lg),
-        AppTextField(label: 'Şüar / qısa təsvir', controller: _tagline),
+        AppTextField(label: s.taglineLabel, controller: _tagline),
         const SizedBox(height: AppSpacing.lg),
-        Text('Kateqoriya',
+        Text(s.categoryLabel,
             style: AppTextStyles.bodySm.copyWith(
               fontWeight: FontWeight.w600,
             )),
@@ -751,7 +784,7 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
               .map((BusinessCategory c) =>
                   DropdownMenuItem<BusinessCategory>(
                     value: c,
-                    child: Text(c.label),
+                    child: Text(c.labelOf(s)),
                   ))
               .toList(),
           onChanged: (BusinessCategory? v) =>
@@ -759,13 +792,13 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
-          label: 'Ünvan',
+          label: s.address,
           controller: _address,
           prefixIcon: AppIcons.location,
         ),
         const SizedBox(height: AppSpacing.xxl),
         PrimaryButton(
-          label: 'Biznes yarat',
+          label: s.createBusiness,
           icon: AppIcons.store,
           loading: _busy,
           onPressed: _busy ? null : _create,
@@ -776,197 +809,6 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
 }
 
 /// Owner-managed reward catalog: "100 coin → San Sebastian".
-class _RewardCatalog extends ConsumerWidget {
-  const _RewardCatalog({required this.companyId});
-
-  final String companyId;
-
-  Future<void> _add(BuildContext context, WidgetRef ref) async {
-    final TextEditingController title = TextEditingController();
-    final TextEditingController desc = TextEditingController();
-    final TextEditingController cost = TextEditingController();
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Mükafat əlavə et'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              TextField(
-                controller: title,
-                decoration: const InputDecoration(
-                    hintText: 'Ad — məs. San Sebastian'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: desc,
-                decoration:
-                    const InputDecoration(hintText: 'Açıqlama (istəyə bağlı)'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: cost,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Neçə coin',
-                  prefixIcon: Icon(AppIcons.token),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Ləğv et'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Əlavə et'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    final int? c = int.tryParse(cost.text.trim());
-    if (title.text.trim().isEmpty || c == null || c <= 0) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ad və düzgün coin məbləği yaz')),
-        );
-      }
-      return;
-    }
-    try {
-      await ref.read(walletRepositoryProvider).createReward(
-            companyId: companyId,
-            title: title.text.trim(),
-            description:
-                desc.text.trim().isEmpty ? null : desc.text.trim(),
-            coinCost: c,
-          );
-      ref.invalidate(coinRewardsProvider(companyId));
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Xəta: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _delete(WidgetRef ref, CoinReward r) async {
-    await ref.read(walletRepositoryProvider).deleteReward(r.id);
-    ref.invalidate(coinRewardsProvider(companyId));
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<List<CoinReward>> async =
-        ref.watch(coinRewardsProvider(companyId));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Expanded(
-                child: Text('Mükafat kataloqu', style: AppTextStyles.h3)),
-            TextButton.icon(
-              onPressed: () => _add(context, ref),
-              icon: const Icon(AppIcons.add, size: 18),
-              label: const Text('Əlavə et'),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        async.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(AppSpacing.lg),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (Object e, _) => Text('Xəta: $e',
-              style: AppTextStyles.bodySm),
-          data: (List<CoinReward> list) {
-            if (list.isEmpty) {
-              return Text(
-                'Hələ mükafat yoxdur. "Əlavə et" ilə yarat — '
-                'məs. 100 coin = 1 porsiya San Sebastian.',
-                style: AppTextStyles.bodySm.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              );
-            }
-            return Column(
-              children: <Widget>[
-                for (final CoinReward r in list)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border: Border.all(color: AppColors.border),
-                      boxShadow: AppShadows.sm,
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primarySoft,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.full),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              const Icon(AppIcons.token,
-                                  size: 14, color: AppColors.primary),
-                              const SizedBox(width: 4),
-                              Text('${r.coinCost}',
-                                  style: AppTextStyles.bodySm.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w800,
-                                  )),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(r.title,
-                                  style: AppTextStyles.bodyLg.copyWith(
-                                      fontWeight: FontWeight.w700)),
-                              if ((r.description ?? '').isNotEmpty)
-                                Text(r.description!,
-                                    style: AppTextStyles.caption,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded,
-                              color: AppColors.error),
-                          onPressed: () => _delete(ref, r),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-/// A square photo tile with a remove badge, used in the owner's gallery.
 class _PhotoThumb extends StatelessWidget {
   const _PhotoThumb({required this.url, required this.onRemove});
 
@@ -1027,14 +869,15 @@ class _PhotoThumb extends StatelessWidget {
 }
 
 /// The "add photo" tile that opens the device picker and uploads.
-class _AddPhotoTile extends StatelessWidget {
+class _AddPhotoTile extends ConsumerWidget {
   const _AddPhotoTile({required this.loading, required this.onTap});
 
   final bool loading;
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1054,14 +897,14 @@ class _AddPhotoTile extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               )
-            : const Column(
+            : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Icon(AppIcons.camera, color: AppColors.primary),
-                  SizedBox(height: 4),
-                  Text('Şəkil əlavə et',
+                  const Icon(AppIcons.camera, color: AppColors.primary),
+                  const SizedBox(height: 4),
+                  Text(s.addPhoto,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                           fontSize: 11, color: AppColors.primary)),
                 ],
               ),

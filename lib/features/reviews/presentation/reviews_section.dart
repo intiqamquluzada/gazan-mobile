@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -23,6 +24,7 @@ class ReviewsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<CompanyReviews> async =
         ref.watch(companyReviewsProvider(companyId));
 
@@ -42,19 +44,20 @@ class ReviewsSection extends ConsumerWidget {
           ),
         ),
         error: (Object e, _) =>
-            Text('Rəylər yüklənmədi', style: AppTextStyles.bodySm),
-        data: (CompanyReviews r) => _content(context, ref, r),
+            Text(s.reviewsNotLoaded, style: AppTextStyles.bodySm),
+        data: (CompanyReviews r) => _content(context, ref, s, r),
       ),
     );
   }
 
-  Widget _content(BuildContext context, WidgetRef ref, CompanyReviews r) {
+  Widget _content(
+      BuildContext context, WidgetRef ref, S s, CompanyReviews r) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Row(
           children: <Widget>[
-            Text('Rəylər', style: AppTextStyles.h3),
+            Text(s.reviewsWord, style: AppTextStyles.h3),
             const Spacer(),
             if (r.count > 0) ...<Widget>[
               Text(r.average.toStringAsFixed(1),
@@ -70,7 +73,7 @@ class ReviewsSection extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.lg),
         if (r.reviews.isEmpty)
-          Text('Hələ rəy yoxdur. İlk rəyi sən yaz!',
+          Text(s.noReviewsYet,
               style: AppTextStyles.bodySm
                   .copyWith(color: AppColors.textSecondary))
         else
@@ -79,7 +82,7 @@ class ReviewsSection extends ConsumerWidget {
         SizedBox(
           width: double.infinity,
           child: PrimaryButton(
-            label: r.myReview == null ? 'Rəy yaz' : 'Rəyini dəyiş',
+            label: r.myReview == null ? s.writeReview : s.editReview,
             icon: Icons.rate_review_outlined,
             onPressed: () => _openWriteSheet(context, ref, r.myReview),
           ),
@@ -107,7 +110,7 @@ class ReviewsSection extends ConsumerWidget {
   }
 }
 
-class _ReviewTile extends StatelessWidget {
+class _ReviewTile extends ConsumerWidget {
   const _ReviewTile(this.review);
 
   final Review review;
@@ -117,7 +120,8 @@ class _ReviewTile extends StatelessWidget {
       '${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Column(
@@ -127,7 +131,9 @@ class _ReviewTile extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: Text(
-                  review.mine ? '${review.userName} (sən)' : review.userName,
+                  review.mine
+                      ? '${review.userName} (${s.youParen})'
+                      : review.userName,
                   style: AppTextStyles.bodySm
                       .copyWith(fontWeight: FontWeight.w700),
                   maxLines: 1,
@@ -207,7 +213,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
   Future<void> _submit() async {
     if (_rating < 1) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ən azı 1 ulduz seç')),
+        SnackBar(content: Text(ref.read(sProvider).atLeastOneStar)),
       );
       return;
     }
@@ -222,7 +228,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rəyin üçün təşəkkürlər ✓')),
+        SnackBar(content: Text(ref.read(sProvider).reviewThanks)),
       );
     } on ApiException catch (e) {
       if (mounted) {
@@ -236,6 +242,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
@@ -261,7 +268,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
             const SizedBox(height: AppSpacing.lg),
             Text(widget.companyName, style: AppTextStyles.h2),
             const SizedBox(height: AppSpacing.xs),
-            Text('Təcrübəni qiymətləndir',
+            Text(s.rateExperience,
                 style: AppTextStyles.bodySm
                     .copyWith(color: AppColors.textSecondary)),
             const SizedBox(height: AppSpacing.xl),
@@ -288,14 +295,14 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
               controller: _comment,
               maxLines: 4,
               maxLength: 1000,
-              decoration: const InputDecoration(
-                hintText: 'Rəyin (istəyə bağlı)…',
+              decoration: InputDecoration(
+                hintText: s.reviewHint,
                 alignLabelWithHint: true,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
             PrimaryButton(
-              label: 'Göndər',
+              label: s.sendAction,
               icon: Icons.check_rounded,
               loading: _saving,
               onPressed: _saving ? null : _submit,
@@ -303,7 +310,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Ləğv et'),
+              child: Text(s.cancel),
             ),
           ],
         ),

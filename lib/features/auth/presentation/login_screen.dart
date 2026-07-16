@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_strings.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -44,8 +44,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           );
     } catch (_) {
       if (!mounted) return;
-      final String msg =
-          ref.read(authControllerProvider).error ?? 'Daxil olmaq alınmadı';
+      final String msg = ref.read(authControllerProvider).error ??
+          ref.read(sProvider).loginFailed;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg)),
       );
@@ -70,6 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final AuthState auth = ref.watch(authControllerProvider);
 
     return Scaffold(
@@ -88,30 +89,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: <Widget>[
                 const Center(child: QazanLogo(size: 76)),
                 const SizedBox(height: AppSpacing.xl),
-                Text('Xoş gəldin 👋', style: AppTextStyles.display),
+                Text(s.welcome, style: AppTextStyles.display),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   widget.role == UserRole.business
-                      ? 'Biznes hesabına daxil ol və müştərilərini izlə.'
-                      : 'Hesabına daxil ol və sevimli yerlərindən qazan.',
+                      ? s.loginBusinessSub
+                      : s.loginCustomerSub,
                   style: AppTextStyles.body.copyWith(
                     color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
                 AppTextField(
-                  label: AppStrings.email,
-                  hint: 'sən@qazan.az',
+                  label: s.email,
+                  hint: s.emailHint,
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: Icons.alternate_email_rounded,
                   textInputAction: TextInputAction.next,
                   validator: (String? v) =>
-                      (v == null || !v.contains('@')) ? 'Düzgün e-poçt daxil et' : null,
+                      (v == null || !v.contains('@')) ? s.invalidEmail : null,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
-                  label: AppStrings.password,
+                  label: s.password,
                   hint: '••••••••',
                   controller: _password,
                   obscure: _obscure,
@@ -124,18 +125,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                   validator: (String? v) =>
-                      (v == null || v.length < 4) ? 'Şifrə qısadır' : null,
+                      (v == null || v.length < 4) ? s.passwordShort : null,
                 ),
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => _forgotPassword(context),
-                    child: const Text('Şifrəni unutmusan?'),
+                    child: Text(s.forgotPassword),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 PrimaryButton(
-                  label: AppStrings.login,
+                  label: s.login,
                   loading: auth.isLoading,
                   onPressed: _submit,
                 ),
@@ -144,13 +145,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
-                      Text('Hesabın yoxdur?',
+                      Text(s.noAccount,
                           style: AppTextStyles.bodySm),
                       TextButton(
                         onPressed: () => context.push(
                           '/register?role=${widget.role.name}',
                         ),
-                        child: const Text(AppStrings.register),
+                        child: Text(s.register),
                       ),
                     ],
                   ),

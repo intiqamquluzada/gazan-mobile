@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_strings.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -25,9 +25,11 @@ class DiscoverScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<List<Company>> companies = ref.watch(companiesProvider);
     final String userName =
-        ref.watch(currentUserProvider)?.fullName.split(' ').first ?? 'Dost';
+        ref.watch(currentUserProvider)?.fullName.split(' ').first ??
+            s.friendFallback;
 
     // Keep the last loaded list visible while a new query is fetching so
     // the feed never collapses into a spinner under the search field.
@@ -43,8 +45,8 @@ class DiscoverScreen extends ConsumerWidget {
           slivers: <Widget>[
             SliverToBoxAdapter(
               child: HeroHeader(
-                title: 'Salam, $userName',
-                subtitle: 'Bu gün hardan qazanaq?',
+                title: '${s.helloName}, $userName',
+                subtitle: s.whereEarnToday,
                 actions: const <Widget>[
                   NotificationBell(),
                 ],
@@ -57,7 +59,7 @@ class DiscoverScreen extends ConsumerWidget {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               sliver: SliverToBoxAdapter(
-                child: SectionHeader(title: 'Reklamlar'),
+                child: SectionHeader(title: s.promotions),
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
@@ -75,7 +77,7 @@ class DiscoverScreen extends ConsumerWidget {
                 child: Row(
                   children: <Widget>[
                     Expanded(
-                      child: Text('Bütün yerlər', style: AppTextStyles.h2),
+                      child: Text(s.allPlaces, style: AppTextStyles.h2),
                     ),
                     if (companies.isLoading)
                       const SizedBox(
@@ -88,7 +90,7 @@ class DiscoverScreen extends ConsumerWidget {
               ),
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
-            _resultsSliver(context, companies, list),
+            _resultsSliver(context, s, companies, list),
           ],
         ),
       ),
@@ -97,6 +99,7 @@ class DiscoverScreen extends ConsumerWidget {
 
   Widget _resultsSliver(
     BuildContext context,
+    S s,
     AsyncValue<List<Company>> companies,
     List<Company>? list,
   ) {
@@ -108,7 +111,7 @@ class DiscoverScreen extends ConsumerWidget {
     if (list == null && companies.hasError) {
       return SliverFillRemaining(
         child: EmptyState(
-          title: 'Xəta baş verdi',
+          title: s.errorOccurred,
           subtitle: companies.error.toString(),
           icon: AppIcons.error,
         ),
@@ -116,11 +119,11 @@ class DiscoverScreen extends ConsumerWidget {
     }
     final List<Company> items = list ?? const <Company>[];
     if (items.isEmpty) {
-      return const SliverFillRemaining(
+      return SliverFillRemaining(
         hasScrollBody: false,
         child: EmptyState(
-          title: 'Heç nə tapılmadı',
-          subtitle: 'Filtri dəyişməyi və ya başqa söz axtarmağı sına.',
+          title: s.nothingFound,
+          subtitle: s.nothingFoundHint,
           icon: AppIcons.searchOff,
         ),
       );
@@ -195,7 +198,7 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
         textInputAction: TextInputAction.search,
         style: AppTextStyles.body,
         decoration: InputDecoration(
-          hintText: AppStrings.search,
+          hintText: ref.watch(sProvider).search,
           hintStyle:
               AppTextStyles.body.copyWith(color: AppColors.textTertiary),
           prefixIcon: const Icon(AppIcons.search,

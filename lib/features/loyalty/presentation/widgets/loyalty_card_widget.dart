@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -12,7 +14,7 @@ import 'stamp_grid.dart';
 
 /// The visual "punch card" — used both on the My Cards list and on the
 /// company detail page.
-class LoyaltyCardWidget extends StatelessWidget {
+class LoyaltyCardWidget extends ConsumerWidget {
   const LoyaltyCardWidget({
     super.key,
     required this.company,
@@ -27,7 +29,8 @@ class LoyaltyCardWidget extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color brand = Color(company.coverColorHex);
     final int stamps = card?.stamps ?? 0;
     final int required = program.stampsRequired;
@@ -122,14 +125,14 @@ class LoyaltyCardWidget extends StatelessWidget {
               children: <Widget>[
                 Text(
                   rewards > 0
-                      ? '$rewards mükafat hazırdır'
-                      : '$stamps / $required möhür',
+                      ? '$rewards ${s.rewardWord} ${s.readyWord}'
+                      : '$stamps / $required ${s.stampWord}',
                   style: AppTextStyles.bodySm.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(program.rewardLabel,
+                Text(program.rewardLabelOf(s),
                     style: AppTextStyles.caption.copyWith(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontWeight: FontWeight.w600,

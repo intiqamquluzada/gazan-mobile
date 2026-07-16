@@ -1,42 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../core/constants/app_strings.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _controller = PageController();
   int _index = 0;
 
-  static const List<_OnboardSlide> _slides = <_OnboardSlide>[
-    _OnboardSlide(
-      icon: AppIcons.store,
-      title: AppStrings.onboardTitle1,
-      subtitle: AppStrings.onboardSubtitle1,
-    ),
-    _OnboardSlide(
-      icon: AppIcons.qr,
-      title: AppStrings.onboardTitle2,
-      subtitle: AppStrings.onboardSubtitle2,
-    ),
-    _OnboardSlide(
-      icon: AppIcons.gift,
-      title: AppStrings.onboardTitle3,
-      subtitle: AppStrings.onboardSubtitle3,
-    ),
-  ];
+  List<_OnboardSlide> _slidesOf(S s) => <_OnboardSlide>[
+        _OnboardSlide(
+          icon: AppIcons.store,
+          title: s.onbTitle1,
+          subtitle: s.onbSub1,
+        ),
+        _OnboardSlide(
+          icon: AppIcons.qr,
+          title: s.onbTitle2,
+          subtitle: s.onbSub2,
+        ),
+        _OnboardSlide(
+          icon: AppIcons.gift,
+          title: s.onbTitle3,
+          subtitle: s.onbSub3,
+        ),
+      ];
+
+  static const int _slideCount = 3;
 
   @override
   void dispose() {
@@ -51,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _next() {
-    if (_index >= _slides.length - 1) {
+    if (_index >= _slideCount - 1) {
       _finish();
       return;
     }
@@ -63,7 +66,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool last = _index == _slides.length - 1;
+    final S s = ref.watch(sProvider);
+    final List<_OnboardSlide> slides = _slidesOf(s);
+    final bool last = _index == slides.length - 1;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -74,7 +79,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 padding: const EdgeInsets.all(AppSpacing.sm),
                 child: TextButton(
                   onPressed: _finish,
-                  child: const Text('Keç'),
+                  child: Text(s.skip),
                 ),
               ),
             ),
@@ -82,12 +87,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: _controller,
                 onPageChanged: (int i) => setState(() => _index = i),
-                itemCount: _slides.length,
+                itemCount: slides.length,
                 itemBuilder: (BuildContext _, int i) =>
-                    _SlideView(slide: _slides[i]),
+                    _SlideView(slide: slides[i]),
               ),
             ),
-            _PageDots(count: _slides.length, index: _index),
+            _PageDots(count: slides.length, index: _index),
             const SizedBox(height: AppSpacing.xl),
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -97,7 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 AppSpacing.xl,
               ),
               child: PrimaryButton(
-                label: last ? AppStrings.getStarted : AppStrings.continueAction,
+                label: last ? s.getStarted : s.continueAction,
                 icon: last ? null : AppIcons.forward,
                 onPressed: _next,
               ),

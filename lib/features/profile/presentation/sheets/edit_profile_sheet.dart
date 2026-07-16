@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/avatar.dart';
@@ -96,7 +97,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil yeniləndi')),
+        SnackBar(content: Text(ref.read(sProvider).profileUpdated)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -144,6 +145,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
@@ -159,28 +161,28 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
             children: <Widget>[
               const SheetHandle(),
               const SizedBox(height: AppSpacing.lg),
-              Text('Profili düzəliş et', style: AppTextStyles.h2),
+              Text(s.editProfile, style: AppTextStyles.h2),
               const SizedBox(height: AppSpacing.xl),
               Center(child: _avatarPicker()),
               const SizedBox(height: AppSpacing.xl),
               AppTextField(
-                label: 'Ad və soyad',
+                label: s.fullName,
                 controller: _name,
                 prefixIcon: Icons.person_outline_rounded,
                 textInputAction: TextInputAction.next,
                 validator: (String? v) =>
-                    (v == null || v.trim().length < 2) ? 'Adı yaz' : null,
+                    (v == null || v.trim().length < 2) ? s.enterName : null,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'E-poçt (dəyişdirilə bilməz)',
+                label: s.emailReadOnly,
                 controller: _email,
                 readOnly: true,
                 prefixIcon: Icons.alternate_email_rounded,
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
-                label: 'Telefon nömrəsi',
+                label: s.phone,
                 controller: _phone,
                 keyboardType: TextInputType.phone,
                 prefixIcon: Icons.phone_outlined,
@@ -188,7 +190,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
               ),
               const SizedBox(height: AppSpacing.xxl),
               PrimaryButton(
-                label: 'Yadda saxla',
+                label: s.save,
                 icon: Icons.check_rounded,
                 loading: _saving,
                 onPressed: _save,
@@ -196,7 +198,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
               const SizedBox(height: AppSpacing.sm),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Ləğv et'),
+                child: Text(s.cancel),
               ),
             ],
           ),

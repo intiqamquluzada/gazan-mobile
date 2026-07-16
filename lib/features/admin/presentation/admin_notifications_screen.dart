@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -30,11 +31,12 @@ class _AdminNotificationsScreenState
   }
 
   Future<void> _send() async {
+    final S s = ref.read(sProvider);
     final String t = _title.text.trim();
     final String b = _body.text.trim();
     if (t.isEmpty || b.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Başlıq və mətn yaz')),
+        SnackBar(content: Text(s.titleAndBodyRequired)),
       );
       return;
     }
@@ -48,14 +50,14 @@ class _AdminNotificationsScreenState
       ref.invalidate(adminSentProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bildiriş hər kəsə göndərildi ✓')),
+          SnackBar(content: Text(s.notifSentToAll)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Göndərilmədi: $e'),
+            content: Text('${s.failed}: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -67,6 +69,7 @@ class _AdminNotificationsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<List<AppNotification>> sent =
         ref.watch(adminSentProvider);
 
@@ -77,11 +80,10 @@ class _AdminNotificationsScreenState
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge),
           children: <Widget>[
-            Text('Bildiriş göndər', style: AppTextStyles.h1),
+            Text(s.sendNotification, style: AppTextStyles.h1),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Bütün istifadəçilərə çatacaq və onların bildiriş '
-              'qutusunda görünəcək.',
+              s.notifReachAll,
               style: AppTextStyles.bodySm
                   .copyWith(color: AppColors.textSecondary),
             ),
@@ -90,7 +92,7 @@ class _AdminNotificationsScreenState
               controller: _title,
               maxLength: 160,
               decoration: InputDecoration(
-                labelText: 'Başlıq',
+                labelText: s.titleLabel,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
@@ -102,7 +104,7 @@ class _AdminNotificationsScreenState
               maxLines: 4,
               maxLength: 2000,
               decoration: InputDecoration(
-                labelText: 'Mətn',
+                labelText: s.bodyLabel,
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -121,11 +123,11 @@ class _AdminNotificationsScreenState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(AppIcons.bell, size: 18),
-                label: Text(_sending ? 'Göndərilir...' : 'Hamısına göndər'),
+                label: Text(_sending ? s.sendingWord : s.sendToAll),
               ),
             ),
             const SizedBox(height: AppSpacing.xxl),
-            Text('Göndərilənlər', style: AppTextStyles.h3),
+            Text(s.sentItems, style: AppTextStyles.h3),
             const SizedBox(height: AppSpacing.md),
             sent.when(
               loading: () => const Padding(
@@ -133,11 +135,11 @@ class _AdminNotificationsScreenState
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (Object e, _) =>
-                  Text('Xəta: $e', style: AppTextStyles.bodySm),
+                  Text('${s.error}: $e', style: AppTextStyles.bodySm),
               data: (List<AppNotification> list) {
                 if (list.isEmpty) {
                   return Text(
-                    'Hələ bildiriş göndərilməyib.',
+                    s.noNotifSent,
                     style: AppTextStyles.bodySm
                         .copyWith(color: AppColors.textSecondary),
                   );

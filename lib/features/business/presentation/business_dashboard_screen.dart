@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -20,6 +21,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AppUser? user = ref.watch(currentUserProvider);
     final AsyncValue<BusinessStats?> statsAsync =
         ref.watch(myBusinessStatsProvider);
@@ -43,34 +45,42 @@ class BusinessDashboardScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
-                        Text('Salam,',
-                            style: AppTextStyles.bodySm),
+                        Text(s.hello, style: AppTextStyles.bodySm),
                         const SizedBox(height: 2),
                         Text(user?.fullName ?? 'Biznes',
                             style: AppTextStyles.h1),
                       ],
                     ),
                   ),
-                  Avatar(name: user?.fullName ?? 'B', size: 44),
+                  // Tapping the avatar opens the owner's personal account
+                  // settings (password change, language, sign-out) — not
+                  // the public business profile.
+                  InkWell(
+                    onTap: () => context.push('/business/account'),
+                    customBorder: const CircleBorder(),
+                    child: Avatar(name: user?.fullName ?? 'B', size: 44),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xxl),
               statsAsync.when(
                 loading: () => const _StatsSkeleton(),
                 error: (_, __) => const SizedBox.shrink(),
-                data: (BusinessStats? s) {
-                  if (s == null) return const SizedBox.shrink();
-                  return _StatsGrid(stats: s);
+                data: (BusinessStats? stats) {
+                  if (stats == null) return const SizedBox.shrink();
+                  return _StatsGrid(stats: stats, s: s);
                 },
               ),
               const SizedBox(height: AppSpacing.xl),
               _PrimaryAction(
+                title: s.scanCustomerQr,
+                subtitle: s.scanTapHint,
                 onScan: () => context.go('/business/scan'),
               ),
               const SizedBox(height: AppSpacing.xxl),
               SectionHeader(
-                title: 'Son müştərilər',
-                action: 'Hamısı',
+                title: s.recentCustomers,
+                action: s.all,
                 onAction: () => context.go('/business/customers'),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -80,14 +90,14 @@ class BusinessDashboardScreen extends ConsumerWidget {
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (Object e, _) => EmptyState(
-                  title: 'Xəta', subtitle: e.toString(),
+                  title: s.error, subtitle: e.toString(),
                   icon: AppIcons.error,
                 ),
                 data: (List<CustomerSummary> list) {
                   if (list.isEmpty) {
-                    return const EmptyState(
-                      title: 'Hələ müştəri yoxdur',
-                      subtitle: 'İlk QR-i skan etdiyin anda müştəri burada görünəcək.',
+                    return EmptyState(
+                      title: s.noCustomersYet,
+                      subtitle: s.firstCustomerHint,
                       icon: AppIcons.customers,
                     );
                   }
@@ -109,9 +119,10 @@ class BusinessDashboardScreen extends ConsumerWidget {
 }
 
 class _StatsGrid extends StatelessWidget {
-  const _StatsGrid({required this.stats});
+  const _StatsGrid({required this.stats, required this.s});
 
   final BusinessStats stats;
+  final S s;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +133,7 @@ class _StatsGrid extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 value: '${stats.activeCustomers}',
-                label: 'Aktiv müştəri',
+                label: s.activeCustomers,
                 icon: AppIcons.customersActive,
                 tint: AppColors.primary,
               ),
@@ -131,7 +142,7 @@ class _StatsGrid extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 value: '${stats.stampsToday}',
-                label: 'Bu gün möhür',
+                label: s.stampsToday,
                 icon: Icons.bookmark_added_rounded,
                 tint: AppColors.info,
               ),
@@ -144,7 +155,7 @@ class _StatsGrid extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 value: '${stats.rewardsThisWeek}',
-                label: 'Həftədə mükafat',
+                label: s.rewardsWeek,
                 icon: AppIcons.gift,
                 tint: AppColors.success,
               ),
@@ -153,7 +164,7 @@ class _StatsGrid extends StatelessWidget {
             Expanded(
               child: _StatTile(
                 value: '${(stats.repeatRate * 100).round()}%',
-                label: 'Geri qayıdış',
+                label: s.returnRate,
                 icon: Icons.replay_rounded,
                 tint: AppColors.warning,
               ),
@@ -228,9 +239,15 @@ class _StatsSkeleton extends StatelessWidget {
 }
 
 class _PrimaryAction extends StatelessWidget {
-  const _PrimaryAction({required this.onScan});
+  const _PrimaryAction({
+    required this.onScan,
+    required this.title,
+    required this.subtitle,
+  });
 
   final VoidCallback onScan;
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -272,10 +289,10 @@ class _PrimaryAction extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('Müştərinin QR kodunu skan et',
+                  Text(title,
                       style: AppTextStyles.h3.copyWith(color: Colors.white)),
                   const SizedBox(height: 2),
-                  Text('Bir toxunuş — möhür avtomatik əlavə olunur.',
+                  Text(subtitle,
                       style: AppTextStyles.bodySm.copyWith(
                         color: Colors.white.withValues(alpha: 0.85),
                       )),
@@ -290,52 +307,61 @@ class _PrimaryAction extends StatelessWidget {
   }
 }
 
-class _CustomerTile extends StatelessWidget {
+class _CustomerTile extends ConsumerWidget {
   const _CustomerTile({required this.c});
 
   final CustomerSummary c;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border),
-          boxShadow: AppShadows.sm,
-        ),
-        child: Row(
-          children: <Widget>[
-            Avatar(name: c.fullName, size: 40),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(c.fullName, style: AppTextStyles.bodyLg),
-                  Text(
-                    '${c.totalVisits} ziyarət · ${c.rewardsClaimed} mükafat',
-                    style: AppTextStyles.caption,
-                  ),
-                ],
+      child: InkWell(
+        onTap: () => context.push('/business/customers/${c.userId}'),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.sm,
+          ),
+          child: Row(
+            children: <Widget>[
+              Avatar(name: c.fullName, size: 40),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(c.fullName, style: AppTextStyles.bodyLg),
+                    Text(
+                      '${c.totalVisits} ${s.visitsWord} · ${c.rewardsClaimed} ${s.rewardWord}',
+                      style: AppTextStyles.caption,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                borderRadius: BorderRadius.circular(AppRadius.full),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text('${c.totalStamps}',
+                    style: AppTextStyles.bodySm.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    )),
               ),
-              child: Text('${c.totalStamps}',
-                  style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  )),
-            ),
-          ],
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textTertiary),
+            ],
+          ),
         ),
       ),
     );

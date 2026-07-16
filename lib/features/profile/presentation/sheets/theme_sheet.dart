@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -10,18 +11,18 @@ import '_sheet_handle.dart';
 class ThemeSheet extends ConsumerWidget {
   const ThemeSheet({super.key});
 
-  static const List<_ThemeOption> _options = <_ThemeOption>[
-    _ThemeOption(ThemeMode.light, 'Açıq', Icons.light_mode_rounded,
-        'Həmişə açıq tema istifadə et'),
-    _ThemeOption(ThemeMode.dark, 'Tünd', Icons.dark_mode_rounded,
-        'Həmişə tünd tema istifadə et'),
-    _ThemeOption(ThemeMode.system, 'Sistem', Icons.brightness_auto_rounded,
-        'Cihaz parametrini izlə'),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final ThemeMode current = ref.watch(themeModeProvider);
+    final List<_ThemeOption> options = <_ThemeOption>[
+      _ThemeOption(ThemeMode.light, s.themeLight, Icons.light_mode_rounded,
+          s.themeLightSub),
+      _ThemeOption(ThemeMode.dark, s.themeDark, Icons.dark_mode_rounded,
+          s.themeDarkSub),
+      _ThemeOption(ThemeMode.system, s.themeSystem,
+          Icons.brightness_auto_rounded, s.themeSystemSub),
+    ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
@@ -32,9 +33,9 @@ class ThemeSheet extends ConsumerWidget {
         children: <Widget>[
           const SheetHandle(),
           const SizedBox(height: AppSpacing.lg),
-          Text('Görünüş', style: AppTextStyles.h2),
+          Text(s.appearance, style: AppTextStyles.h2),
           const SizedBox(height: AppSpacing.lg),
-          for (final _ThemeOption o in _options)
+          for (final _ThemeOption o in options)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: InkWell(

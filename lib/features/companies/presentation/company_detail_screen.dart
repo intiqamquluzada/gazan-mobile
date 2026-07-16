@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_config.dart';
+import '../../../core/i18n/strings.dart';
+import '../../../core/location/device_location.dart';
+import '../../menu/data/menu_repository.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -32,6 +35,7 @@ class CompanyDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<Company?> companyAsync =
         ref.watch(companyByIdProvider(companyId));
     final AsyncValue<List<LoyaltyProgram>> programsAsync =
@@ -43,14 +47,14 @@ class CompanyDetailScreen extends ConsumerWidget {
       body: companyAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => EmptyState(
-          title: 'Xəta',
+          title: s.error,
           subtitle: e.toString(),
           icon: AppIcons.error,
         ),
         data: (Company? company) {
           if (company == null) {
-            return const EmptyState(
-              title: 'Tapılmadı',
+            return EmptyState(
+              title: s.notFound,
               icon: AppIcons.searchOff,
             );
           }
@@ -88,6 +92,7 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color brand = Color(company.coverColorHex);
     final double topInset = MediaQuery.paddingOf(context).top;
     final bool hasCoinRewards = ref
@@ -128,8 +133,8 @@ class _Body extends ConsumerWidget {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content:
-                                Text('${company.name} kartı əlavə olundu'),
+                            content: Text(
+                                '${company.name} ${s.cardAddedSuffix}'),
                           ),
                         );
                       },
@@ -192,17 +197,7 @@ class _Body extends ConsumerWidget {
               const SizedBox(width: AppSpacing.sm),
               _GlassCircle(
                 icon: AppIcons.share,
-                onTap: () async {
-                  final String url =
-                      '${AppConfig.apiBaseUrl}/companies/${company.id}';
-                  // Native share sheet — lets the user pick WhatsApp,
-                  // Messages, Mail, copy-link, etc. instead of forcing
-                  // a clipboard copy.
-                  await Share.share(
-                    '${company.name}\n$url',
-                    subject: company.name,
-                  );
-                },
+                onTap: () => _shareCompany(company, s),
               ),
             ],
           ),
@@ -223,6 +218,26 @@ class _PhotoHeader extends StatefulWidget {
 
   @override
   State<_PhotoHeader> createState() => _PhotoHeaderState();
+}
+
+/// Shares a rich, useful message instead of a raw API URL (which used to
+/// open backend JSON in the browser). Includes the name, tagline, address,
+/// and — when coordinates exist — a Google Maps link to the exact location.
+Future<void> _shareCompany(Company company, S s) async {
+  final StringBuffer msg = StringBuffer(company.name);
+  if (company.tagline.trim().isNotEmpty) {
+    msg.write('\n${company.tagline.trim()}');
+  }
+  if (company.address.trim().isNotEmpty) {
+    msg.write('\n📍 ${company.address.trim()}');
+  }
+  if (company.latitude != null && company.longitude != null) {
+    final String maps =
+        'https://www.google.com/maps/search/?api=1&query=${company.latitude},${company.longitude}';
+    msg.write('\n\n${s.shareOnMap}: $maps');
+  }
+  msg.write('\n\n${s.shareDiscover} 🎁');
+  await Share.share(msg.toString(), subject: company.name);
 }
 
 class _PhotoHeaderState extends State<_PhotoHeader> {
@@ -345,23 +360,32 @@ class _GlassCircle extends StatelessWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
+class _InfoCard extends ConsumerWidget {
   const _InfoCard({required this.company});
 
   final Company company;
 
   static const List<_Amenity> _amenities = <_Amenity>[
-    _Amenity('WIFI', 'Wifi', Icons.wifi_rounded),
-    _Amenity('WORKSPACE', 'Çalışma', Icons.laptop_mac_rounded),
-    _Amenity('MEETING', 'Toplantı', Icons.groups_rounded),
-    _Amenity('GARDEN', 'Bağça', Icons.park_rounded),
-    _Amenity('PARKING', 'Avtopark', Icons.local_parking_rounded),
-    _Amenity('VEGAN', 'Vegan', Icons.eco_rounded),
-    _Amenity('PET', 'Pet', Icons.pets_rounded),
+    _Amenity('WIFI', Icons.wifi_rounded),
+    _Amenity('WORKSPACE', Icons.laptop_mac_rounded),
+    _Amenity('MEETING', Icons.groups_rounded),
+    _Amenity('GARDEN', Icons.park_rounded),
+    _Amenity('PARKING', Icons.local_parking_rounded),
+    _Amenity('VEGAN', Icons.eco_rounded),
+    _Amenity('PET', Icons.pets_rounded),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    final ({double lat, double lng})? device =
+        ref.watch(deviceLocationProvider).value;
+    final double? distanceKm = distanceKmBetween(
+          device: device,
+          targetLat: company.latitude,
+          targetLng: company.longitude,
+        ) ??
+        company.distanceKm;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
@@ -384,10 +408,29 @@ class _InfoCard extends StatelessWidget {
                     Text(
                       <String>[
                         if (company.address.isNotEmpty) company.address,
-                        company.category.label,
+                        company.category.labelOf(s),
                       ].join(' • '),
                       style: AppTextStyles.bodySm,
                     ),
+                    if (distanceKm != null) ...<Widget>[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: <Widget>[
+                          const Icon(AppIcons.location,
+                              size: 14, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            distanceKm < 1
+                                ? '${(distanceKm * 1000).round()} m uzaqda'
+                                : '${distanceKm.toStringAsFixed(1)} km uzaqda',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     if ((company.workingHours ?? '').isNotEmpty ||
                         (company.phone ?? '').isNotEmpty) ...<Widget>[
                       const SizedBox(height: 6),
@@ -491,20 +534,41 @@ class _RoundAction extends StatelessWidget {
 }
 
 class _Amenity {
-  const _Amenity(this.code, this.label, this.icon);
+  const _Amenity(this.code, this.icon);
   final String code;
-  final String label;
   final IconData icon;
+
+  String label(S s) {
+    switch (code) {
+      case 'WIFI':
+        return s.amWifi;
+      case 'WORKSPACE':
+        return s.amWorkspace;
+      case 'MEETING':
+        return s.amMeeting;
+      case 'GARDEN':
+        return s.amGarden;
+      case 'PARKING':
+        return s.amParking;
+      case 'VEGAN':
+        return s.amVegan;
+      case 'PET':
+        return s.amPet;
+      default:
+        return code;
+    }
+  }
 }
 
-class _AmenityChip extends StatelessWidget {
+class _AmenityChip extends ConsumerWidget {
   const _AmenityChip({required this.amenity, required this.active});
 
   final _Amenity amenity;
   final bool active;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final bool on = active;
     return Column(
       children: <Widget>[
@@ -524,7 +588,7 @@ class _AmenityChip extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          amenity.label,
+          amenity.label(s),
           style: AppTextStyles.caption.copyWith(
             color: on ? AppColors.primary : AppColors.textTertiary,
             fontWeight: on ? FontWeight.w700 : FontWeight.w500,
@@ -535,7 +599,7 @@ class _AmenityChip extends StatelessWidget {
   }
 }
 
-class _OffersCard extends StatelessWidget {
+class _OffersCard extends ConsumerWidget {
   const _OffersCard({
     required this.company,
     required this.programsAsync,
@@ -557,25 +621,46 @@ class _OffersCard extends StatelessWidget {
   final Future<void> Function(LoyaltyProgram program) onJoin;
   final VoidCallback onShowQr;
 
-  void _openMenu(BuildContext context) {
-    final String url = (company.menuUrl ?? '').trim();
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Menyu'),
-        content: SelectableText(url),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Bağla'),
-          ),
-        ],
-      ),
-    );
+  /// Opens the menu. If the business built a structured menu, shows it
+  /// grouped by category in a sheet; otherwise falls back to opening the
+  /// menu link in the in-app browser.
+  Future<void> _openMenu(BuildContext context, List<MenuItem> items) async {
+    if (items.isNotEmpty) {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        ),
+        builder: (BuildContext _) => _MenuSheet(items: items),
+      );
+      return;
+    }
+    final String raw = (company.menuUrl ?? '').trim();
+    if (raw.isEmpty) return;
+    final String normalized =
+        raw.startsWith('http://') || raw.startsWith('https://')
+            ? raw
+            : 'https://$raw';
+    final Uri? uri = Uri.tryParse(normalized);
+    if (uri == null) return;
+    final bool ok = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+    if (!ok && context.mounted) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    // Structured menu items (may be empty — then the link fallback is used).
+    final List<MenuItem> menuItems =
+        ref.watch(companyMenuProvider(company.id)).value ?? const <MenuItem>[];
+    final bool showMenuButton = company.hasMenu || menuItems.isNotEmpty;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
@@ -588,21 +673,21 @@ class _OffersCard extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              // Menyu only shows if the owner added one.
-              if (company.hasMenu) ...<Widget>[
+              // Menu shows if the owner added a link or built a menu.
+              if (showMenuButton) ...<Widget>[
                 Expanded(
                   child: _BigButton(
-                    label: 'Menyu',
+                    label: s.menuWord,
                     icon: Icons.restaurant_menu_rounded,
                     filled: false,
-                    onTap: () => _openMenu(context),
+                    onTap: () => _openMenu(context, menuItems),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
               ],
               Expanded(
                 child: _BigButton(
-                  label: 'QR göstər',
+                  label: s.showQr,
                   icon: AppIcons.qr,
                   filled: true,
                   onTap: onShowQr,
@@ -631,12 +716,12 @@ class _OffersCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.lg),
                   const Divider(height: 1),
                   const SizedBox(height: AppSpacing.lg),
-                  Text('Kampaniyalar', style: AppTextStyles.h2),
+                  Text(s.campaigns, style: AppTextStyles.h2),
                   const SizedBox(height: AppSpacing.md),
                   if (!hasPrograms)
-                    const EmptyState(
-                      title: 'Hələ kampaniya yoxdur',
-                      subtitle: 'Bu obyekt tezliklə təklif əlavə edəcək.',
+                    EmptyState(
+                      title: s.noCampaignYet,
+                      subtitle: s.campaignComingSoon,
                       icon: AppIcons.gift,
                     )
                   else
@@ -709,7 +794,7 @@ class _BigButton extends StatelessWidget {
   }
 }
 
-class _CampaignRow extends StatelessWidget {
+class _CampaignRow extends ConsumerWidget {
   const _CampaignRow({
     required this.program,
     required this.card,
@@ -725,7 +810,8 @@ class _CampaignRow extends StatelessWidget {
   final VoidCallback onShowQr;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final int total = program.stampsRequired;
     final int done = card?.stamps ?? 0;
     return Column(
@@ -750,7 +836,7 @@ class _CampaignRow extends StatelessWidget {
                 children: <Widget>[
                   Text(program.title, style: AppTextStyles.h3),
                   const SizedBox(height: 2),
-                  Text(program.rewardLabel, style: AppTextStyles.bodySm),
+                  Text(program.rewardLabelOf(s), style: AppTextStyles.bodySm),
                 ],
               ),
             ),
@@ -809,12 +895,12 @@ class _CampaignRow extends StatelessWidget {
           child: card == null
               ? OutlinedButton(
                   onPressed: onJoin,
-                  child: const Text('Kampaniyaya qoşul'),
+                  child: Text(s.joinCampaign),
                 )
               : OutlinedButton.icon(
                   onPressed: onShowQr,
                   icon: const Icon(AppIcons.qr, size: 18),
-                  label: const Text('QR göstər'),
+                  label: Text(s.showQr),
                 ),
         ),
       ],
@@ -833,6 +919,7 @@ class _CoinRewardsSection extends ConsumerWidget {
 
   Future<void> _buy(
       BuildContext context, WidgetRef ref, CoinReward r) async {
+    final S s = ref.read(sProvider);
     try {
       await ref.read(rewardsRepositoryProvider).purchase(r.id);
       // Refresh affected state.
@@ -841,13 +928,13 @@ class _CoinRewardsSection extends ConsumerWidget {
       ref.invalidate(myUsedRewardsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${r.title} alındı — Hədiyyələrim-də gör')),
+          SnackBar(content: Text('${r.title} ${s.purchasedSeeGifts}')),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Alınmadı: $e')),
+          SnackBar(content: Text('${s.failed}: $e')),
         );
       }
     }
@@ -855,13 +942,14 @@ class _CoinRewardsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<List<CoinReward>> rewardsAsync =
         ref.watch(coinRewardsProvider(company.id));
     final AsyncValue<CoinSummary> summaryAsync =
         ref.watch(coinSummaryProvider);
 
     final int balance = summaryAsync.maybeWhen(
-      data: (CoinSummary s) => s.companies
+      data: (CoinSummary sum) => sum.companies
           .where((CompanyBalance b) => b.companyId == company.id)
           .fold<int>(0, (int acc, CompanyBalance b) => acc + b.balance),
       orElse: () => 0,
@@ -883,7 +971,7 @@ class _CoinRewardsSection extends ConsumerWidget {
               Row(
                 children: <Widget>[
                   Expanded(
-                      child: Text('Coinlə al', style: AppTextStyles.h2)),
+                      child: Text(s.buyWithCoin, style: AppTextStyles.h2)),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12, vertical: 6),
@@ -909,8 +997,7 @@ class _CoinRewardsSection extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(
-                '"Al" toxun — coin çıxılır, hədiyyə Hədiyyələrim-ə əlavə '
-                'olunur. Sonra kassada QR kodunu göstərib təsdiqlət.',
+                s.buyWithCoinHint,
                 style: AppTextStyles.bodySm.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -936,7 +1023,7 @@ class _CoinRewardsSection extends ConsumerWidget {
   }
 }
 
-class _RewardTile extends StatelessWidget {
+class _RewardTile extends ConsumerWidget {
   const _RewardTile({
     required this.reward,
     required this.affordable,
@@ -948,7 +1035,8 @@ class _RewardTile extends StatelessWidget {
   final VoidCallback? onBuy;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color bgColor =
         affordable ? AppColors.primary : AppColors.borderStrong;
     return Container(
@@ -1025,7 +1113,7 @@ class _RewardTile extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg, vertical: 10),
                 child: Text(
-                  affordable ? 'Al' : 'Çatmır',
+                  affordable ? s.buyAction : s.insufficientWord,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -1037,6 +1125,90 @@ class _RewardTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Read-only structured menu shown to customers, grouped by category.
+class _MenuSheet extends StatelessWidget {
+  const _MenuSheet({required this.items});
+
+  final List<MenuItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    final Map<String, List<MenuItem>> byCat = <String, List<MenuItem>>{};
+    for (final MenuItem m in items) {
+      byCat.putIfAbsent(m.category, () => <MenuItem>[]).add(m);
+    }
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (BuildContext context, ScrollController controller) {
+        return ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl),
+          children: <Widget>[
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text('Menyu', style: AppTextStyles.h2),
+            const SizedBox(height: AppSpacing.md),
+            for (final MapEntry<String, List<MenuItem>> e in byCat.entries)
+              ...<Widget>[
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: AppSpacing.lg, bottom: AppSpacing.sm),
+                  child: Text(e.key,
+                      style: AppTextStyles.overline
+                          .copyWith(color: AppColors.primary)),
+                ),
+                for (final MenuItem m in e.value)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(m.name,
+                                  style: AppTextStyles.bodyLg
+                                      .copyWith(fontWeight: FontWeight.w600)),
+                              if ((m.description ?? '').isNotEmpty)
+                                Text(m.description!,
+                                    style: AppTextStyles.bodySm.copyWith(
+                                        color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                        if (m.price != null) ...<Widget>[
+                          const SizedBox(width: AppSpacing.md),
+                          Text('${m.price!.toStringAsFixed(2)} ₼',
+                              style: AppTextStyles.bodyLg.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              )),
+                        ],
+                      ],
+                    ),
+                  ),
+              ],
+          ],
+        );
+      },
     );
   }
 }

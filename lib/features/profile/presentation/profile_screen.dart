@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/theme_mode_controller.dart';
 import '../../../core/widgets/avatar.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
@@ -27,6 +29,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AppUser? user = ref.watch(currentUserProvider);
     final AsyncValue<List<LoyaltyCard>> cards = ref.watch(myCardsProvider);
     final ThemeMode themeMode = ref.watch(themeModeProvider);
@@ -45,7 +48,7 @@ class ProfileScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: AppBar(title: Text(s.profile)),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.xl),
         children: <Widget>[
@@ -60,7 +63,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Row(
               children: <Widget>[
                 Avatar(
-                  name: user?.fullName ?? 'Qonaq',
+                  name: user?.fullName ?? s.guest,
                   imageUrl: user?.avatarUrl,
                   size: 56,
                 ),
@@ -69,7 +72,7 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(user?.fullName ?? 'Qonaq',
+                      Text(user?.fullName ?? s.guest,
                           style: AppTextStyles.h3),
                       const SizedBox(height: 2),
                       Text(user?.email ?? '',
@@ -100,7 +103,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: _StatCard(
                   icon: Icons.card_giftcard_rounded,
                   value: '$activeCards',
-                  label: 'Aktiv kart',
+                  label: s.activeCard,
                   tint: AppColors.primary,
                 ),
               ),
@@ -109,7 +112,7 @@ class ProfileScreen extends ConsumerWidget {
                 child: _StatCard(
                   icon: Icons.celebration_rounded,
                   value: '$totalRewards',
-                  label: 'Qazanılan mükafat',
+                  label: s.rewardsEarned,
                   tint: AppColors.success,
                 ),
               ),
@@ -118,77 +121,77 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // ── Account section ──
-          Text('Hesab', style: AppTextStyles.overline),
+          Text(s.account, style: AppTextStyles.overline),
           const SizedBox(height: AppSpacing.sm),
           _MenuTile(
             icon: Icons.person_outline_rounded,
-            label: 'Profili düzəliş et',
-            trailing: 'Ad, telefon',
+            label: s.editProfile,
+            trailing: s.nameAndPhone,
             onTap: () => _showSheet(context, const EditProfileSheet()),
           ),
           _MenuTile(
             icon: Icons.favorite_border_rounded,
-            label: 'Sevimlilər',
+            label: s.favorites,
             onTap: () => context.push('/favorites'),
           ),
           _MenuTile(
             icon: Icons.notifications_none_rounded,
-            label: 'Bildirişlər',
+            label: s.notifications,
             trailing: _notifTrailing(ref),
             onTap: () => _showSheet(context, const NotificationsSheet()),
           ),
           _MenuTile(
             icon: Icons.lock_outline_rounded,
-            label: 'Təhlükəsizlik',
+            label: s.security,
             onTap: () => _showSheet(context, const SecuritySheet()),
           ),
           _MenuTile(
             icon: Icons.translate_rounded,
-            label: 'Dil',
+            label: s.language,
             trailing: _langLabel(language),
             onTap: () => _showSheet(context, const LanguageSheet()),
           ),
           _MenuTile(
             icon: Icons.brightness_6_outlined,
-            label: 'Görünüş',
-            trailing: _themeLabel(themeMode),
+            label: s.appearance,
+            trailing: _themeLabel(s, themeMode),
             onTap: () => _showSheet(context, const ThemeSheet()),
           ),
 
           const SizedBox(height: AppSpacing.lg),
 
           // ── Help section ──
-          Text('Yardım', style: AppTextStyles.overline),
+          Text(s.help, style: AppTextStyles.overline),
           const SizedBox(height: AppSpacing.sm),
           _MenuTile(
             icon: Icons.help_outline_rounded,
-            label: 'Tez-tez verilən suallar',
+            label: s.faq,
             onTap: () => _showSheet(context, const HelpSheet()),
           ),
           _MenuTile(
             icon: Icons.support_agent_rounded,
-            label: 'Dəstəklə əlaqə',
-            onTap: () => _showContactSheet(context),
+            label: s.contactSupport,
+            onTap: () => _showContactSheet(context, s),
           ),
           _MenuTile(
             icon: Icons.info_outline_rounded,
-            label: 'Tətbiq haqqında',
+            label: s.aboutApp,
             trailing: 'v 1.0.0',
-            onTap: () => _showAbout(context),
+            onTap: () => _showAbout(context, s),
           ),
 
           const SizedBox(height: AppSpacing.xxl),
           OutlinedButton.icon(
             icon: const Icon(Icons.logout_rounded),
-            label: const Text('Çıxış'),
+            label: Text(s.logout),
             onPressed: () => _confirmSignOut(context, ref),
           ),
           const SizedBox(height: AppSpacing.md),
           TextButton.icon(
             icon: const Icon(Icons.delete_forever_rounded,
                 color: AppColors.error),
-            label: const Text('Hesabı sil',
-                style: TextStyle(color: AppColors.error)),
+            label: Text(s.deleteAccount,
+                style: const TextStyle(color: AppColors.error)),
             onPressed: () => _confirmDeleteAccount(context, ref),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -204,7 +207,7 @@ class ProfileScreen extends ConsumerWidget {
     final int active = <bool>[
       p.newRewards, p.nearbyOffers, p.weeklyRecap, p.marketing,
     ].where((bool e) => e).length;
-    return '$active / 4 aktiv';
+    return '$active / 4 ${ref.read(sProvider).notifActiveSuffix}';
   }
 
   String _langLabel(String code) => switch (code) {
@@ -214,10 +217,10 @@ class ProfileScreen extends ConsumerWidget {
         _ => 'Azərbaycanca',
       };
 
-  String _themeLabel(ThemeMode m) => switch (m) {
-        ThemeMode.light => 'Açıq',
-        ThemeMode.dark => 'Tünd',
-        ThemeMode.system => 'Sistem',
+  String _themeLabel(S s, ThemeMode m) => switch (m) {
+        ThemeMode.light => s.themeLight,
+        ThemeMode.dark => s.themeDark,
+        ThemeMode.system => s.themeSystem,
       };
 
   Future<void> _showSheet(BuildContext context, Widget child) {
@@ -235,26 +238,15 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
-    final bool? ok = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Çıxmaq istəyirsən?'),
-        content: const Text(
-          'Hesabından çıxacaqsan. Yenidən daxil olaraq qayıda bilərsən.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Ləğv et'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Çıxış'),
-          ),
-        ],
-      ),
+    final S s = ref.read(sProvider);
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.logoutTitle,
+      body: s.signOutBody,
+      confirmLabel: s.logout,
+      cancelLabel: s.stay,
     );
-    if (ok == true) {
+    if (ok) {
       // Just clear the session — the router's auth refresh listener
       // redirects to the role picker on its own. No manual navigation,
       // so there's no race between sign-out and screen disposal.
@@ -264,24 +256,21 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _confirmDeleteAccount(
       BuildContext context, WidgetRef ref) async {
+    final S s = ref.read(sProvider);
     final bool? ok = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Hesabı silmək istəyirsən?'),
-        content: const Text(
-          'Bu, hesabını həmişəlik silir. Profil məlumatların silinəcək və '
-          'bu əməliyyat geri qaytarıla bilməz.\n\n'
-          'Qazandığın coinlər və kartlar da əlçatmaz olacaq.',
-        ),
+        title: Text(s.deleteAccountTitle),
+        content: Text(s.deleteAccountBody),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Ləğv et'),
+            child: Text(s.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Hesabı sil'),
+            child: Text(s.deleteAccount),
           ),
         ],
       ),
@@ -293,7 +282,7 @@ class ProfileScreen extends ConsumerWidget {
       await ref.read(profileRemoteDataSourceProvider).deleteAccount();
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Hesab silinmədi: $e')),
+        SnackBar(content: Text('${s.accountDeleteFailed}: $e')),
       );
       return;
     }
@@ -301,7 +290,7 @@ class ProfileScreen extends ConsumerWidget {
     await ref.read(authControllerProvider.notifier).signOut();
   }
 
-  Future<void> _showContactSheet(BuildContext context) async {
+  Future<void> _showContactSheet(BuildContext context, S s) async {
     return _showSheet(
       context,
       Padding(
@@ -312,29 +301,29 @@ class ProfileScreen extends ConsumerWidget {
           children: <Widget>[
             const _SheetHandle(),
             const SizedBox(height: AppSpacing.lg),
-            Text('Dəstəklə əlaqə', style: AppTextStyles.h2),
+            Text(s.contactSupport, style: AppTextStyles.h2),
             const SizedBox(height: AppSpacing.lg),
             ListTile(
               leading: const Icon(Icons.alternate_email_rounded),
-              title: const Text('E-poçt'),
+              title: Text(s.email),
               subtitle: const Text('hello@qazan.az'),
               onTap: () => _launch('mailto:hello@qazan.az'),
             ),
             ListTile(
               leading: const Icon(Icons.phone_rounded),
-              title: const Text('Telefon'),
+              title: Text(s.phoneWord),
               subtitle: const Text('+994 12 555 00 00'),
               onTap: () => _launch('tel:+994125550000'),
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline_rounded),
               title: const Text('WhatsApp'),
-              subtitle: const Text('Mesaj yaz — 5 dəqiqəyə cavab'),
+              subtitle: Text(s.whatsappSub),
               onTap: () => _launch('https://wa.me/994125550000'),
             ),
             const SizedBox(height: AppSpacing.lg),
             PrimaryButton(
-              label: 'Bağla',
+              label: s.close,
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],
@@ -350,18 +339,15 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
-  void _showAbout(BuildContext context) {
+  void _showAbout(BuildContext context, S s) {
     showAboutDialog(
       context: context,
       applicationName: 'Qazan',
       applicationVersion: '1.0.0',
-      applicationLegalese: '© 2026 Qazan. Bütün hüquqlar qorunur.',
+      applicationLegalese: s.allRightsReserved,
       children: <Widget>[
         const SizedBox(height: AppSpacing.md),
-        const Text(
-          'Sadiqlik və müştəri izləmə platforması — kafelər, restoranlar, '
-          'salonlar üçün.',
-        ),
+        Text(s.aboutBody),
       ],
     );
   }

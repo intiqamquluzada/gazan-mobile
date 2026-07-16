@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -80,13 +81,14 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     return Scaffold(
       backgroundColor: Colors.black,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text('QR-i skan et'),
+        title: Text(s.scanQr),
         actions: <Widget>[
           IconButton(
             icon: Icon(_torch ? Icons.flash_on_rounded : Icons.flash_off_rounded),
@@ -122,11 +124,11 @@ class _QrScannerScreenState extends ConsumerState<QrScannerScreen> {
               ),
               child: Column(
                 children: <Widget>[
-                  Text('Müştərinin QR kodunu çərçivəyə tut',
+                  Text(s.holdCustomerQr,
                       textAlign: TextAlign.center,
                       style: AppTextStyles.bodyLg.copyWith(color: Colors.white)),
                   const SizedBox(height: 4),
-                  Text('Avtomatik tanınacaq',
+                  Text(s.autoDetected,
                       style: AppTextStyles.bodySm.copyWith(
                         color: Colors.white.withValues(alpha: 0.7),
                       )),
@@ -149,14 +151,15 @@ class _ScanResultSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<Company?> companyAsync = ref.watch(myCompanyProvider);
     final Company? company = companyAsync.value;
     if (company == null) {
-      return const Padding(
-        padding: EdgeInsets.all(AppSpacing.xl),
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: EmptyState(
-          title: 'Biznes profili yoxdur',
-          subtitle: 'Skan etmək üçün əvvəlcə biznesini yarat.',
+          title: s.noBusinessProfile,
+          subtitle: s.createBusinessFirst,
           icon: Icons.storefront_outlined,
         ),
       );
@@ -172,7 +175,7 @@ class _ScanResultSheet extends ConsumerWidget {
           child: Center(child: CircularProgressIndicator()),
         ),
         error: (Object e, _) => EmptyState(
-          title: 'Xəta', subtitle: e.toString(),
+          title: s.error, subtitle: e.toString(),
           icon: Icons.error_outline_rounded,
         ),
         data: (List<LoyaltyProgram> programs) => _ProgramPicker(
@@ -214,7 +217,8 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('+1 möhür: ${p.title}')),
+        SnackBar(content:
+            Text('+1 ${ref.read(sProvider).stampWordShort}: ${p.title}')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -240,12 +244,13 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
             customerId: widget.customerId,
             companyId: widget.companyId,
             amount: amount,
-            note: 'Skan bonusu',
+            note: ref.read(sProvider).scanBonusNote,
           );
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('+$amount coin müştəriyə verildi')),
+        SnackBar(content:
+            Text('+$amount ${ref.read(sProvider).coinGivenSuffix}')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -275,7 +280,8 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
       )));
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${claim.title} istifadə olundu ✓')),
+        SnackBar(content:
+            Text('${claim.title} ${ref.read(sProvider).usedSuffixCheck}')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -285,7 +291,7 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Alınmadı: $e')),
+        SnackBar(content: Text('${ref.read(sProvider).failed}: $e')),
       );
     } finally {
       if (mounted) setState(() => _usingId = null);
@@ -294,6 +300,7 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final bool hasPrograms = widget.programs.isNotEmpty;
     final AsyncValue<List<AppRewardClaim>> rewardsAsync = ref.watch(
       activeRewardsAtCompanyProvider((
@@ -331,7 +338,7 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        Text('Müştəri tapıldı',
+        Text(s.customerFound,
             textAlign: TextAlign.center, style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.lg),
 
@@ -342,7 +349,7 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Text('Aktiv hədiyyələr',
+                Text(s.activeRewards,
                     style: AppTextStyles.h3),
                 const SizedBox(height: AppSpacing.sm),
                 for (final AppRewardClaim claim in list) ...<Widget>[
@@ -363,13 +370,13 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
 
         // ── Stamp programs ──
         if (hasPrograms) ...<Widget>[
-          Text('Möhür ver', style: AppTextStyles.overline),
+          Text(s.giveStamp, style: AppTextStyles.overline),
           const SizedBox(height: AppSpacing.sm),
           for (final LoyaltyProgram p in widget.programs)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: PrimaryButton(
-                label: '+1 möhür  ·  ${p.title}',
+                label: '+1 ${s.stampWordShort}  ·  ${p.title}',
                 icon: p.rewardType.icon,
                 variant: PrimaryButtonVariant.tonal,
                 loading: _busyProgramId == p.id,
@@ -381,7 +388,7 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
 
         // ── Coin grant ──
         PrimaryButton(
-          label: 'Coin ver',
+          label: s.giveCoin,
           icon: AppIcons.token,
           variant: PrimaryButtonVariant.outlined,
           loading: _grantingCoins,
@@ -392,14 +399,14 @@ class _ProgramPickerState extends ConsumerState<_ProgramPicker> {
         const SizedBox(height: AppSpacing.sm),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Ləğv et'),
+          child: Text(s.cancel),
         ),
       ],
     );
   }
 }
 
-class _ActiveRewardTile extends StatelessWidget {
+class _ActiveRewardTile extends ConsumerWidget {
   const _ActiveRewardTile({
     required this.claim,
     required this.busy,
@@ -411,7 +418,8 @@ class _ActiveRewardTile extends StatelessWidget {
   final VoidCallback? onUse;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -442,8 +450,8 @@ class _ActiveRewardTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis),
                 Text(
                   claim.isCoin
-                      ? '${claim.coinCost} coin · alınmış'
-                      : 'Möhür mükafatı',
+                      ? '${claim.coinCost} coin'
+                      : s.stampRewardLabel,
                   style: AppTextStyles.caption.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -471,7 +479,7 @@ class _ActiveRewardTile extends StatelessWidget {
                       strokeWidth: 2, color: Colors.white,
                     ),
                   )
-                : const Text('İstifadə et'),
+                : Text(s.useAction),
           ),
         ],
       ),
@@ -480,14 +488,14 @@ class _ActiveRewardTile extends StatelessWidget {
 }
 
 /// Tiny dialog to enter how many coins to award.
-class _CoinAmountDialog extends StatefulWidget {
+class _CoinAmountDialog extends ConsumerStatefulWidget {
   const _CoinAmountDialog();
 
   @override
-  State<_CoinAmountDialog> createState() => _CoinAmountDialogState();
+  ConsumerState<_CoinAmountDialog> createState() => _CoinAmountDialogState();
 }
 
-class _CoinAmountDialogState extends State<_CoinAmountDialog> {
+class _CoinAmountDialogState extends ConsumerState<_CoinAmountDialog> {
   final TextEditingController _c = TextEditingController(text: '50');
 
   @override
@@ -498,26 +506,27 @@ class _CoinAmountDialogState extends State<_CoinAmountDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     return AlertDialog(
-      title: const Text('Neçə coin?'),
+      title: Text(s.howManyCoinQ),
       content: TextField(
         controller: _c,
         autofocus: true,
         keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          hintText: 'Məbləğ',
-          prefixIcon: Icon(AppIcons.token),
+        decoration: InputDecoration(
+          hintText: s.amountWord,
+          prefixIcon: const Icon(AppIcons.token),
         ),
       ),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Ləğv et'),
+          child: Text(s.cancel),
         ),
         FilledButton(
           onPressed: () =>
               Navigator.of(context).pop(int.tryParse(_c.text.trim())),
-          child: const Text('Ver'),
+          child: Text(s.giveAction),
         ),
       ],
     );

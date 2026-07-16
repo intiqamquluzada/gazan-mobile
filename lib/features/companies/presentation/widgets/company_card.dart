@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/i18n/strings.dart';
+import '../../../../core/location/device_location.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -8,16 +11,28 @@ import '../../../../core/widgets/company_logo.dart';
 import '../../domain/company.dart';
 
 /// Card used on the discover feed.
-class CompanyCard extends StatelessWidget {
+class CompanyCard extends ConsumerWidget {
   const CompanyCard({super.key, required this.company, required this.onTap});
 
   final Company company;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final Color brand = Color(company.coverColorHex);
     final bool dark = Theme.of(context).brightness == Brightness.dark;
+
+    // Prefer a live device→restaurant distance; fall back to whatever the
+    // backend supplied (company.distanceKm).
+    final ({double lat, double lng})? device =
+        ref.watch(deviceLocationProvider).value;
+    final double? distanceKm = distanceKmBetween(
+          device: device,
+          targetLat: company.latitude,
+          targetLng: company.longitude,
+        ) ??
+        company.distanceKm;
 
     return Material(
       color: Theme.of(context).colorScheme.surface,
@@ -84,16 +99,16 @@ class CompanyCard extends StatelessWidget {
                       children: <Widget>[
                         _Pill(
                           icon: company.category.icon,
-                          label: company.category.label,
+                          label: company.category.labelOf(s),
                           tint: company.category.tint,
                         ),
-                        if (company.distanceKm != null) ...<Widget>[
+                        if (distanceKm != null) ...<Widget>[
                           const SizedBox(width: AppSpacing.sm),
                           const Icon(AppIcons.location,
                               size: 14, color: AppColors.textTertiary),
                           const SizedBox(width: 2),
                           Text(
-                            '${company.distanceKm!.toStringAsFixed(1)} km',
+                            _fmtDistance(distanceKm),
                             style: AppTextStyles.caption,
                           ),
                         ],
@@ -108,6 +123,12 @@ class CompanyCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "800 m" under 1 km, otherwise "1.2 km".
+String _fmtDistance(double km) {
+  if (km < 1) return '${(km * 1000).round()} m';
+  return '${km.toStringAsFixed(1)} km';
 }
 
 class _Pill extends StatelessWidget {

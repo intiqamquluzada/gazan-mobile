@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/i18n/strings.dart';
+
 /// What kind of reward a customer earns when they fill the card.
 /// Wire form matches the backend enum (UPPER_SNAKE).
 enum LoyaltyRewardType {
@@ -13,6 +15,20 @@ enum LoyaltyRewardType {
   final String wire;
   final String label;
   final IconData icon;
+
+  /// Localized display label.
+  String labelOf(S s) {
+    switch (this) {
+      case LoyaltyRewardType.freeItem:
+        return s.rewardFreeItem;
+      case LoyaltyRewardType.percentageDiscount:
+        return s.rewardPercentDiscount;
+      case LoyaltyRewardType.fixedDiscount:
+        return s.rewardFixedDiscount;
+      case LoyaltyRewardType.cashback:
+        return s.rewardCashback;
+    }
+  }
 
   String toJson() => wire;
 
@@ -57,6 +73,20 @@ class LoyaltyProgram {
         return '$rewardItem üzrə ${_fmt(rewardValue ?? 0)}% endirim';
       case LoyaltyRewardType.fixedDiscount:
         return '$rewardItem üzrə ${_fmt(rewardValue ?? 0)} ₼ endirim';
+      case LoyaltyRewardType.cashback:
+        return '${_fmt(rewardValue ?? 0)} ₼ cashback';
+    }
+  }
+
+  /// Localized reward description shown on the customer's card.
+  String rewardLabelOf(S s) {
+    switch (rewardType) {
+      case LoyaltyRewardType.freeItem:
+        return '1 ${s.freeWord} $rewardItem';
+      case LoyaltyRewardType.percentageDiscount:
+        return '$rewardItem ${s.onWord} ${_fmt(rewardValue ?? 0)}% ${s.discountWord}';
+      case LoyaltyRewardType.fixedDiscount:
+        return '$rewardItem ${s.onWord} ${_fmt(rewardValue ?? 0)} ₼ ${s.discountWord}';
       case LoyaltyRewardType.cashback:
         return '${_fmt(rewardValue ?? 0)} ₼ cashback';
     }

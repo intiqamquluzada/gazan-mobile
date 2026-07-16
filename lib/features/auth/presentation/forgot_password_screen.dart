@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -63,11 +64,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           .requestPasswordReset(_email.text);
       if (!mounted) return;
       setState(() => _step = _Step.code);
-      _toast('Kod e-poçtuna göndərildi. Gəlməsə spam qovluğunu yoxla.');
+      _toast(ref.read(sProvider).codeSentToEmail);
     } on ApiException catch (e) {
       _toast(e.message);
     } catch (_) {
-      _toast('Xəta baş verdi. Bir azdan yenidən cəhd et.');
+      _toast(ref.read(sProvider).errorTryAgain);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -83,15 +84,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             newPassword: _password.text,
           );
       if (!mounted) return;
+      final S s = ref.read(sProvider);
       await showDialog<void>(
         context: context,
         builder: (BuildContext ctx) => AlertDialog(
-          title: const Text('Şifrə yeniləndi ✓'),
-          content: const Text('İndi yeni şifrənlə daxil ola bilərsən.'),
+          title: Text(s.passwordUpdated),
+          content: Text(s.newPasswordReady),
           actions: <Widget>[
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Daxil ol'),
+              child: Text(s.login),
             ),
           ],
         ),
@@ -100,7 +102,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     } on ApiException catch (e) {
       _toast(e.message);
     } catch (_) {
-      _toast('Xəta baş verdi. Bir azdan yenidən cəhd et.');
+      _toast(ref.read(sProvider).errorTryAgain);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -108,6 +110,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final bool onEmail = _step == _Step.email;
     return Scaffold(
       appBar: AppBar(),
@@ -123,13 +126,12 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             key: _form,
             child: ListView(
               children: <Widget>[
-                Text('Şifrəni sıfırla', style: AppTextStyles.display),
+                Text(s.resetPassword, style: AppTextStyles.display),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   onEmail
-                      ? 'Hesabının e-poçtunu yaz — sənə 6 rəqəmli kod göndərək.'
-                      : '${_email.text} ünvanına göndərilən kodu və yeni '
-                          'şifrəni daxil et.',
+                      ? s.resetPasswordEmailPrompt
+                      : '${_email.text} ${s.codeSentPrompt}',
                   style: AppTextStyles.body
                       .copyWith(color: AppColors.textSecondary),
                 ),
@@ -137,39 +139,39 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
                 if (onEmail) ...<Widget>[
                   AppTextField(
-                    label: 'E-poçt',
-                    hint: 'sən@qazan.az',
+                    label: s.email,
+                    hint: s.emailHint,
                     controller: _email,
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: Icons.alternate_email_rounded,
                     textInputAction: TextInputAction.done,
                     validator: (String? v) => (v == null || !v.contains('@'))
-                        ? 'Düzgün e-poçt daxil et'
+                        ? s.invalidEmail
                         : null,
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   PrimaryButton(
-                    label: 'Kod göndər',
+                    label: s.sendCode,
                     loading: _loading,
                     onPressed: _loading ? null : _sendCode,
                   ),
                 ] else ...<Widget>[
                   AppTextField(
-                    label: 'Təsdiq kodu',
-                    hint: '6 rəqəm',
+                    label: s.confirmationCode,
+                    hint: s.sixDigits,
                     controller: _code,
                     keyboardType: TextInputType.number,
                     prefixIcon: Icons.pin_outlined,
                     textInputAction: TextInputAction.next,
                     validator: (String? v) =>
                         (v == null || v.trim().length != 6)
-                            ? '6 rəqəmli kodu daxil et'
+                            ? s.enterSixDigitCode
                             : null,
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   AppTextField(
-                    label: 'Yeni şifrə',
-                    hint: '8+ simvol',
+                    label: s.newPassword,
+                    hint: s.eightPlusChars,
                     controller: _password,
                     obscure: _obscure,
                     prefixIcon: Icons.lock_outline_rounded,
@@ -181,18 +183,18 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       onPressed: () => setState(() => _obscure = !_obscure),
                     ),
                     validator: (String? v) =>
-                        (v == null || v.length < 8) ? '8+ simvol olsun' : null,
+                        (v == null || v.length < 8) ? s.min8Chars : null,
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   PrimaryButton(
-                    label: 'Şifrəni yenilə',
+                    label: s.updatePasswordAction,
                     loading: _loading,
                     onPressed: _loading ? null : _resetPassword,
                   ),
                   const SizedBox(height: AppSpacing.md),
                   TextButton(
                     onPressed: _loading ? null : _sendCode,
-                    child: const Text('Kodu yenidən göndər'),
+                    child: Text(s.resendCode),
                   ),
                 ],
               ],

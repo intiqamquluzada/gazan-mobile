@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_strings.dart';
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/qazan_logo.dart';
 
-class RolePickerScreen extends StatelessWidget {
+class RolePickerScreen extends ConsumerWidget {
   const RolePickerScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -26,25 +28,25 @@ class RolePickerScreen extends StatelessWidget {
                 child: QazanLogo(size: 72),
               ),
               const SizedBox(height: AppSpacing.xl),
-              Text('Sən kimsən?', style: AppTextStyles.display),
+              Text(s.whoAreYou, style: AppTextStyles.display),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Hesab yaratmaq üçün rolunu seç. İstənilən vaxt dəyişə bilərsən.',
+                s.whoAreYouSub,
                 style: AppTextStyles.body.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: AppSpacing.xxxl),
               _RoleCard(
-                title: AppStrings.iAmCustomer,
-                subtitle: AppStrings.customerHint,
+                title: s.iAmCustomer,
+                subtitle: s.customerHint,
                 icon: AppIcons.person,
                 onTap: () => context.push('/login?role=customer'),
               ),
               const SizedBox(height: AppSpacing.lg),
               _RoleCard(
-                title: AppStrings.iAmBusiness,
-                subtitle: AppStrings.businessHint,
+                title: s.iAmBusiness,
+                subtitle: s.businessHint,
                 icon: AppIcons.store,
                 onTap: () => context.push('/login?role=business'),
               ),

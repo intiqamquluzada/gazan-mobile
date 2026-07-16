@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -37,37 +38,39 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   String _ago(DateTime? d) {
     if (d == null) return '';
+    final S s = ref.read(sProvider);
     final Duration diff = DateTime.now().difference(d);
-    if (diff.inMinutes < 1) return 'indi';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} dəq əvvəl';
-    if (diff.inHours < 24) return '${diff.inHours} saat əvvəl';
-    return '${diff.inDays} gün əvvəl';
+    if (diff.inMinutes < 1) return s.nowWord;
+    if (diff.inMinutes < 60) return '${diff.inMinutes} ${s.minAgo}';
+    if (diff.inHours < 24) return '${diff.inHours} ${s.hourAgo}';
+    return '${diff.inDays} ${s.dayAgo}';
   }
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<List<AppNotification>> async =
         ref.watch(notificationInboxProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Bildirişlər')),
+      appBar: AppBar(title: Text(s.notifications)),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(notificationInboxProvider),
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (Object e, _) => EmptyState(
-            title: 'Yüklənmədi',
+            title: s.notLoaded,
             subtitle: e.toString(),
             icon: AppIcons.error,
           ),
           data: (List<AppNotification> list) {
             if (list.isEmpty) {
               return ListView(
-                children: const <Widget>[
-                  SizedBox(height: 120),
+                children: <Widget>[
+                  const SizedBox(height: 120),
                   EmptyState(
-                    title: 'Bildiriş yoxdur',
-                    subtitle: 'Yeni bildirişlər burada görünəcək.',
+                    title: s.noNotifications,
+                    subtitle: s.newNotifsHere,
                     icon: AppIcons.bell,
                   ),
                 ],

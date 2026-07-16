@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -87,7 +88,7 @@ class _AdminBusinessesScreenState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Alınmadı: $e'),
+          content: Text('${ref.read(sProvider).failed}: $e'),
           backgroundColor: AppColors.error,
         ));
       }
@@ -98,6 +99,7 @@ class _AdminBusinessesScreenState
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -113,7 +115,7 @@ class _AdminBusinessesScreenState
                     children: <Widget>[
                       Expanded(
                           child:
-                              Text('Bizneslər', style: AppTextStyles.h1)),
+                              Text(s.businessesTitle, style: AppTextStyles.h1)),
                       Text('$_total', style: AppTextStyles.bodySm),
                     ],
                   ),
@@ -123,7 +125,7 @@ class _AdminBusinessesScreenState
                     textInputAction: TextInputAction.search,
                     onSubmitted: (_) => _load(reset: true),
                     decoration: InputDecoration(
-                      hintText: 'Biznes adı axtar',
+                      hintText: s.searchBusinessName,
                       prefixIcon: const Icon(AppIcons.search),
                       suffixIcon: IconButton(
                         icon: const Icon(AppIcons.search),
@@ -145,17 +147,18 @@ class _AdminBusinessesScreenState
   }
 
   Widget _body() {
+    final S s = ref.read(sProvider);
     if (_loading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null && _items.isEmpty) {
       return EmptyState(
-          title: 'Yüklənmədi', subtitle: _error, icon: AppIcons.error);
+          title: s.notLoaded, subtitle: _error, icon: AppIcons.error);
     }
     if (_items.isEmpty) {
-      return const EmptyState(
-        title: 'Tapılmadı',
-        subtitle: 'Axtarışı dəyişib yenidən cəhd et.',
+      return EmptyState(
+        title: s.notFound,
+        subtitle: s.searchTryAgain,
         icon: AppIcons.searchOff,
       );
     }
@@ -173,7 +176,7 @@ class _AdminBusinessesScreenState
               child: Center(
                 child: OutlinedButton(
                   onPressed: _loading ? null : _loadMore,
-                  child: Text(_loading ? 'Yüklənir...' : 'Daha çox'),
+                  child: Text(_loading ? s.loading : s.loadMore),
                 ),
               ),
             );
@@ -190,7 +193,7 @@ class _AdminBusinessesScreenState
   }
 }
 
-class _CompanyTile extends StatelessWidget {
+class _CompanyTile extends ConsumerWidget {
   const _CompanyTile({
     required this.company,
     required this.busy,
@@ -202,7 +205,8 @@ class _CompanyTile extends StatelessWidget {
   final ValueChanged<bool> onFeatured;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
@@ -250,7 +254,7 @@ class _CompanyTile extends StatelessWidget {
                               size: 14, color: AppColors.warning),
                           const SizedBox(width: 2),
                           Text(
-                            '${company.rating!.toStringAsFixed(1)} · ${company.reviewCount} rəy',
+                            '${company.rating!.toStringAsFixed(1)} · ${company.reviewCount} ${s.reviewWord}',
                             style: AppTextStyles.caption,
                           ),
                         ],
@@ -261,7 +265,7 @@ class _CompanyTile extends StatelessWidget {
             ),
             Column(
               children: <Widget>[
-                Text('Seçilmiş', style: AppTextStyles.caption),
+                Text(s.featuredLabel, style: AppTextStyles.caption),
                 busy
                     ? const SizedBox(
                         width: 40,

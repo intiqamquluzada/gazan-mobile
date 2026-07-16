@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -24,11 +26,12 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
     final AsyncValue<List<CustomerSummary>> customers =
         ref.watch(myCustomersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Müştərilər')),
+      appBar: AppBar(title: Text(s.tabCustomers)),
       body: Column(
         children: <Widget>[
           Padding(
@@ -37,9 +40,9 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
             ),
             child: TextField(
               onChanged: (String v) => setState(() => _query = v),
-              decoration: const InputDecoration(
-                hintText: 'Müştəri axtar',
-                prefixIcon: Icon(AppIcons.search),
+              decoration: InputDecoration(
+                hintText: s.searchCustomer,
+                prefixIcon: const Icon(AppIcons.search),
               ),
             ),
           ),
@@ -47,7 +50,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
             child: customers.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (Object e, _) => EmptyState(
-                title: 'Xəta', subtitle: e.toString(),
+                title: s.error, subtitle: e.toString(),
                 icon: AppIcons.error,
               ),
               data: (List<CustomerSummary> all) {
@@ -59,8 +62,8 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                             .contains(_query.toLowerCase()))
                         .toList();
                 if (filtered.isEmpty) {
-                  return const EmptyState(
-                    title: 'Heç nə tapılmadı',
+                  return EmptyState(
+                    title: s.nothingFound,
                     icon: AppIcons.searchOff,
                   );
                 }
@@ -83,49 +86,57 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
   }
 }
 
-class _Row extends StatelessWidget {
+class _Row extends ConsumerWidget {
   const _Row({required this.c});
 
   final CustomerSummary c;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Row(
-        children: <Widget>[
-          Avatar(name: c.fullName, size: 44),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    return InkWell(
+      onTap: () => context.push('/business/customers/${c.userId}'),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.border),
+          boxShadow: AppShadows.sm,
+        ),
+        child: Row(
+          children: <Widget>[
+            Avatar(name: c.fullName, size: 44),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(c.fullName, style: AppTextStyles.bodyLg),
+                  Text(
+                    '${c.totalVisits} ${s.visitsWord} · ${s.lastVisit} ${AppFormat.dateTime(c.lastVisitAt)}',
+                    style: AppTextStyles.caption,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
-                Text(c.fullName, style: AppTextStyles.bodyLg),
-                Text(
-                  '${c.totalVisits} ziyarət · son ziyarət ${AppFormat.dateTime(c.lastVisitAt)}',
-                  style: AppTextStyles.caption,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                _Pill(value: '${c.totalStamps}', label: s.stampWord, tint: AppColors.primary),
+                const SizedBox(height: 4),
+                _Pill(value: '${c.rewardsClaimed}', label: s.rewardWord, tint: AppColors.success),
               ],
             ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              _Pill(value: '${c.totalStamps}', label: 'möhür', tint: AppColors.primary),
-              const SizedBox(height: 4),
-              _Pill(value: '${c.rewardsClaimed}', label: 'mükafat', tint: AppColors.success),
-            ],
-          ),
-        ],
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textTertiary),
+          ],
+        ),
       ),
     );
   }
