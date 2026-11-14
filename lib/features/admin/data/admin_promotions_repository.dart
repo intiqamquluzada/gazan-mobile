@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 
 /// One promotion banner as the admin manages it (includes active flag).
@@ -15,6 +16,7 @@ class AdminPromotion {
     required this.cta,
     required this.active,
     required this.sortOrder,
+    this.imageUrl,
     this.companyId,
     this.endsAt,
   });
@@ -32,6 +34,9 @@ class AdminPromotion {
   final String? companyId;
   final DateTime? endsAt;
 
+  /// Optional banner background photo.
+  final String? imageUrl;
+
   factory AdminPromotion.fromJson(Map<String, dynamic> j) {
     return AdminPromotion(
       id: j['id'] as String,
@@ -40,8 +45,9 @@ class AdminPromotion {
       title: (j['title'] as String?) ?? '',
       subtitle: (j['subtitle'] as String?) ?? '',
       emoji: (j['emoji'] as String?) ?? '🎁',
-      gradientStartHex: (j['gradientStartHex'] as num?)?.toInt() ?? 0xFF6C2BD9,
-      gradientEndHex: (j['gradientEndHex'] as num?)?.toInt() ?? 0xFF3D1486,
+      imageUrl: AppConfig.mediaUrlOrNull(j['imageUrl'] as String?),
+      gradientStartHex: (j['gradientStartHex'] as num?)?.toInt() ?? 0xFF9C7556,
+      gradientEndHex: (j['gradientEndHex'] as num?)?.toInt() ?? 0xFF7A5439,
       cta: (j['cta'] as String?) ?? 'Bax',
       active: (j['active'] as bool?) ?? true,
       sortOrder: (j['sortOrder'] as num?)?.toInt() ?? 0,
@@ -72,10 +78,13 @@ class AdminPromotionsRepository {
     String? subtitle,
     String? emoji,
     String? cta,
-    int gradientStartHex = 0xFF6C2BD9,
-    int gradientEndHex = 0xFF3D1486,
+    int gradientStartHex = 0xFF9C7556,
+    int gradientEndHex = 0xFF7A5439,
     bool active = true,
     int sortOrder = 0,
+    String? imageUrl,
+    String? companyId,
+    DateTime? endsAt,
   }) async {
     await _api.post<dynamic>(
       '/api/v1/admin/promotions',
@@ -89,11 +98,17 @@ class AdminPromotionsRepository {
         'gradientEndHex': gradientEndHex,
         'active': active,
         'sortOrder': sortOrder,
+        if (imageUrl != null && imageUrl.isNotEmpty)
+          'imageUrl': AppConfig.storedMediaUrl(imageUrl),
+        if (companyId != null) 'companyId': companyId,
+        if (endsAt != null) 'endsAt': endsAt.toUtc().toIso8601String(),
       },
     );
   }
 
   Future<void> update(String id, Map<String, dynamic> patch) async {
+    final Object? image = patch['imageUrl'];
+    if (image is String) patch['imageUrl'] = AppConfig.storedMediaUrl(image);
     await _api.put<dynamic>('/api/v1/admin/promotions/$id', body: patch);
   }
 

@@ -5,6 +5,7 @@ import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '_sheet_handle.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class HelpSheet extends ConsumerWidget {
   const HelpSheet({super.key});
@@ -22,7 +23,10 @@ class HelpSheet extends ConsumerWidget {
     ];
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,7 +38,7 @@ class HelpSheet extends ConsumerWidget {
           for (final _FAQ f in items)
             Theme(
               data: Theme.of(context).copyWith(
-                dividerColor: Colors.transparent,
+                dividerColor: AppColors.transparent,
               ),
               child: ExpansionTile(
                 tilePadding: EdgeInsets.zero,

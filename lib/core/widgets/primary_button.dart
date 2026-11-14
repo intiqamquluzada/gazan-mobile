@@ -32,7 +32,7 @@ class PrimaryButton extends StatelessWidget {
             dimension: 22,
             child: CircularProgressIndicator(
               strokeWidth: 2.4,
-              color: Colors.white,
+              color: AppColors.onDark,
             ),
           )
         : Row(
@@ -62,16 +62,15 @@ class PrimaryButton extends StatelessWidget {
         ),
     };
 
-    final bool glow = variant == PrimaryButtonVariant.filled &&
-        onPressed != null &&
-        !loading;
+    final bool glow =
+        variant == PrimaryButtonVariant.filled && onPressed != null && !loading;
 
     return Container(
       width: expanded ? double.infinity : null,
       decoration: glow
           ? BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              boxShadow: AppShadows.brand(AppColors.primary),
+              boxShadow: AppShadows.brand(AppColors.action),
             )
           : null,
       child: button,

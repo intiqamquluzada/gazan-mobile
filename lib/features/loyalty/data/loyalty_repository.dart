@@ -17,6 +17,7 @@ abstract class LoyaltyRepository {
     required LoyaltyRewardType rewardType,
     num? rewardValue,
     String rewardItem = 'məhsul',
+    DateTime? expiresAt,
   });
 
   Future<LoyaltyProgram> updateProgram(LoyaltyProgram program);
@@ -27,7 +28,6 @@ abstract class LoyaltyRepository {
     required String userId,
     required String programId,
   });
-  Future<LoyaltyCard> redeemReward(String cardId);
 
   /// Business action — scans a customer's QR and adds stamp(s).
   Future<LoyaltyCard> scan({
@@ -77,6 +77,7 @@ class RemoteLoyaltyRepository implements LoyaltyRepository {
     required LoyaltyRewardType rewardType,
     num? rewardValue,
     String rewardItem = 'məhsul',
+    DateTime? expiresAt,
   }) async {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/companies/$companyId/programs',
@@ -87,6 +88,7 @@ class RemoteLoyaltyRepository implements LoyaltyRepository {
         'rewardType': rewardType.wire,
         if (rewardValue != null) 'rewardValue': rewardValue,
         'rewardItem': rewardItem,
+        if (expiresAt != null) 'expiresAt': expiresAt.toUtc().toIso8601String(),
       },
     );
     return LoyaltyProgram.fromJson(json);
@@ -104,6 +106,10 @@ class RemoteLoyaltyRepository implements LoyaltyRepository {
         if (p.rewardValue != null) 'rewardValue': p.rewardValue,
         'rewardItem': p.rewardItem,
         'active': p.isActive,
+        'expiresAt': p.expiresAt?.toUtc().toIso8601String(),
+        // A missing date alone means "unchanged" to the server; this flag
+        // is how the owner removes an end date.
+        'clearExpiresAt': p.expiresAt == null,
       },
     );
     return LoyaltyProgram.fromJson(json);
@@ -133,14 +139,6 @@ class RemoteLoyaltyRepository implements LoyaltyRepository {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/loyalty/cards/me',
       body: <String, dynamic>{'programId': programId},
-    );
-    return LoyaltyCard.fromJson(json);
-  }
-
-  @override
-  Future<LoyaltyCard> redeemReward(String cardId) async {
-    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
-      '/api/v1/loyalty/cards/$cardId/redeem',
     );
     return LoyaltyCard.fromJson(json);
   }

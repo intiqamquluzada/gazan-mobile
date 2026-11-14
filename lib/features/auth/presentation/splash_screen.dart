@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_strings.dart';
+import '../../../core/platform/app_variant.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/qazan_logo.dart';
 import '../application/auth_controller.dart';
 import '../domain/user_role.dart';
+import '../../../core/theme/app_colors.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -46,8 +48,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context.go(auth.user!.role.landingPath);
       return;
     }
-    // Returning guests skip onboarding straight to role selection.
-    context.go(seenOnboarding ? '/role' : '/onboarding');
+    // Returning guests (and the desktop till app) go straight to sign-in.
+    context.go(seenOnboarding || AppVariant.isBusinessApp
+        ? '/login'
+        : '/onboarding');
   }
 
   @override
@@ -57,24 +61,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(gradient: kHeroGradient),
         child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const _LogoBadge(),
-            const SizedBox(height: AppSpacing.xl),
-            Text(AppStrings.appName,
-                style: AppTextStyles.display.copyWith(
-                  color: Colors.white,
-                  fontSize: 36,
-                )),
-            const SizedBox(height: AppSpacing.sm),
-            Text(AppStrings.appTagline,
-                style: AppTextStyles.bodySm.copyWith(
-                  color: Colors.white.withValues(alpha: 0.85),
-                )),
-          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const _LogoBadge(),
+              const SizedBox(height: AppSpacing.xl),
+              Text(AppStrings.appName,
+                  style: AppTextStyles.display.copyWith(
+                    color: AppColors.onDark,
+                    fontSize: 36,
+                  )),
+              const SizedBox(height: AppSpacing.sm),
+              Text(AppStrings.appTagline,
+                  style: AppTextStyles.bodySm.copyWith(
+                    color: AppColors.onDark.withValues(alpha: 0.85),
+                  )),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -89,9 +93,9 @@ class _LogoBadge extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: const <BoxShadow>[
+        boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Color(0x33000000),
+            color: AppColors.shadowTint.withValues(alpha: 0.2),
             blurRadius: 28,
             offset: Offset(0, 14),
           ),

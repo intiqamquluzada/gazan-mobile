@@ -32,8 +32,7 @@ class FavoritesScreen extends ConsumerWidget {
           return ListView.separated(
             padding: const EdgeInsets.all(AppSpacing.xl),
             itemCount: list.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: AppSpacing.md),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
             itemBuilder: (BuildContext context, int i) => CompanyCard(
               company: list[i],
               onTap: () => context.push('/companies/${list[i].id}'),
@@ -65,8 +64,8 @@ class _Empty extends ConsumerWidget {
             Text(
               s.noFavoritesHint,
               textAlign: TextAlign.center,
-              style: AppTextStyles.bodySm
-                  .copyWith(color: AppColors.textSecondary),
+              style:
+                  AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),

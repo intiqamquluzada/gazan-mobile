@@ -12,17 +12,18 @@ final Provider<LoyaltyRepository> loyaltyRepositoryProvider =
   (Ref ref) => RemoteLoyaltyRepository(ref.read(apiClientProvider)),
 );
 
-final FutureProviderFamily<List<LoyaltyProgram>, String>
+// autoDispose: fetched again whenever a venue page or the owner's programs
+// tab opens, so paused or edited programs show up without an app restart.
+final AutoDisposeFutureProviderFamily<List<LoyaltyProgram>, String>
     programsForCompanyProvider =
-    FutureProvider.family<List<LoyaltyProgram>, String>(
+    FutureProvider.autoDispose.family<List<LoyaltyProgram>, String>(
         (Ref ref, String companyId) {
   ref.watch(languageProvider);
   return ref.read(loyaltyRepositoryProvider).programsForCompany(companyId);
 });
 
 final FutureProviderFamily<LoyaltyProgram?, String> programByIdProvider =
-    FutureProvider.family<LoyaltyProgram?, String>(
-        (Ref ref, String programId) {
+    FutureProvider.family<LoyaltyProgram?, String>((Ref ref, String programId) {
   ref.watch(languageProvider);
   return ref.read(loyaltyRepositoryProvider).programById(programId);
 });
@@ -65,20 +66,12 @@ class LoyaltyActions {
     int amount = 1,
     String? note,
   }) async {
-    final LoyaltyCard updated =
-        await _ref.read(loyaltyRepositoryProvider).scan(
-              customerId: customerId,
-              programId: programId,
-              stamps: amount,
-              note: note,
-            );
-    _ref.invalidate(myCardsProvider);
-    return updated;
-  }
-
-  Future<LoyaltyCard> redeem(String cardId) async {
-    final LoyaltyCard updated =
-        await _ref.read(loyaltyRepositoryProvider).redeemReward(cardId);
+    final LoyaltyCard updated = await _ref.read(loyaltyRepositoryProvider).scan(
+          customerId: customerId,
+          programId: programId,
+          stamps: amount,
+          note: note,
+        );
     _ref.invalidate(myCardsProvider);
     return updated;
   }
@@ -93,6 +86,7 @@ class LoyaltyActions {
     required LoyaltyRewardType rewardType,
     num? rewardValue,
     String rewardItem = 'məhsul',
+    DateTime? expiresAt,
   }) async {
     final LoyaltyProgram program =
         await _ref.read(loyaltyRepositoryProvider).createProgram(
@@ -103,6 +97,7 @@ class LoyaltyActions {
               rewardType: rewardType,
               rewardValue: rewardValue,
               rewardItem: rewardItem,
+              expiresAt: expiresAt,
             );
     _ref.invalidate(programsForCompanyProvider(companyId));
     return program;
@@ -117,9 +112,7 @@ class LoyaltyActions {
   }
 
   Future<void> deleteProgram(LoyaltyProgram program) async {
-    await _ref
-        .read(loyaltyRepositoryProvider)
-        .deleteProgram(program.id);
+    await _ref.read(loyaltyRepositoryProvider).deleteProgram(program.id);
     _ref.invalidate(programsForCompanyProvider(program.companyId));
   }
 }

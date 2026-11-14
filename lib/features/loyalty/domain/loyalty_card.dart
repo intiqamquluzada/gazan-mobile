@@ -29,10 +29,12 @@ class LoyaltyCard {
 
   final DateTime lastActivityAt;
 
-  double get progress =>
-      stampsRequired == 0 ? 0 : (stamps / stampsRequired).clamp(0, 1).toDouble();
+  double get progress => stampsRequired == 0
+      ? 0
+      : (stamps / stampsRequired).clamp(0, 1).toDouble();
 
-  int get stampsUntilReward => (stampsRequired - stamps).clamp(0, stampsRequired);
+  int get stampsUntilReward =>
+      (stampsRequired - stamps).clamp(0, stampsRequired);
 
   LoyaltyCard copyWith({
     int? stamps,

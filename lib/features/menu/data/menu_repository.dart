@@ -73,7 +73,8 @@ class MenuRepository {
   }
 }
 
-final Provider<MenuRepository> menuRepositoryProvider = Provider<MenuRepository>(
+final Provider<MenuRepository> menuRepositoryProvider =
+    Provider<MenuRepository>(
   (Ref ref) => MenuRepository(ref.read(apiClientProvider)),
 );
 

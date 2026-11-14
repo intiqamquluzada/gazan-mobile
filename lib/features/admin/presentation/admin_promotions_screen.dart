@@ -1,13 +1,20 @@
+import 'dart:typed_data';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../companies/application/companies_providers.dart';
+import '../../companies/domain/company.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../data/admin_promotions_repository.dart';
+import '../../media/data/media_repository.dart';
 
 /// Admin CRUD for the Discover promotion banners ("reklamlar"): create,
 /// edit, toggle active, delete — with a live preview of the banner.
@@ -63,15 +70,18 @@ class AdminPromotionsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggle(BuildContext context, WidgetRef ref,
-      AdminPromotion p, bool active) async {
+  Future<void> _toggle(BuildContext context, WidgetRef ref, AdminPromotion p,
+      bool active) async {
+    final S s = ref.read(sProvider);
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
     try {
-      await ref
+      await container
           .read(adminPromotionsRepositoryProvider)
           .setActive(p.id, active);
-      ref.invalidate(adminPromotionsProvider);
+      container.invalidate(adminPromotionsProvider);
     } catch (e) {
-      _snack(context, '${ref.read(sProvider).failed}: $e', error: true);
+      if (context.mounted) _snack(context, '${s.failed}: $e', error: true);
     }
   }
 
@@ -89,19 +99,23 @@ class AdminPromotionsScreen extends ConsumerWidget {
             child: Text(s.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style:
+                FilledButton.styleFrom(backgroundColor: AppColors.dangerText),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.delete),
           ),
         ],
       ),
     );
-    if (ok != true) return;
+    if (ok != true || !context.mounted) return;
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
     try {
-      await ref.read(adminPromotionsRepositoryProvider).delete(p.id);
-      ref.invalidate(adminPromotionsProvider);
+      await container.read(adminPromotionsRepositoryProvider).delete(p.id);
+      container.invalidate(adminPromotionsProvider);
     } catch (e) {
-      if (context.mounted) _snack(context, '${s.deleteFailed}: $e', error: true);
+      if (context.mounted)
+        _snack(context, '${s.deleteFailed}: $e', error: true);
     }
   }
 
@@ -109,6 +123,7 @@ class AdminPromotionsScreen extends ConsumerWidget {
       {AdminPromotion? existing}) async {
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -124,7 +139,7 @@ class AdminPromotionsScreen extends ConsumerWidget {
   void _snack(BuildContext context, String msg, {bool error = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: error ? AppColors.error : null,
+      backgroundColor: error ? AppColors.danger : null,
     ));
   }
 }
@@ -164,7 +179,7 @@ class _PromoRow extends ConsumerWidget {
             IconButton(
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.error),
+                  color: AppColors.danger),
               tooltip: s.delete,
             ),
           ],
@@ -181,6 +196,7 @@ class _PromoPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? photo = promo.imageUrl;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -192,6 +208,16 @@ class _PromoPreview extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        image: photo == null
+            ? null
+            : DecorationImage(
+                image: CachedNetworkImageProvider(photo),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  AppColors.media.withValues(alpha: 0.45),
+                  BlendMode.darken,
+                ),
+              ),
         borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
       child: Row(
@@ -204,23 +230,23 @@ class _PromoPreview extends StatelessWidget {
               children: <Widget>[
                 if (promo.tag.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.25),
+                      color: AppColors.onDark.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Text(promo.tag,
                         style: AppTextStyles.caption
-                            .copyWith(color: Colors.white)),
+                            .copyWith(color: AppColors.onDark)),
                   ),
                 const SizedBox(height: 4),
                 Text(promo.title,
-                    style: AppTextStyles.h3.copyWith(color: Colors.white)),
+                    style: AppTextStyles.h3.copyWith(color: AppColors.onDark)),
                 if (promo.subtitle.isNotEmpty)
                   Text(promo.subtitle,
                       style: AppTextStyles.bodySm.copyWith(
-                        color: Colors.white.withValues(alpha: 0.9),
+                        color: AppColors.onDark.withValues(alpha: 0.9),
                       )),
               ],
             ),
@@ -246,17 +272,38 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
   late final TextEditingController _subtitle;
   late final TextEditingController _emoji;
   late final TextEditingController _cta;
-  int _startHex = 0xFF6C2BD9;
-  int _endHex = 0xFF3D1486;
+  int _startHex = 0xFF9C7556;
+  int _endHex = 0xFF7A5439;
+  late final TextEditingController _image;
+  bool _uploading = false;
   bool _saving = false;
+  String? _companyId;
+  DateTime? _endsAt;
+
+  Future<void> _pickEnd() async {
+    final S s = ref.read(sProvider);
+    final DateTime now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _endsAt ?? now.add(const Duration(days: 14)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 3650)),
+      cancelText: s.cancel,
+      confirmText: s.selectAction,
+    );
+    if (picked != null) {
+      setState(() => _endsAt =
+          DateTime(picked.year, picked.month, picked.day, 23, 59, 59));
+    }
+  }
 
   static const List<({int start, int end})> _palettes =
       <({int start, int end})>[
-    (start: 0xFF6C2BD9, end: 0xFF3D1486),
-    (start: 0xFFE0356E, end: 0xFF8B1E4E),
-    (start: 0xFF1FB46A, end: 0xFF0B7A46),
-    (start: 0xFFF5A524, end: 0xFFB4740F),
-    (start: 0xFF2D6CDF, end: 0xFF12408F),
+    (start: 0xFF9C7556, end: 0xFF7A5439), // coffee
+    (start: 0xFFB0304A, end: 0xFF7A1F33), // rose
+    (start: 0xFF4F6B4A, end: 0xFF33472F), // olive
+    (start: 0xFFE0B26A, end: 0xFFA67C5B), // gold → caramel
+    (start: 0xFF2F6F8A, end: 0xFF1E4A5C), // teal
   ];
 
   @override
@@ -268,6 +315,9 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
     _subtitle = TextEditingController(text: p?.subtitle ?? '');
     _emoji = TextEditingController(text: p?.emoji ?? '🎁');
     _cta = TextEditingController(text: p?.cta ?? 'Bax');
+    _image = TextEditingController(text: p?.imageUrl ?? '');
+    _companyId = p?.companyId;
+    _endsAt = p?.endsAt;
     if (p != null) {
       _startHex = p.gradientStartHex;
       _endHex = p.gradientEndHex;
@@ -281,7 +331,32 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
     _subtitle.dispose();
     _emoji.dispose();
     _cta.dispose();
+    _image.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? x = await ImagePicker().pickImage(
+        source: ImageSource.gallery, maxWidth: 1600, imageQuality: 85);
+    if (x == null) return;
+    setState(() => _uploading = true);
+    try {
+      final Uint8List bytes = await x.readAsBytes();
+      final String url = await ref.read(mediaRepositoryProvider).uploadImage(
+            bytes: bytes,
+            filename: x.name.isEmpty ? 'promo.jpg' : x.name,
+            contentType: x.mimeType ?? 'image/jpeg',
+          );
+      if (mounted) setState(() => _image.text = url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${ref.read(sProvider).failed}: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
   }
 
   Future<void> _save() async {
@@ -304,6 +379,9 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
           cta: _cta.text.trim(),
           gradientStartHex: _startHex,
           gradientEndHex: _endHex,
+          imageUrl: _image.text.trim(),
+          companyId: _companyId,
+          endsAt: _endsAt,
         );
       } else {
         await repo.update(widget.existing!.id, <String, dynamic>{
@@ -314,6 +392,10 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
           'cta': _cta.text.trim(),
           'gradientStartHex': _startHex,
           'gradientEndHex': _endHex,
+          // Empty string clears the photo (backend trims to null).
+          'imageUrl': _image.text.trim(),
+          'companyId': _companyId,
+          'endsAt': _endsAt?.toUtc().toIso8601String(),
         });
       }
       if (mounted) Navigator.of(context).pop();
@@ -332,6 +414,8 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
+    final List<Company> companies =
+        ref.watch(companiesProvider).valueOrNull ?? const <Company>[];
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
       padding: bottom,
@@ -369,6 +453,8 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
                 cta: _cta.text,
                 active: true,
                 sortOrder: 0,
+                imageUrl:
+                    _image.text.trim().isEmpty ? null : _image.text.trim(),
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -413,6 +499,71 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
+            DropdownButtonFormField<String?>(
+              initialValue: companies.any((Company c) => c.id == _companyId)
+                  ? _companyId
+                  : null,
+              decoration: InputDecoration(labelText: s.promoCompany),
+              items: <DropdownMenuItem<String?>>[
+                DropdownMenuItem<String?>(child: Text(s.promoNoCompany)),
+                for (final Company c in companies)
+                  DropdownMenuItem<String?>(value: c.id, child: Text(c.name)),
+              ],
+              onChanged: (String? v) => setState(() => _companyId = v),
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_outlined),
+              title: Text(s.promoEndsAt),
+              subtitle: Text(_endsAt == null
+                  ? s.programNoExpiry
+                  : '${_endsAt!.day.toString().padLeft(2, '0')}.'
+                      '${_endsAt!.month.toString().padLeft(2, '0')}.'
+                      '${_endsAt!.year}'),
+              trailing: _endsAt == null
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => setState(() => _endsAt = null),
+                    ),
+              onTap: _pickEnd,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(s.adImageLabel, style: AppTextStyles.overline),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: TextField(
+                    controller: _image,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'https://…',
+                      suffixIcon: _image.text.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              onPressed: () => setState(() => _image.clear()),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                IconButton.filledTonal(
+                  onPressed: _uploading ? null : _pickImage,
+                  icon: _uploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.add_photo_alternate_outlined),
+                  tooltip: s.uploadPhoto,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(s.adImageHint, style: AppTextStyles.caption),
+            const SizedBox(height: AppSpacing.lg),
             Text(s.colorLabel, style: AppTextStyles.overline),
             const SizedBox(height: AppSpacing.sm),
             Wrap(
@@ -434,8 +585,8 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
                         borderRadius: BorderRadius.circular(AppRadius.md),
                         border: Border.all(
                           color: _startHex == p.start
-                              ? AppColors.primary
-                              : Colors.transparent,
+                              ? AppColors.action
+                              : AppColors.transparent,
                           width: 3,
                         ),
                       ),

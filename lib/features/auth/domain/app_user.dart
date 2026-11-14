@@ -10,6 +10,8 @@ class AppUser {
     this.birthDate,
     this.avatarUrl,
     this.businessId,
+    this.profileComplete = true,
+    this.staffCompanyId,
   });
 
   final String id;
@@ -22,6 +24,13 @@ class AppUser {
 
   /// If this user owns/operates a business, the company id they manage.
   final String? businessId;
+
+  /// False until the account has a phone number (social sign-ups start
+  /// without one).
+  final bool profileComplete;
+
+  /// The venue a cashier works at.
+  final String? staffCompanyId;
 
   AppUser copyWith({
     String? fullName,
@@ -41,5 +50,7 @@ class AppUser {
         avatarUrl: avatarUrl ?? this.avatarUrl,
         role: role ?? this.role,
         businessId: businessId ?? this.businessId,
+        profileComplete: profileComplete,
+        staffCompanyId: staffCompanyId,
       );
 }

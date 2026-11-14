@@ -1,3 +1,5 @@
+import 'package:qazan/core/config/app_config.dart';
+
 /// The customer's coin wallet snapshot, mirroring the backend
 /// `CoinSummaryResponse`.
 class CoinSummary {
@@ -46,7 +48,7 @@ class CompanyBalance {
         companyId: json['companyId'] as String?,
         companyName: (json['companyName'] as String?) ?? '',
         balance: ((json['balance'] as num?) ?? 0).toInt(),
-        logoUrl: json['logoUrl'] as String?,
+        logoUrl: AppConfig.mediaUrlOrNull(json['logoUrl'] as String?),
       );
 }
 

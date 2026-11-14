@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/i18n/strings.dart';
+import '../../../../core/network/api_exception.dart';
+import '../../../../core/widgets/confirm_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -58,6 +60,7 @@ class RewardCatalog extends ConsumerWidget {
             child: Text(s.cancel),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.add),
           ),
@@ -82,18 +85,110 @@ class RewardCatalog extends ConsumerWidget {
             coinCost: c,
           );
       ref.invalidate(coinRewardsProvider(companyId));
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${s.error}: $e')),
-        );
-      }
+    } on ApiException catch (e) {
+      _toast(context, e.message);
     }
   }
 
-  Future<void> _delete(WidgetRef ref, CoinReward r) async {
-    await ref.read(walletRepositoryProvider).deleteReward(r.id);
-    ref.invalidate(coinRewardsProvider(companyId));
+  void _toast(BuildContext context, String msg) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _edit(BuildContext context, WidgetRef ref, CoinReward r) async {
+    final S s = ref.read(sProvider);
+    final TextEditingController title = TextEditingController(text: r.title);
+    final TextEditingController desc =
+        TextEditingController(text: r.description ?? '');
+    final TextEditingController cost =
+        TextEditingController(text: '${r.coinCost}');
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: Text(s.giftEditTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: title,
+                decoration: InputDecoration(hintText: s.rewardNameHint),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: desc,
+                decoration: InputDecoration(hintText: s.descOptionalHint),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: cost,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  hintText: s.howManyCoinHint,
+                  prefixIcon: const Icon(AppIcons.token),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(s.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(s.saveShort),
+          ),
+        ],
+      ),
+    );
+    final String t = title.text.trim();
+    final String d = desc.text.trim();
+    final int? c = int.tryParse(cost.text.trim());
+    if (ok != true || !context.mounted) return;
+    if (t.isEmpty || c == null || c <= 0) {
+      _toast(context, s.nameAndValidCoin);
+      return;
+    }
+    try {
+      await ref
+          .read(walletRepositoryProvider)
+          .updateReward(r.id, title: t, description: d, coinCost: c);
+      ref.invalidate(coinRewardsProvider(companyId));
+    } on ApiException catch (e) {
+      if (context.mounted) _toast(context, e.message);
+    }
+  }
+
+  Future<void> _setActive(
+      BuildContext context, WidgetRef ref, CoinReward r, bool active) async {
+    try {
+      await ref.read(walletRepositoryProvider).updateReward(r.id, active: active);
+      ref.invalidate(coinRewardsProvider(companyId));
+    } on ApiException catch (e) {
+      if (context.mounted) _toast(context, e.message);
+    }
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, CoinReward r) async {
+    final S s = ref.read(sProvider);
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.giftDeleteTitle,
+      body: '${r.title}\n${s.giftDeleteBody}',
+      confirmLabel: s.delete,
+      cancelLabel: s.cancel,
+      icon: Icons.delete_outline_rounded,
+    );
+    if (!ok || !context.mounted) return;
+    try {
+      await ref.read(walletRepositoryProvider).deleteReward(r.id);
+      ref.invalidate(coinRewardsProvider(companyId));
+    } on ApiException catch (e) {
+      if (context.mounted) _toast(context, e.message);
+    }
   }
 
   @override
@@ -106,8 +201,7 @@ class RewardCatalog extends ConsumerWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            Expanded(
-                child: Text(s.rewardCatalog, style: AppTextStyles.h3)),
+            Expanded(child: Text(s.rewardCatalog, style: AppTextStyles.h3)),
             TextButton.icon(
               onPressed: () => _add(context, ref),
               icon: const Icon(AppIcons.add, size: 18),
@@ -156,19 +250,18 @@ class RewardCatalog extends ConsumerWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
-                            color: AppColors.primarySoft,
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.full),
+                            color: AppColors.caramelSoft,
+                            borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               const Icon(AppIcons.token,
-                                  size: 14, color: AppColors.primary),
+                                  size: 14, color: AppColors.action),
                               const SizedBox(width: 4),
                               Text('${r.coinCost}',
                                   style: AppTextStyles.bodySm.copyWith(
-                                    color: AppColors.primary,
+                                    color: AppColors.action,
                                     fontWeight: FontWeight.w800,
                                   )),
                             ],
@@ -181,7 +274,13 @@ class RewardCatalog extends ConsumerWidget {
                             children: <Widget>[
                               Text(r.title,
                                   style: AppTextStyles.bodyLg.copyWith(
-                                      fontWeight: FontWeight.w700)),
+                                    fontWeight: FontWeight.w700,
+                                    color: r.active
+                                        ? null
+                                        : AppColors.textTertiary,
+                                  )),
+                              Text(r.active ? s.giftActive : s.giftInactive,
+                                  style: AppTextStyles.caption),
                               if ((r.description ?? '').isNotEmpty)
                                 Text(r.description!,
                                     style: AppTextStyles.caption,
@@ -190,10 +289,20 @@ class RewardCatalog extends ConsumerWidget {
                             ],
                           ),
                         ),
+                        Switch(
+                          value: r.active,
+                          onChanged: (bool v) => _setActive(context, ref, r, v),
+                        ),
                         IconButton(
+                          tooltip: s.edit,
+                          icon: const Icon(Icons.edit_outlined),
+                          onPressed: () => _edit(context, ref, r),
+                        ),
+                        IconButton(
+                          tooltip: s.delete,
                           icon: const Icon(Icons.delete_outline_rounded,
-                              color: AppColors.error),
-                          onPressed: () => _delete(ref, r),
+                              color: AppColors.danger),
+                          onPressed: () => _delete(context, ref, r),
                         ),
                       ],
                     ),

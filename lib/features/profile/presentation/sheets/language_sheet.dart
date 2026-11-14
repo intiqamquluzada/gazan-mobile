@@ -24,7 +24,10 @@ class LanguageSheet extends ConsumerWidget {
     final String selected = ref.watch(languageProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -84,11 +87,11 @@ class _LangTile extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: selected
-                ? AppColors.primarySoft
+                ? AppColors.caramelSoft
                 : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
-              color: selected ? AppColors.primary : AppColors.border,
+              color: selected ? AppColors.action : AppColors.border,
             ),
           ),
           child: Row(
@@ -99,8 +102,7 @@ class _LangTile extends StatelessWidget {
                 child: Text(lang.label, style: AppTextStyles.bodyLg),
               ),
               if (selected)
-                const Icon(Icons.check_circle_rounded,
-                    color: AppColors.primary),
+                const Icon(Icons.check_circle_rounded, color: AppColors.action),
             ],
           ),
         ),

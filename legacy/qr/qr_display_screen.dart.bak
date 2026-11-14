@@ -48,7 +48,7 @@ class QrDisplayScreen extends ConsumerWidget {
                         border: Border.all(color: AppColors.border, width: 1.5),
                         boxShadow: <BoxShadow>[
                           BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.08),
+                            color: AppColors.action.withValues(alpha: 0.08),
                             blurRadius: 30,
                             offset: const Offset(0, 12),
                           ),
@@ -59,7 +59,7 @@ class QrDisplayScreen extends ConsumerWidget {
                         version: QrVersions.auto,
                         eyeStyle: const QrEyeStyle(
                           eyeShape: QrEyeShape.square,
-                          color: AppColors.primary,
+                          color: AppColors.action,
                         ),
                         dataModuleStyle: const QrDataModuleStyle(
                           dataModuleShape: QrDataModuleShape.square,
@@ -79,19 +79,19 @@ class QrDisplayScreen extends ConsumerWidget {
                   vertical: AppSpacing.md,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: AppColors.caramelSoft,
                   borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     const Icon(Icons.shield_outlined,
-                        size: 18, color: AppColors.primary),
+                        size: 18, color: AppColors.action),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
                       user?.fullName ?? s.guest,
                       style: AppTextStyles.bodySm.copyWith(
-                        color: AppColors.primary,
+                        color: AppColors.action,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

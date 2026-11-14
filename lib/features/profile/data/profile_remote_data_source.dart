@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../auth/data/auth_remote_data_source.dart';
 import '../../auth/domain/app_user.dart';
@@ -16,11 +17,17 @@ class ProfileRemoteDataSource {
     String? avatarUrl,
     String? businessName,
     String? locale,
+    DateTime? birthDate,
   }) async {
     final Map<String, dynamic> body = <String, dynamic>{};
     if (fullName != null) body['fullName'] = fullName;
     if (phone != null) body['phone'] = phone;
-    if (avatarUrl != null) body['avatarUrl'] = avatarUrl;
+    if (avatarUrl != null) {
+      body['avatarUrl'] = AppConfig.storedMediaUrl(avatarUrl);
+    }
+    if (birthDate != null) {
+      body['birthDate'] = birthDate.toIso8601String().split('T').first;
+    }
     if (businessName != null) body['businessName'] = businessName;
     if (locale != null) body['locale'] = locale;
 

@@ -51,8 +51,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
   void _toast(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _sendCode() async {
@@ -92,6 +91,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           content: Text(s.newPasswordReady),
           actions: <Widget>[
             FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
               onPressed: () => Navigator.of(ctx).pop(),
               child: Text(s.login),
             ),
@@ -136,7 +136,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                       .copyWith(color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
-
                 if (onEmail) ...<Widget>[
                   AppTextField(
                     label: s.email,
@@ -145,9 +144,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: Icons.alternate_email_rounded,
                     textInputAction: TextInputAction.done,
-                    validator: (String? v) => (v == null || !v.contains('@'))
-                        ? s.invalidEmail
-                        : null,
+                    validator: (String? v) =>
+                        (v == null || !v.contains('@')) ? s.invalidEmail : null,
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   PrimaryButton(

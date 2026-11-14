@@ -32,15 +32,15 @@ class NotificationBell extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
               decoration: BoxDecoration(
-                color: AppColors.error,
+                color: AppColors.danger,
                 borderRadius: BorderRadius.circular(9),
-                border: Border.all(color: Colors.white, width: 1.5),
+                border: Border.all(color: AppColors.onDark, width: 1.5),
               ),
               alignment: Alignment.center,
               child: Text(
                 unread > 9 ? '9+' : '$unread',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.onDark,
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                 ),

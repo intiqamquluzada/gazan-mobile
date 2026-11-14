@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/utils/money.dart';
+import 'loyalty_card.dart';
 
 /// What kind of reward a customer earns when they fill the card.
 /// Wire form matches the backend enum (UPPER_SNAKE).
 enum LoyaltyRewardType {
   freeItem('FREE_ITEM', 'Pulsuz məhsul', Icons.card_giftcard_rounded),
-  percentageDiscount('PERCENTAGE_DISCOUNT', 'Faiz endirim', Icons.percent_rounded),
+  percentageDiscount(
+      'PERCENTAGE_DISCOUNT', 'Faiz endirim', Icons.percent_rounded),
   fixedDiscount('FIXED_DISCOUNT', 'Sabit endirim', Icons.discount_rounded),
   cashback('CASHBACK', 'Cashback', Icons.savings_rounded);
 
@@ -65,30 +68,27 @@ class LoyaltyProgram {
   final DateTime? expiresAt;
   final bool isActive;
 
-  String get rewardLabel {
-    switch (rewardType) {
-      case LoyaltyRewardType.freeItem:
-        return '1 pulsuz $rewardItem';
-      case LoyaltyRewardType.percentageDiscount:
-        return '$rewardItem üzrə ${_fmt(rewardValue ?? 0)}% endirim';
-      case LoyaltyRewardType.fixedDiscount:
-        return '$rewardItem üzrə ${_fmt(rewardValue ?? 0)} ₼ endirim';
-      case LoyaltyRewardType.cashback:
-        return '${_fmt(rewardValue ?? 0)} ₼ cashback';
-    }
-  }
+  /// False once the program is paused or past its end date: no new stamps.
+  bool get isOpen =>
+      isActive && (expiresAt == null || expiresAt!.isAfter(DateTime.now()));
 
-  /// Localized reward description shown on the customer's card.
-  String rewardLabelOf(S s) {
+  /// Stamps that fill [card]. A card keeps the number from when it was
+  /// started, even if the owner changed the program since, so progress must
+  /// be drawn against the card's own value whenever the customer has one.
+  int stampsToFill(LoyaltyCard? card) => card?.stampsRequired ?? stampsRequired;
+
+  /// Localized reward description, in the venue's own [currency].
+  String rewardLabelOf(S s, {String? currency}) {
+    final String money = Money.format(rewardValue ?? 0, currency);
     switch (rewardType) {
       case LoyaltyRewardType.freeItem:
         return '1 ${s.freeWord} $rewardItem';
       case LoyaltyRewardType.percentageDiscount:
         return '$rewardItem ${s.onWord} ${_fmt(rewardValue ?? 0)}% ${s.discountWord}';
       case LoyaltyRewardType.fixedDiscount:
-        return '$rewardItem ${s.onWord} ${_fmt(rewardValue ?? 0)} ₼ ${s.discountWord}';
+        return '$rewardItem ${s.onWord} $money ${s.discountWord}';
       case LoyaltyRewardType.cashback:
-        return '${_fmt(rewardValue ?? 0)} ₼ cashback';
+        return '$money cashback';
     }
   }
 
@@ -100,6 +100,8 @@ class LoyaltyProgram {
     num? rewardValue,
     String? rewardItem,
     bool? isActive,
+    DateTime? expiresAt,
+    bool clearExpiry = false,
   }) =>
       LoyaltyProgram(
         id: id,
@@ -110,7 +112,7 @@ class LoyaltyProgram {
         rewardType: rewardType ?? this.rewardType,
         rewardValue: rewardValue ?? this.rewardValue,
         rewardItem: rewardItem ?? this.rewardItem,
-        expiresAt: expiresAt,
+        expiresAt: clearExpiry ? null : (expiresAt ?? this.expiresAt),
         isActive: isActive ?? this.isActive,
       );
 

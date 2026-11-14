@@ -37,7 +37,7 @@ Upload keystore: `android/upload-keystore.jks` (git-ignored).
 > EDİLMİR. Hər ikisini təhlükəsiz yerdə **backup** et — keystore itsə yeni
 > upload key üçün Google-a müraciət etməli olacaqsan.
 >
-> Hazırkı parol: `Qazan2026!` (alias `upload`). Dərc etməzdən əvvəl dəyişməyi
+> Parol bu faylda saxlanılmır: `android/key.properties` (git-ignored, alias `upload`). Dərc etməzdən əvvəl dəyişməyi
 > tövsiyə edirik: `keytool -storepasswd` / `-keypasswd`, sonra `key.properties`.
 
 Release build:

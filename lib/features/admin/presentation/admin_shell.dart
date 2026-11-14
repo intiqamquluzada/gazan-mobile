@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/adaptive_nav_scaffold.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
 import '../../../core/widgets/app_icons.dart';
 
@@ -62,13 +63,11 @@ class AdminShell extends ConsumerWidget {
         if (didPop) return;
         context.go(_routes[0]);
       },
-      child: Scaffold(
-        body: child,
-        bottomNavigationBar: AppBottomNav(
-          items: items,
-          currentIndex: currentIdx,
-          onSelect: (int i) => context.go(_routes[i]),
-        ),
+      child: AdaptiveNavScaffold(
+        items: items,
+        currentIndex: currentIdx,
+        onSelect: (int i) => context.go(_routes[i]),
+        child: child,
       ),
     );
   }

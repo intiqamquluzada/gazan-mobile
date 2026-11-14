@@ -19,6 +19,23 @@ final FutureProvider<AdminStats?> adminStatsProvider =
   return ref.read(adminRepositoryProvider).stats();
 });
 
+final AutoDisposeFutureProviderFamily<AdminCompanyDetail, String>
+    adminCompanyDetailProvider =
+    FutureProvider.autoDispose.family<AdminCompanyDetail, String>(
+  (Ref ref, String id) => ref.read(adminRepositoryProvider).companyDetail(id),
+);
+
+final AutoDisposeFutureProviderFamily<AdminUserDetail, String>
+    adminUserDetailProvider =
+    FutureProvider.autoDispose.family<AdminUserDetail, String>(
+  (Ref ref, String id) => ref.read(adminRepositoryProvider).userDetail(id),
+);
+
+final AutoDisposeFutureProvider<List<CompanyCoinRow>> adminCoinsByCompanyProvider =
+    FutureProvider.autoDispose<List<CompanyCoinRow>>(
+  (Ref ref) => ref.read(adminRepositoryProvider).coinsByCompany(),
+);
+
 final FutureProvider<CoinSummary?> adminCoinSummaryProvider =
     FutureProvider<CoinSummary?>((Ref ref) async {
   if (ref.watch(currentUserProvider)?.role != UserRole.admin) return null;

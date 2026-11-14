@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/maps_launcher.dart';
 
 /// A static OpenStreetMap preview of a business location. Tapping it (or the
 /// "Yol göstər" button) opens the device's maps app for directions. No API
@@ -24,14 +24,11 @@ class LocationMap extends ConsumerWidget {
   final double longitude;
   final String companyName;
 
-  Future<void> _openDirections() async {
-    final Uri uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
-    );
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
+  Future<void> _openDirections() => openDirections(
+        latitude: latitude,
+        longitude: longitude,
+        label: companyName,
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -88,7 +85,7 @@ class LocationMap extends ConsumerWidget {
                             height: 44,
                             child: const Icon(
                               Icons.location_on_rounded,
-                              color: AppColors.primary,
+                              color: AppColors.action,
                               size: 40,
                             ),
                           ),

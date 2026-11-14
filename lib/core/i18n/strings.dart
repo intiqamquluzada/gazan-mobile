@@ -2,6 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/profile/application/profile_settings_controller.dart';
 
+export 'strings_campaign.dart';
+export 'strings_ext.dart';
+export 'strings_store.dart';
+
 /// Lightweight translator for the app's UI chrome (tabs, buttons, dialog
 /// text, menu rows, common labels). Backed by a per-language map; a
 /// missing key falls back to the Azerbaijani default hard-coded in each
@@ -27,8 +31,8 @@ class S {
   String get iAmBusiness => _('iAmBusiness', 'Mən biznesəm');
   String get customerHint =>
       _('customerHint', 'Sevimli yerlərimdən bonus toplamaq');
-  String get businessHint => _('businessHint',
-      'Müştərilərimi izləmək və sadiqlik proqramı yaratmaq');
+  String get businessHint =>
+      _('businessHint', 'Müştərilərimi izləmək və sadiqlik proqramı yaratmaq');
   String get login => _('login', 'Daxil ol');
   String get register => _('register', 'Qeydiyyat');
   String get email => _('email', 'E-poçt');
@@ -137,15 +141,13 @@ class S {
   String get purchasedSeeGifts =>
       _('purchasedSeeGifts', 'alındı — Hədiyyələrim-də gör');
   String get shareOnMap => _('shareOnMap', 'Xəritədə');
-  String get shareDiscover =>
-      _('shareDiscover', 'Qazan tətbiqində kəşf et');
+  String get shareDiscover => _('shareDiscover', 'Qazan tətbiqində kəşf et');
   String get enter => _('enter', 'Daxil et');
   String get done => _('done', 'Hazırdır');
 
   // ── Edit profile sheet ───────────────────────────────────────────
   String get profileUpdated => _('profileUpdated', 'Profil yeniləndi');
-  String get emailReadOnly =>
-      _('emailReadOnly', 'E-poçt (dəyişdirilə bilməz)');
+  String get emailReadOnly => _('emailReadOnly', 'E-poçt (dəyişdirilə bilməz)');
   String get enterName => _('enterName', 'Adı yaz');
 
   // ── Security sheet ───────────────────────────────────────────────
@@ -163,26 +165,25 @@ class S {
   String get notifWhichEvents =>
       _('notifWhichEvents', 'Hansı hadisələrdən xəbərdar olmaq istəyirsən?');
   String get notifNewReward => _('notifNewReward', 'Yeni mükafat');
-  String get notifNewRewardSub => _('notifNewRewardSub',
-      'Bir kart tamamlananda dərhal məlumat ver');
+  String get notifNewRewardSub =>
+      _('notifNewRewardSub', 'Bir kart tamamlananda dərhal məlumat ver');
   String get notifNearby => _('notifNearby', 'Yaxınlıqdakı təkliflər');
-  String get notifNearbySub => _('notifNearbySub',
-      'Sənin yerlərində yeni promo başlayanda xəbərdar et');
+  String get notifNearbySub =>
+      _('notifNearbySub', 'Sənin yerlərində yeni promo başlayanda xəbərdar et');
   String get notifWeekly => _('notifWeekly', 'Həftəlik xülasə');
   String get notifWeeklySub =>
       _('notifWeeklySub', 'Hər bazar nə qədər qazandığını göndər');
-  String get notifMarketing =>
-      _('notifMarketing', 'Marketinq və promosiyalar');
+  String get notifMarketing => _('notifMarketing', 'Marketinq və promosiyalar');
   String get notifMarketingSub =>
       _('notifMarketingSub', 'Yeni biznes və xüsusi kampaniyalar');
 
   // ── Help / FAQ sheet ─────────────────────────────────────────────
   String get faqQ1 => _('faqQ1', 'Möhürü necə qazanıram?');
   String get faqA1 => _('faqA1',
-      'Sevdiyin obyektdə alış-veriş edəndə kassada QR kodunu göstər. Obyekt onu skan edən kimi möhürün avtomatik əlavə olunur.');
+      'Alış-veriş edəndə kassir məkanın kartını telefonuna toxundurur — möhür dərhal əlavə olunur.');
   String get faqQ2 => _('faqQ2', 'Mükafatı necə alıram?');
   String get faqA2 => _('faqA2',
-      'Kart tam dolanda "Kartlarım" bölməsində bildiriş görəcəksən. Növbəti ziyarətdə QR-ini göstər və mükafatını al.');
+      'Kart tam dolanda "Kartlarım" bölməsində bildiriş görəcəksən. Növbəti ziyarətdə hədiyyəni kassada təhvil al.');
   String get faqQ3 => _('faqQ3', 'Birdən çox kartım ola bilərmi?');
   String get faqA3 => _('faqA3',
       'Bəli! Hər obyektin öz kartı var. Bir obyektin müxtəlif proqramları üçün də ayrı kartlar yığa bilərsən.');
@@ -206,8 +207,8 @@ class S {
   String get themeSystemSub => _('themeSystemSub', 'Cihaz parametrini izlə');
 
   // ── Language sheet ───────────────────────────────────────────────
-  String get languageNote => _('languageNote',
-      'Qeyd: lokalizasiya tezliklə bütün ekranlara yayılacaq.');
+  String get languageNote => _(
+      'languageNote', 'Qeyd: lokalizasiya tezliklə bütün ekranlara yayılacaq.');
 
   // ── Business profile screen ──────────────────────────────────────
   String get businessProfileUpdated =>
@@ -228,11 +229,100 @@ class S {
   String get name => _('name', 'Ad');
   String get taglineLabel => _('taglineLabel', 'Şüar / qısa təsvir');
   String get category => _('category', 'Kateqoriya');
-  String get sectionContactHours =>
-      _('sectionContactHours', 'Əlaqə & saatlar');
+  String get sectionContactHours => _('sectionContactHours', 'Əlaqə & saatlar');
   String get address => _('address', 'Ünvan');
   String get workingHours => _('workingHours', 'İş saatları');
   String get workingHoursHint => _('workingHoursHint', 'məs. 09:00 – 23:00');
+  String get openNow => _('openNow', 'Açıqdır');
+  String get closedNow => _('closedNow', 'Bağlıdır');
+  String get collectPoints => _('collectPoints', 'Coin topla');
+  String get nfcTitle => _('nfcTitle', 'Kartı oxut');
+  String get nfcHoldPhone =>
+      _('nfcHoldPhone', 'Telefonu kassadakı karta yaxınlaşdır');
+  String get nfcHoldPhoneBody => _('nfcHoldPhoneBody',
+      'Kassir möhür və ya xal kartını telefonun arxasına toxundursun.');
+  String get nfcShowQrInstead => _('nfcShowQrInstead', 'QR göstər');
+  String get nfcUnsupported => _('nfcUnsupported', 'Bu telefonda NFC yoxdur');
+  String get nfcUnsupportedBody => _('nfcUnsupportedBody',
+      'Möhür və xal toplamaq üçün kassirə müraciət et — hesabına əl ilə əlavə edə bilər.');
+  String get nfcDisabled => _('nfcDisabled', 'NFC söndürülüb');
+  String get nfcDisabledBody => _('nfcDisabledBody',
+      'Telefonun ayarlarından NFC-ni aç və yenidən yoxla.');
+  String get nfcRetry => _('nfcRetry', 'Yenidən yoxla');
+  String get nfcFailed => _('nfcFailed', 'Alınmadı');
+  String get nfcAgain => _('nfcAgain', 'Yenidən oxut');
+  String get nfcNotOurCard =>
+      _('nfcNotOurCard', 'Bu kart Qazan kartı deyil.');
+  String get nfcOfflineQueued => _('nfcOfflineQueued',
+      'İnternet yoxdur — oxunuş saxlanıldı, bağlantı qayıdanda göndəriləcək.');
+  String nfcQueuedSent(int n) =>
+      _('nfcQueuedSent', 'Oflayn {n} oxunuş göndərildi').replaceAll('{n}', '$n');
+  String get nfcCards => _('nfcCards', 'NFC kartlar');
+  String get nfcTapLog => _('nfcTapLog', 'Oxunuşlar');
+  String get nfcWriteCard => _('nfcWriteCard', 'Karta yaz');
+  String get nfcWriteHold =>
+      _('nfcWriteHold', 'Boş kartı telefonun arxasına yaxınlaşdır');
+  String get nfcWritten => _('nfcWritten', 'Kart yazıldı');
+  String get nfcNewCard => _('nfcNewCard', 'Yeni kart');
+  String get nfcKindStamp => _('nfcKindStamp', 'Möhür kartı');
+  String get nfcKindPoints => _('nfcKindPoints', 'Xal kartı');
+  String get nfcPointsPerTap => _('nfcPointsPerTap', 'Hər oxunuşda xal');
+  String get nfcCooldown => _('nfcCooldown', 'Təkrar gözləmə (san.)');
+  String get nfcDailyCap => _('nfcDailyCap', 'Gündə limit (hər müştəri)');
+  String get nfcBlock => _('nfcBlock', 'Blokla');
+  String get nfcUnblock => _('nfcUnblock', 'Blokdan çıxar');
+  String get nfcRotate => _('nfcRotate', 'Yeni kod ver');
+  String get nfcSuspiciousOnly => _('nfcSuspiciousOnly', 'Şübhəli');
+  String get nfcTapShort => _('nfcTapShort', 'Kartı oxut');
+  String get loginSub => _('loginSub',
+      'Hesabınla daxil ol — müştəri və ya biznes, fərqi yoxdur.');
+  String get countryLabel => _('countryLabel', 'Ölkə');
+  String get currencyLabel => _('currencyLabel', 'Valyuta');
+  String get roleCustomer2 => _('roleCustomer2', 'Müştəri');
+  String get roleBusiness2 => _('roleBusiness2', 'Biznes');
+  String get pendingRewards => _('pendingRewards', 'Gözləyən hədiyyələr');
+  String get noPendingRewards =>
+      _('noPendingRewards', 'Gözləyən hədiyyə yoxdur');
+  String get noPendingRewardsHint => _('noPendingRewardsHint',
+      'Müştəri kartı tamamlayanda və ya coinlə hədiyyə alanda burada görünəcək.');
+  String get rewardHandOver => _('rewardHandOver', 'İstifadə olundu');
+  String get rewardHandOverTitle =>
+      _('rewardHandOverTitle', 'Hədiyyə istifadə olundu kimi qeyd edilsin?');
+  String get nfcCardsTrailing => _('nfcCardsTrailing', 'Möhür və xal kartları');
+  String get nfcNoCardsBusiness => _('nfcNoCardsBusiness',
+      'Hələ kart verilməyib — admin ilə əlaqə saxlayın.');
+  String get nfcNotWritten => _('nfcNotWritten', 'Karta yazılmayıb');
+  String get nfcNotWritable => _('nfcNotWritable',
+      'Bu etiketə yazmaq olmur (kilidlənib və ya uyğun deyil).');
+  String get nfcWrittenBody => _('nfcWrittenBody',
+      'Kartı kassaya ver. İndi müştəri telefonuna toxundurula bilər.');
+  String get nfcCooldownHelp => _('nfcCooldownHelp',
+      'Eyni müştəri bu kartı nə qədər tez-tez oxuda bilər.');
+  String get menuOwnerHint => _('menuOwnerHint',
+      'Menyu əlavə et ki, müştərilər nə təklif etdiyini və qiymətləri görsün.');
+  String get menuDeleteBody =>
+      _('menuDeleteBody', 'Bu məhsul menyudan silinəcək.');
+  String get deleteReviewTitle => _('deleteReviewTitle', 'Rəyi sil?');
+  String get lowRatingsOnly => _('lowRatingsOnly', '1–2 ulduz');
+  String get myBusinessSection => _('myBusinessSection', 'Biznesim');
+  String get menuOwnerTrailing =>
+      _('menuOwnerTrailing', 'Məhsullar, qiymətlər');
+  String get reviewsOwnerTrailing =>
+      _('reviewsOwnerTrailing', 'Müştəri rəyləri');
+  String get adImageLabel => _('adImageLabel', 'Arxa fon şəkli');
+  String get adImageHint =>
+      _('adImageHint', 'Boş qalsa, məkanın örtük şəkli istifadə olunur.');
+  String get uploadPhoto => _('uploadPhoto', 'Şəkil yüklə');
+  String get reviewLockedHint => _('reviewLockedHint',
+      'Rəy yazmaq üçün bu məkanda ən azı bir möhür və ya coin qazan.');
+  String get rewardReadyTitle => _('rewardReadyTitle', 'Hədiyyən hazırdır!');
+  String get rewardReadyBody => _('rewardReadyBody',
+      'Kartını tamamladın. Hədiyyəni kassada təhvil al.');
+  String get useReward => _('useReward', 'İstifadə et');
+  String moreCampaigns(int n) =>
+      _('moreCampaigns', '+{n} kampaniya daha').replaceAll('{n}', '$n');
+  String moreCampaignsShort(int n) =>
+      _('moreCampaignsShort', '+{n} kampaniya').replaceAll('{n}', '$n');
   String get instagramHint => _('instagramHint', '@hesab');
   String get sectionLocationMap => _('sectionLocationMap', 'Yer (xəritə)');
   String get pickOnMap => _('pickOnMap', 'Xəritədən seç');
@@ -250,12 +340,11 @@ class S {
   String get businessPhotosHint => _('businessPhotosHint',
       'Biznes şəkilləri — telefon/kompüterindən yüklə (profil və axtarış səhifəsində görünür).');
   String get menuLink => _('menuLink', 'Menyu linki');
-  String get menuLinkHint => _('menuLinkHint', 'https://... (PDF / sayt / şəkil)');
+  String get menuLinkHint =>
+      _('menuLinkHint', 'https://... (PDF / sayt / şəkil)');
   String get sectionCoinSystem => _('sectionCoinSystem', 'Coin sistemi');
-  String get coinRate =>
-      _('coinRate', 'Coin dərəcəsi (1 ₼ üçün neçə coin)');
-  String get coinRateHint =>
-      _('coinRateHint', 'məs. 0.1  → 1000 ₼ = 100 coin');
+  String get coinRate => _('coinRate', 'Coin dərəcəsi (1 ₼ üçün neçə coin)');
+  String get coinRateHint => _('coinRateHint', 'məs. 0.1  → 1000 ₼ = 100 coin');
   String get coinRateNote => _('coinRateNote',
       'Kassir skan edəndə çek məbləğini yazır — coin avtomatik hesablanır. Mükafat kataloqu isə "Proqramlar" bölməsindədir.');
   String get translationsOptional =>
@@ -268,8 +357,7 @@ class S {
   String get taglineRu => _('taglineRu', 'Şüar (RU)');
   String get nameTr => _('nameTr', 'Ad (TR)');
   String get taglineTr => _('taglineTr', 'Şüar (TR)');
-  String get createYourBusiness =>
-      _('createYourBusiness', 'Biznesini yarat');
+  String get createYourBusiness => _('createYourBusiness', 'Biznesini yarat');
   String get createBusinessHint => _('createBusinessHint',
       'Bu hesabın hələ biznesi yoxdur. Aşağıdakıları doldur — sonra foto, menyu, imkanlar və s. əlavə edə bilərsən.');
   String get businessName => _('businessName', 'Biznes adı');
@@ -295,7 +383,8 @@ class S {
   String get loyaltyCard => _('loyaltyCard', 'Loyallıq kartı');
   String get coinTransaction => _('coinTransaction', 'Coin əməliyyatı');
   String get coinCirculation => _('coinCirculation', 'Coin dövriyyəsi');
-  String get currentBalanceCoin => _('currentBalanceCoin', 'cari balans (coin)');
+  String get currentBalanceCoin =>
+      _('currentBalanceCoin', 'cari balans (coin)');
   String get earnedLabel => _('earnedLabel', 'Qazanılıb');
   String get spentLabel => _('spentLabel', 'Xərclənib');
   String get recentSignups => _('recentSignups', 'Son qeydiyyatlar');
@@ -322,17 +411,18 @@ class S {
 
   // ── Auth extras (register / login / forgot) ──────────────────────
   String get promoteBusiness => _('promoteBusiness', 'Biznesini tanıt');
-  String get registerBusinessSub => _('registerBusinessSub',
-      'Biznes profilin sənin üçün hazırlanır.');
-  String get registerCustomerSub => _('registerCustomerSub',
-      'Bir neçə dəqiqədə qoşul və ilk möhürünü qazan.');
+  String get registerBusinessSub =>
+      _('registerBusinessSub', 'Biznes profilin sənin üçün hazırlanır.');
+  String get registerCustomerSub => _(
+      'registerCustomerSub', 'Bir neçə dəqiqədə qoşul və ilk möhürünü qazan.');
   String get businessNameHint => _('businessNameHint', 'məs. Qazan Coffee');
   String get fullNameHint => _('fullNameHint', 'məs. Əli Məmmədov');
   String get emailHint => _('emailHint', 'sən@qazan.az');
   String get enterNameShort => _('enterNameShort', 'Adı qeyd et');
   String get invalidEmail => _('invalidEmail', 'Düzgün e-poçt daxil et');
   String get passwordHintMin8 => _('passwordHintMin8', 'ən azı 8 simvol');
-  String get registrationFailed => _('registrationFailed', 'Qeydiyyat alınmadı');
+  String get registrationFailed =>
+      _('registrationFailed', 'Qeydiyyat alınmadı');
   String get birthDateOptional =>
       _('birthDateOptional', 'Doğum tarixi (istəyə bağlı)');
   String get pickDate => _('pickDate', 'Tarixi seç');
@@ -347,10 +437,10 @@ class S {
   String get pwErrLetter => _('pwErrLetter', 'Ən azı bir hərf olmalıdır');
   String get pwErrDigit => _('pwErrDigit', 'Ən azı bir rəqəm olmalıdır');
   String get skip => _('skip', 'Keç');
-  String get loginBusinessSub => _('loginBusinessSub',
-      'Biznes hesabına daxil ol və müştərilərini izlə.');
-  String get loginCustomerSub => _('loginCustomerSub',
-      'Hesabına daxil ol və sevimli yerlərindən qazan.');
+  String get loginBusinessSub =>
+      _('loginBusinessSub', 'Biznes hesabına daxil ol və müştərilərini izlə.');
+  String get loginCustomerSub =>
+      _('loginCustomerSub', 'Hesabına daxil ol və sevimli yerlərindən qazan.');
   String get loginFailed => _('loginFailed', 'Daxil olmaq alınmadı');
   String get roleMismatchBusiness => _('roleMismatchBusiness',
       'Bu giriş biznes hesabları üçündür. Müştəri hesabı ilə "Mən müştəriyəm" bölməsindən daxil ol.');
@@ -366,8 +456,8 @@ class S {
       _('errorTryAgain', 'Xəta baş verdi. Bir azdan yenidən cəhd et.');
   String get newPasswordReady =>
       _('newPasswordReady', 'İndi yeni şifrənlə daxil ola bilərsən.');
-  String get codeSentPrompt => _('codeSentPrompt',
-      'ünvanına göndərilən kodu və yeni şifrəni daxil et.');
+  String get codeSentPrompt =>
+      _('codeSentPrompt', 'ünvanına göndərilən kodu və yeni şifrəni daxil et.');
   String get sendCode => _('sendCode', 'Kod göndər');
   String get resendCode => _('resendCode', 'Kodu yenidən göndər');
   String get confirmationCode => _('confirmationCode', 'Təsdiq kodu');
@@ -399,7 +489,7 @@ class S {
   String get visitsWord => _('visitsWord', 'ziyarət');
   String get lastVisit => _('lastVisit', 'son ziyarət');
   String get stampWord => _('stampWord', 'möhür');
-  String get rewardWord => _('rewardWord', 'mükafat');
+  String get rewardWord => _('rewardWord', 'hədiyyə');
   String get customerTitle => _('customerTitle', 'Müştəri');
   String get recentPurchases => _('recentPurchases', 'Son alış-verişlər');
   String get noActivityYet => _('noActivityYet', 'Hələ hərəkət yoxdur');
@@ -428,8 +518,7 @@ class S {
   String get editProgram => _('editProgram', 'Proqramı düzəliş et');
   String get threeSimpleSteps => _('threeSimpleSteps',
       'Üç sadə addım — müştəri neçə möhürdən sonra nə qazanır.');
-  String get whatCustomerEarns =>
-      _('whatCustomerEarns', 'Müştəri nə qazanır?');
+  String get whatCustomerEarns => _('whatCustomerEarns', 'Müştəri nə qazanır?');
   String get discountPercentLabel =>
       _('discountPercentLabel', 'Endirim faizi (%)');
   String get amountManatLabel => _('amountManatLabel', 'Məbləğ (₼)');
@@ -457,23 +546,21 @@ class S {
 
   // ── Reward catalog ───────────────────────────────────────────────
   String get addReward => _('addReward', 'Mükafat əlavə et');
-  String get rewardNameHint =>
-      _('rewardNameHint', 'Ad — məs. San Sebastian');
+  String get rewardNameHint => _('rewardNameHint', 'Ad — məs. San Sebastian');
   String get descOptionalHint =>
       _('descOptionalHint', 'Açıqlama (istəyə bağlı)');
   String get howManyCoinHint => _('howManyCoinHint', 'Neçə coin');
   String get nameAndValidCoin =>
       _('nameAndValidCoin', 'Ad və düzgün coin məbləği yaz');
-  String get coinGiftsSub => _('coinGiftsSub',
-      'Coinlə alınan hədiyyələr (möhür proqramlarından ayrı).');
+  String get coinGiftsSub => _(
+      'coinGiftsSub', 'Coinlə alınan hədiyyələr (möhür proqramlarından ayrı).');
   String get noRewardsYetHint => _('noRewardsYetHint',
       'Hələ mükafat yoxdur. "Əlavə et" ilə yarat — məs. 100 coin = 1 porsiya San Sebastian.');
 
   // ── Admin users / businesses ─────────────────────────────────────
   String get usersTitle => _('usersTitle', 'İstifadəçilər');
   String get businessesTitle => _('businessesTitle', 'Bizneslər');
-  String get searchBusinessName =>
-      _('searchBusinessName', 'Biznes adı axtar');
+  String get searchBusinessName => _('searchBusinessName', 'Biznes adı axtar');
   String get searchTryAgain =>
       _('searchTryAgain', 'Axtarışı dəyişib yenidən cəhd et.');
   String get reviewWord => _('reviewWord', 'rəy');
@@ -498,8 +585,7 @@ class S {
   // ── Admin coins ──────────────────────────────────────────────────
   String get coinAdjustment => _('coinAdjustment', 'Coin düzəlişi');
   String get coinControl => _('coinControl', 'Coin nəzarəti');
-  String get recentTransactions =>
-      _('recentTransactions', 'Son əməliyyatlar');
+  String get recentTransactions => _('recentTransactions', 'Son əməliyyatlar');
   String get noTransactions => _('noTransactions', 'Əməliyyat yoxdur');
   String get transactionsWillShow =>
       _('transactionsWillShow', 'Coin hərəkətləri burada görünəcək.');
@@ -508,8 +594,8 @@ class S {
   String get unknownParen => _('unknownParen', '(naməlum)');
   String get adjustPositiveNegative => _('adjustPositiveNegative',
       'Müsbət məbləğ əlavə edir, mənfi məbləğ silir.');
-  String get pickUserAndAmount => _('pickUserAndAmount',
-      'İstifadəçi seç və sıfırdan fərqli məbləğ yaz.');
+  String get pickUserAndAmount =>
+      _('pickUserAndAmount', 'İstifadəçi seç və sıfırdan fərqli məbləğ yaz.');
   String get searchUserByEmail =>
       _('searchUserByEmail', 'İstifadəçini e-poçt ilə tap');
   String get amountExample =>
@@ -559,8 +645,7 @@ class S {
   String get categoryAndNameRequired =>
       _('categoryAndNameRequired', 'Kateqoriya və ad mütləqdir');
   String get categoryLabel => _('categoryLabel', 'Kateqoriya');
-  String get categoryHint =>
-      _('categoryHint', 'məs. Qəhvələr, Əsas yeməklər');
+  String get categoryHint => _('categoryHint', 'məs. Qəhvələr, Əsas yeməklər');
   String get descriptionOptionalField =>
       _('descriptionOptionalField', 'Təsvir (istəyə bağlı)');
   String get priceOptional => _('priceOptional', 'Qiymət (₼, istəyə bağlı)');
@@ -595,6 +680,7 @@ class S {
   String get rewardsWaitSuffix =>
       _('rewardsWaitSuffix', 'mükafat səni gözləyir!');
   String get catCoffee => _('catCoffee', 'Kafe & Qəhvəxana');
+  String get catCoffeeShort => _('catCoffeeShort', 'Kafe');
   String get catRestaurant => _('catRestaurant', 'Restoran');
   String get catBeauty => _('catBeauty', 'Gözəllik');
   String get catBarber => _('catBarber', 'Bərbər');
@@ -605,7 +691,7 @@ class S {
   String get scanTapHint =>
       _('scanTapHint', 'Bir toxunuş — möhür avtomatik əlavə olunur.');
   String get firstCustomerHint => _('firstCustomerHint',
-      'İlk QR-i skan etdiyin anda müştəri burada görünəcək.');
+      'Kartı ilk dəfə müştərinin telefonuna toxundurduğun an o, burada görünəcək.');
   String get daysLeftSuffix => _('daysLeftSuffix', 'gün qalıb');
   String get hoursLeftSuffix => _('hoursLeftSuffix', 'saat qalıb');
   String get minsLeftSuffix => _('minsLeftSuffix', 'dəq qalıb');
@@ -621,16 +707,15 @@ class S {
   String get onbTitle1 => _('onbTitle1', 'Sevdiyin yerlərdən qazan');
   String get onbSub1 => _('onbSub1',
       'Kafeləri, restoranları, salonları kəşf et — hər ziyarət sənə bonus gətirsin.');
-  String get onbTitle2 => _('onbTitle2', 'QR kodla təsdiqlə');
-  String get onbSub2 => _('onbSub2',
-      'Ödəyəndə QR kodunu göstər, sadiqlik balın avtomatik artsın.');
+  String get onbTitle2 => _('onbTitle2', 'Kartı telefona toxundur');
+  String get onbSub2 => _(
+      'onbSub2', 'Kassir kartı telefonuna toxundurur — möhür və xal avtomatik yazılır.');
   String get onbTitle3 => _('onbTitle3', 'Mükafatları topla');
   String get onbSub3 => _('onbSub3',
       '6-cı qəhvə sənindir — sənin üçün hazırlanmış xüsusi təkliflərlə qazan.');
   String get getStarted => _('getStarted', 'Başlayaq');
   String get continueAction => _('continueAction', 'Davam et');
-  String get coinGivenSuffix =>
-      _('coinGivenSuffix', 'coin müştəriyə verildi');
+  String get coinGivenSuffix => _('coinGivenSuffix', 'coin müştəriyə verildi');
   String get usedSuffixCheck => _('usedSuffixCheck', 'istifadə olundu ✓');
   String get scanBonusNote => _('scanBonusNote', 'Skan bonusu');
 
@@ -644,11 +729,9 @@ class S {
       _('deleteAccountTitle', 'Hesabı silmək istəyirsən?');
   String get deleteAccountBody => _('deleteAccountBody',
       'Bu, hesabını həmişəlik silir. Profil məlumatların silinəcək və bu əməliyyat geri qaytarıla bilməz.\n\nQazandığın coinlər və kartlar da əlçatmaz olacaq.');
-  String get accountDeleteFailed =>
-      _('accountDeleteFailed', 'Hesab silinmədi');
+  String get accountDeleteFailed => _('accountDeleteFailed', 'Hesab silinmədi');
   String get phoneWord => _('phoneWord', 'Telefon');
-  String get whatsappSub =>
-      _('whatsappSub', 'Mesaj yaz — 5 dəqiqəyə cavab');
+  String get whatsappSub => _('whatsappSub', 'Mesaj yaz — 5 dəqiqəyə cavab');
   String get aboutBody => _('aboutBody',
       'Sadiqlik və müştəri izləmə platforması — kafelər, restoranlar, salonlar üçün.');
   String get allRightsReserved =>
@@ -668,7 +751,8 @@ class S {
       'Kassada istifadə etdiyin hədiyyələr burada görünəcək.');
   String get coinLabel => _('coinLabel', 'Coin');
   String get stampLabel => _('stampLabel', 'Möhür');
-  String get showQrCashier => _('showQrCashier', 'Kassada QR göstər');
+  String get showQrCashier =>
+      _('showQrCashier', 'Kassada təhvil al');
   String get usedPrefix => _('usedPrefix', 'İstifadə olunub');
   String get nowWord => _('nowWord', 'indi');
   String get minAgo => _('minAgo', 'dəq əvvəl');
@@ -682,6 +766,7 @@ class S {
 
   // ── Company detail ───────────────────────────────────────────────
   String get menuWord => _('menuWord', 'Menyu');
+  String get fullMenu => _('fullMenu', 'Tam menyu');
   String get showQr => _('showQr', 'QR göstər');
   String get campaigns => _('campaigns', 'Kampaniyalar');
   String get noCampaignYet => _('noCampaignYet', 'Hələ kampaniya yoxdur');
@@ -690,7 +775,7 @@ class S {
   String get joinCampaign => _('joinCampaign', 'Kampaniyaya qoşul');
   String get buyWithCoin => _('buyWithCoin', 'Coinlə al');
   String get buyWithCoinHint => _('buyWithCoinHint',
-      '"Al" toxun — coin çıxılır, hədiyyə Hədiyyələrim-ə əlavə olunur. Sonra kassada QR kodunu göstərib təsdiqlət.');
+      '"Al" toxun — coin çıxılır, hədiyyə Hədiyyələrim-ə əlavə olunur. Sonra kassada təhvil alırsan.');
   String get buyAction => _('buyAction', 'Al');
   String get insufficientWord => _('insufficientWord', 'Çatmır');
   String get mAway => _('mAway', 'm uzaqda');
@@ -699,8 +784,7 @@ class S {
 
   // ── Discover ─────────────────────────────────────────────────────
   String get helloName => _('helloName', 'Salam');
-  String get whereEarnToday =>
-      _('whereEarnToday', 'Bu gün hardan qazanaq?');
+  String get whereEarnToday => _('whereEarnToday', 'Bu gün hardan qazanaq?');
   String get friendFallback => _('friendFallback', 'Dost');
   String get allPlaces => _('allPlaces', 'Bütün yerlər');
   String get nothingFoundHint =>
@@ -710,16 +794,14 @@ class S {
   String get directions => _('directions', 'Yol göstər');
 
   // ── Reviews ──────────────────────────────────────────────────────
-  String get reviewsNotLoaded =>
-      _('reviewsNotLoaded', 'Rəylər yüklənmədi');
+  String get reviewsNotLoaded => _('reviewsNotLoaded', 'Rəylər yüklənmədi');
   String get reviewsWord => _('reviewsWord', 'Rəylər');
   String get noReviewsYet =>
       _('noReviewsYet', 'Hələ rəy yoxdur. İlk rəyi sən yaz!');
   String get writeReview => _('writeReview', 'Rəy yaz');
   String get editReview => _('editReview', 'Rəyini dəyiş');
   String get youParen => _('youParen', 'sən');
-  String get rateExperience =>
-      _('rateExperience', 'Təcrübəni qiymətləndir');
+  String get rateExperience => _('rateExperience', 'Təcrübəni qiymətləndir');
   String get reviewHint => _('reviewHint', 'Rəyin (istəyə bağlı)…');
   String get sendAction => _('sendAction', 'Göndər');
   String get reviewThanks => _('reviewThanks', 'Rəyin üçün təşəkkürlər ✓');
@@ -846,10 +928,10 @@ class S {
       'notifMarketingSub': 'New businesses and special campaigns',
       'faqQ1': 'How do I earn a stamp?',
       'faqA1':
-          'Show your QR code at the register when you shop at a place you love. The moment they scan it, your stamp is added automatically.',
+          'When you pay, the cashier taps the venue card on your phone and the stamp lands instantly.',
       'faqQ2': 'How do I claim a reward?',
       'faqA2':
-          'When a card is full you\'ll see a notice in "My cards". On your next visit, show your QR and claim your reward.',
+          'When a card is full you\'ll see a notice in "My cards". Collect the reward at the counter on your next visit.',
       'faqQ3': 'Can I have more than one card?',
       'faqA3':
           'Yes! Every place has its own card. You can even collect separate cards for a place\'s different programs.',
@@ -868,8 +950,7 @@ class S {
       'themeDarkSub': 'Always use the dark theme',
       'themeSystem': 'System',
       'themeSystemSub': 'Follow the device setting',
-      'languageNote':
-          'Note: localization will soon reach every screen.',
+      'languageNote': 'Note: localization will soon reach every screen.',
       'businessProfileUpdated': 'Business profile updated ✓',
       'photoNotPicked': 'No image picked',
       'photosSaved': 'Photos saved ✓',
@@ -891,6 +972,75 @@ class S {
       'address': 'Address',
       'workingHours': 'Working hours',
       'workingHoursHint': 'e.g. 09:00 – 23:00',
+      'openNow': 'Open',
+      'closedNow': 'Closed',
+      'collectPoints': 'Collect points',
+      'nfcTitle': 'Tap the card',
+      'nfcHoldPhone': 'Hold your phone to the card at the counter',
+      'nfcHoldPhoneBody': 'Ask the cashier to touch the stamp or points card to the back of your phone.',
+      'nfcShowQrInstead': 'Show QR',
+      'nfcUnsupported': 'This phone has no NFC',
+      'nfcUnsupportedBody': 'Ask the cashier to add your stamps and points manually.',
+      'nfcDisabled': 'NFC is off',
+      'nfcDisabledBody': 'Turn NFC on in your phone settings and try again.',
+      'nfcRetry': 'Try again',
+      'nfcFailed': 'Did not work',
+      'nfcAgain': 'Tap again',
+      'nfcNotOurCard': 'This is not a Qazan card.',
+      'nfcOfflineQueued': 'No connection — the tap was saved and will be sent later.',
+      'nfcQueuedSent': '{n} offline taps sent',
+      'nfcCards': 'NFC cards',
+      'nfcTapLog': 'Taps',
+      'nfcWriteCard': 'Write to card',
+      'nfcWriteHold': 'Hold a blank card to the back of your phone',
+      'nfcWritten': 'Card written',
+      'nfcNewCard': 'New card',
+      'nfcKindStamp': 'Stamp card',
+      'nfcKindPoints': 'Points card',
+      'nfcPointsPerTap': 'Points per tap',
+      'nfcCooldown': 'Cooldown (sec)',
+      'nfcDailyCap': 'Daily limit (per customer)',
+      'nfcBlock': 'Block',
+      'nfcUnblock': 'Unblock',
+      'nfcRotate': 'New code',
+      'nfcSuspiciousOnly': 'Suspicious',
+      'nfcTapShort': 'Tap card',
+      'loginSub': 'Sign in with your account — customer or business.',
+      'countryLabel': 'Country',
+      'currencyLabel': 'Currency',
+      'roleCustomer2': 'Customer',
+      'roleBusiness2': 'Business',
+      'pendingRewards': 'Pending rewards',
+      'noPendingRewards': 'Nothing waiting',
+      'noPendingRewardsHint': 'Rewards show up here when a customer completes a card or buys one with coins.',
+      'rewardHandOver': 'Mark used',
+      'rewardHandOverTitle': 'Mark this gift as used?',
+      'onbTitle2': 'Tap the card to your phone',
+      'nfcCardsTrailing': 'Stamp and points cards',
+      'nfcNoCardsBusiness': 'No cards issued yet — contact the admin.',
+      'nfcNotWritten': 'Not written to a tag',
+      'nfcNotWritable': 'This tag cannot be written (locked or unsupported).',
+      'nfcWrittenBody': 'Hand the card to the counter. It can now be tapped on customer phones.',
+      'nfcCooldownHelp': 'How often the same customer may tap this card.',
+      'menuOwnerHint':
+          'Add a menu so customers can see what you offer and your prices.',
+      'menuDeleteBody': 'This item will be removed from the menu.',
+      'deleteReviewTitle': 'Delete review?',
+      'lowRatingsOnly': '1–2 stars',
+      'myBusinessSection': 'My business',
+      'menuOwnerTrailing': 'Items, prices',
+      'reviewsOwnerTrailing': 'Customer reviews',
+      'adImageLabel': 'Background photo',
+      'adImageHint': 'Leave empty to use the venue cover photo.',
+      'uploadPhoto': 'Upload photo',
+      'reviewLockedHint':
+          'Earn a stamp or coins at this place to leave a review.',
+      'rewardReadyTitle': 'Your reward is ready!',
+      'rewardReadyBody':
+          'You completed your card. Collect the reward at the counter.',
+      'useReward': 'Use it',
+      'moreCampaigns': '+{n} more offers',
+      'moreCampaignsShort': '+{n} offers',
       'instagramHint': '@handle',
       'sectionLocationMap': 'Location (map)',
       'pickOnMap': 'Pick on map',
@@ -915,8 +1065,7 @@ class S {
       'coinRateNote':
           'When the cashier scans, they enter the receipt total — coins are calculated automatically. The reward catalog is under "Programs".',
       'translationsOptional': 'Translations (optional)',
-      'translationsHint':
-          'You can fill the name and slogan in EN / RU / TR.',
+      'translationsHint': 'You can fill the name and slogan in EN / RU / TR.',
       'nameEn': 'Name (EN)',
       'taglineEn': 'Slogan (EN)',
       'nameRu': 'Name (RU)',
@@ -965,8 +1114,7 @@ class S {
       'userActivated': 'activated',
       'promoteBusiness': 'Set up your business',
       'registerBusinessSub': 'Your business profile is being prepared.',
-      'registerCustomerSub':
-          'Join in a minute and earn your first stamp.',
+      'registerCustomerSub': 'Join in a minute and earn your first stamp.',
       'businessNameHint': 'e.g. Qazan Coffee',
       'fullNameHint': 'e.g. Ali Mammadov',
       'emailHint': 'you@qazan.az',
@@ -988,8 +1136,7 @@ class S {
       'skip': 'Skip',
       'loginBusinessSub':
           'Sign in to your business account and track your customers.',
-      'loginCustomerSub':
-          'Sign in and earn from your favorite places.',
+      'loginCustomerSub': 'Sign in and earn from your favorite places.',
       'loginFailed': 'Sign-in failed',
       'passwordShort': 'Password is too short',
       'resetPassword': 'Reset password',
@@ -999,8 +1146,7 @@ class S {
           "A code was sent to your email. If it doesn't arrive, check spam.",
       'errorTryAgain': 'Something went wrong. Try again shortly.',
       'newPasswordReady': 'You can now sign in with your new password.',
-      'codeSentPrompt':
-          'enter the code sent to it and your new password.',
+      'codeSentPrompt': 'enter the code sent to it and your new password.',
       'sendCode': 'Send code',
       'resendCode': 'Resend code',
       'confirmationCode': 'Confirmation code',
@@ -1021,7 +1167,7 @@ class S {
       'visitsWord': 'visits',
       'lastVisit': 'last visit',
       'stampWord': 'stamps',
-      'rewardWord': 'rewards',
+      'rewardWord': 'gifts',
       'customerTitle': 'Customer',
       'recentPurchases': 'Recent purchases',
       'noActivityYet': 'No activity yet',
@@ -1177,7 +1323,7 @@ class S {
       'noUsageHistorySub': 'Gifts you use at the counter will appear here.',
       'coinLabel': 'Coin',
       'stampLabel': 'Stamp',
-      'showQrCashier': 'Show QR at the counter',
+      'showQrCashier': 'Collect it at the counter',
       'usedPrefix': 'Used',
       'nowWord': 'now',
       'minAgo': 'min ago',
@@ -1186,6 +1332,7 @@ class S {
       'noNotifications': 'No notifications',
       'newNotifsHere': 'New notifications will appear here.',
       'menuWord': 'Menu',
+      'fullMenu': 'Full menu',
       'showQr': 'Show QR',
       'campaigns': 'Campaigns',
       'noCampaignYet': 'No campaigns yet',
@@ -1193,7 +1340,7 @@ class S {
       'joinCampaign': 'Join the campaign',
       'buyWithCoin': 'Buy with coins',
       'buyWithCoinHint':
-          'Tap "Buy" — coins are deducted, the gift is added to My rewards. Then show your QR at the counter to confirm.',
+          'Tap "Buy" — coins are deducted and the reward lands in My rewards. Collect it at the counter.',
       'buyAction': 'Buy',
       'insufficientWord': 'Not enough',
       'mAway': 'm away',
@@ -1218,7 +1365,8 @@ class S {
       'atLeastOneStar': 'Pick at least 1 star',
       'memberSinceLabel': 'Member since',
       'myQrTitle': 'My QR',
-      'showThisCodeHint': 'Show this code at the venue — your stamp is added automatically.',
+      'showThisCodeHint':
+          'Show this code at the venue — your stamp is added automatically.',
       'stampWordShort': 'stamp',
       'coinGivenSuffix': 'coins given to the customer',
       'usedSuffixCheck': 'used ✓',
@@ -1226,6 +1374,7 @@ class S {
       'willBeDeletedSuffix': 'will be deleted.',
       'rewardsWaitSuffix': 'rewards are waiting for you!',
       'catCoffee': 'Cafe & Coffee',
+      'catCoffeeShort': 'Cafe',
       'catRestaurant': 'Restaurant',
       'catBeauty': 'Beauty',
       'catBarber': 'Barber',
@@ -1234,7 +1383,8 @@ class S {
       'catBakery': 'Bakery',
       'catOther': 'Other',
       'scanTapHint': 'One tap — the stamp is added automatically.',
-      'firstCustomerHint': 'Your customer appears here the moment you scan the first QR.',
+      'firstCustomerHint':
+          'A customer appears here the first time you tap your card on their phone.',
       'daysLeftSuffix': 'days left',
       'hoursLeftSuffix': 'hours left',
       'minsLeftSuffix': 'min left',
@@ -1247,15 +1397,19 @@ class S {
       'discountWord': 'discount',
       'productFallback': 'item',
       'onbTitle1': 'Earn from places you love',
-      'onbSub1': 'Discover cafes, restaurants and salons — every visit earns you a bonus.',
-      'onbTitle2': 'Confirm with a QR code',
-      'onbSub2': 'Show your QR at checkout and your loyalty points grow automatically.',
+      'onbSub1':
+          'Discover cafes, restaurants and salons — every visit earns you a bonus.',
+      'onbSub2':
+          'The cashier taps the card on your phone — stamps and points are added automatically.',
       'onbTitle3': 'Collect your rewards',
-      'onbSub3': 'The 6th coffee is on us — earn with offers made just for you.',
+      'onbSub3':
+          'The 6th coffee is on us — earn with offers made just for you.',
       'getStarted': 'Get started',
       'continueAction': 'Continue',
-      'roleMismatchBusiness': 'This entrance is for business accounts. With a customer account, sign in from \'I am a customer\'.',
-      'roleMismatchCustomer': 'This entrance is for customer accounts. With a business account, sign in from \'I am a business\'.',
+      'roleMismatchBusiness':
+          'This entrance is for business accounts. With a customer account, sign in from \'I am a customer\'.',
+      'roleMismatchCustomer':
+          'This entrance is for customer accounts. With a business account, sign in from \'I am a business\'.',
     },
     'ru': <String, String>{
       'whoAreYou': 'Кто вы?',
@@ -1369,18 +1523,17 @@ class S {
       'notifNewReward': 'Новая награда',
       'notifNewRewardSub': 'Сообщать сразу, как карта заполнена',
       'notifNearby': 'Предложения рядом',
-      'notifNearbySub':
-          'Уведомлять, когда в ваших местах стартует новое промо',
+      'notifNearbySub': 'Уведомлять, когда в ваших местах стартует новое промо',
       'notifWeekly': 'Недельная сводка',
       'notifWeeklySub': 'Присылать, сколько вы заработали, каждое воскресенье',
       'notifMarketing': 'Маркетинг и акции',
       'notifMarketingSub': 'Новые заведения и специальные кампании',
       'faqQ1': 'Как получить штамп?',
       'faqA1':
-          'При покупке в любимом заведении покажите QR-код на кассе. Как только его сканируют, штамп добавляется автоматически.',
+          'При оплате кассир прикладывает карту заведения к вашему телефону — штамп добавляется сразу.',
       'faqQ2': 'Как получить награду?',
       'faqA2':
-          'Когда карта заполнена, вы увидите уведомление в разделе «Мои карты». В следующий визит покажите QR и заберите награду.',
+          'Когда карта заполнится, появится уведомление в «Моих картах». Заберите подарок на кассе при следующем визите.',
       'faqQ3': 'Может ли быть несколько карт?',
       'faqA3':
           'Да! У каждого заведения своя карта. Можно собирать отдельные карты и для разных программ одного заведения.',
@@ -1399,8 +1552,7 @@ class S {
       'themeDarkSub': 'Всегда использовать тёмную тему',
       'themeSystem': 'Система',
       'themeSystemSub': 'Следовать настройке устройства',
-      'languageNote':
-          'Примечание: локализация скоро охватит все экраны.',
+      'languageNote': 'Примечание: локализация скоро охватит все экраны.',
       'businessProfileUpdated': 'Профиль бизнеса обновлён ✓',
       'photoNotPicked': 'Изображение не выбрано',
       'photosSaved': 'Фото сохранены ✓',
@@ -1422,6 +1574,75 @@ class S {
       'address': 'Адрес',
       'workingHours': 'Часы работы',
       'workingHoursHint': 'напр. 09:00 – 23:00',
+      'openNow': 'Открыто',
+      'closedNow': 'Закрыто',
+      'collectPoints': 'Копить баллы',
+      'nfcTitle': 'Приложите карту',
+      'nfcHoldPhone': 'Поднесите телефон к карте на кассе',
+      'nfcHoldPhoneBody': 'Кассир приложит карту штампа или баллов к задней части телефона.',
+      'nfcShowQrInstead': 'Показать QR',
+      'nfcUnsupported': 'В этом телефоне нет NFC',
+      'nfcUnsupportedBody': 'Попросите кассира начислить штампы и баллы вручную.',
+      'nfcDisabled': 'NFC выключен',
+      'nfcDisabledBody': 'Включите NFC в настройках телефона и повторите.',
+      'nfcRetry': 'Повторить',
+      'nfcFailed': 'Не получилось',
+      'nfcAgain': 'Приложить ещё раз',
+      'nfcNotOurCard': 'Это не карта Qazan.',
+      'nfcOfflineQueued': 'Нет связи — считывание сохранено и будет отправлено позже.',
+      'nfcQueuedSent': 'Отправлено офлайн-считываний: {n}',
+      'nfcCards': 'NFC-карты',
+      'nfcTapLog': 'Считывания',
+      'nfcWriteCard': 'Записать на карту',
+      'nfcWriteHold': 'Поднесите пустую карту к задней части телефона',
+      'nfcWritten': 'Карта записана',
+      'nfcNewCard': 'Новая карта',
+      'nfcKindStamp': 'Карта штампов',
+      'nfcKindPoints': 'Карта баллов',
+      'nfcPointsPerTap': 'Баллов за считывание',
+      'nfcCooldown': 'Пауза (сек)',
+      'nfcDailyCap': 'Лимит в день (на клиента)',
+      'nfcBlock': 'Заблокировать',
+      'nfcUnblock': 'Разблокировать',
+      'nfcRotate': 'Новый код',
+      'nfcSuspiciousOnly': 'Подозрительные',
+      'nfcTapShort': 'Приложить',
+      'loginSub': 'Войдите в свой аккаунт — клиент или бизнес.',
+      'countryLabel': 'Страна',
+      'currencyLabel': 'Валюта',
+      'roleCustomer2': 'Клиент',
+      'roleBusiness2': 'Бизнес',
+      'pendingRewards': 'Ожидают выдачи',
+      'noPendingRewards': 'Ничего не ожидает',
+      'noPendingRewardsHint': 'Появится, когда клиент заполнит карту или купит подарок за баллы.',
+      'rewardHandOver': 'Использован',
+      'rewardHandOverTitle': 'Отметить подарок как использованный?',
+      'onbTitle2': 'Приложите карту к телефону',
+      'nfcCardsTrailing': 'Карты штампов и баллов',
+      'nfcNoCardsBusiness': 'Карты ещё не выданы — обратитесь к админу.',
+      'nfcNotWritten': 'Не записана на метку',
+      'nfcNotWritable': 'На эту метку нельзя записать (заблокирована или не подходит).',
+      'nfcWrittenBody': 'Передайте карту на кассу. Теперь её можно прикладывать к телефонам клиентов.',
+      'nfcCooldownHelp': 'Как часто один и тот же клиент может прикладывать эту карту.',
+      'menuOwnerHint':
+          'Добавьте меню, чтобы клиенты видели ассортимент и цены.',
+      'menuDeleteBody': 'Позиция будет удалена из меню.',
+      'deleteReviewTitle': 'Удалить отзыв?',
+      'lowRatingsOnly': '1–2 звезды',
+      'myBusinessSection': 'Мой бизнес',
+      'menuOwnerTrailing': 'Позиции, цены',
+      'reviewsOwnerTrailing': 'Отзывы клиентов',
+      'adImageLabel': 'Фоновое фото',
+      'adImageHint': 'Если пусто — используется обложка заведения.',
+      'uploadPhoto': 'Загрузить фото',
+      'reviewLockedHint':
+          'Получите штамп или монеты в этом заведении, чтобы оставить отзыв.',
+      'rewardReadyTitle': 'Ваш подарок готов!',
+      'rewardReadyBody':
+          'Карта заполнена. Получите подарок на кассе.',
+      'useReward': 'Использовать',
+      'moreCampaigns': 'Ещё {n} акции',
+      'moreCampaignsShort': '+{n} акции',
       'instagramHint': '@аккаунт',
       'sectionLocationMap': 'Место (карта)',
       'pickOnMap': 'Выбрать на карте',
@@ -1446,8 +1667,7 @@ class S {
       'coinRateNote':
           'При сканировании кассир вводит сумму чека — койны считаются автоматически. Каталог наград находится в разделе «Программы».',
       'translationsOptional': 'Переводы (по желанию)',
-      'translationsHint':
-          'Можно заполнить название и слоган на EN / RU / TR.',
+      'translationsHint': 'Можно заполнить название и слоган на EN / RU / TR.',
       'nameEn': 'Название (EN)',
       'taglineEn': 'Слоган (EN)',
       'nameRu': 'Название (RU)',
@@ -1496,7 +1716,8 @@ class S {
       'userActivated': 'активирован',
       'promoteBusiness': 'Представьте свой бизнес',
       'registerBusinessSub': 'Ваш бизнес-профиль готовится.',
-      'registerCustomerSub': 'Присоединяйтесь за минуту и получите первую печать.',
+      'registerCustomerSub':
+          'Присоединяйтесь за минуту и получите первую печать.',
       'businessNameHint': 'напр. Qazan Coffee',
       'fullNameHint': 'напр. Али Мамедов',
       'emailHint': 'you@qazan.az',
@@ -1521,8 +1742,10 @@ class S {
       'loginFailed': 'Не удалось войти',
       'passwordShort': 'Пароль слишком короткий',
       'resetPassword': 'Сбросить пароль',
-      'resetPasswordEmailPrompt': 'Введите email аккаунта — мы отправим 6-значный код.',
-      'codeSentToEmail': 'Код отправлен на email. Проверьте спам, если его нет.',
+      'resetPasswordEmailPrompt':
+          'Введите email аккаунта — мы отправим 6-значный код.',
+      'codeSentToEmail':
+          'Код отправлен на email. Проверьте спам, если его нет.',
       'errorTryAgain': 'Что-то пошло не так. Повторите позже.',
       'newPasswordReady': 'Теперь вы можете войти с новым паролем.',
       'codeSentPrompt': 'введите отправленный код и новый пароль.',
@@ -1534,9 +1757,11 @@ class S {
       'eightPlusChars': '8+ символов',
       'updatePasswordAction': 'Обновить пароль',
       'noFavoritesYet': 'Пока нет избранного',
-      'noFavoritesHint': 'Нажмите на сердечко в профиле понравившегося бизнеса — оно появится здесь.',
+      'noFavoritesHint':
+          'Нажмите на сердечко в профиле понравившегося бизнеса — оно появится здесь.',
       'pickLocationTitle': 'Выберите местоположение',
-      'mapTapHint': 'Нажмите на карту, чтобы отметить местоположение бизнеса. Широта/долгота заполнятся автоматически.',
+      'mapTapHint':
+          'Нажмите на карту, чтобы отметить местоположение бизнеса. Широта/долгота заполнятся автоматически.',
       'confirmThisLocation': 'Подтвердить это местоположение',
       'passwordLabel': 'Пароль',
       'businessFallback': 'Бизнес',
@@ -1544,7 +1769,7 @@ class S {
       'visitsWord': 'визитов',
       'lastVisit': 'последний визит',
       'stampWord': 'печатей',
-      'rewardWord': 'наград',
+      'rewardWord': 'подарков',
       'customerTitle': 'Клиент',
       'recentPurchases': 'Недавние покупки',
       'noActivityYet': 'Пока нет активности',
@@ -1564,7 +1789,8 @@ class S {
       'programUpdated': 'Программа обновлена',
       'newLoyaltyProgram': 'Новая программа лояльности',
       'editProgram': 'Изменить программу',
-      'threeSimpleSteps': 'Три простых шага — после скольких печатей и что получает клиент.',
+      'threeSimpleSteps':
+          'Три простых шага — после скольких печатей и что получает клиент.',
       'whatCustomerEarns': 'Что получает клиент?',
       'discountPercentLabel': 'Процент скидки (%)',
       'amountManatLabel': 'Сумма (₼)',
@@ -1591,7 +1817,8 @@ class S {
       'howManyCoinHint': 'Сколько монет',
       'nameAndValidCoin': 'Введите название и корректное количество монет',
       'coinGiftsSub': 'Подарки за монеты (отдельно от программ с печатями).',
-      'noRewardsYetHint': 'Пока нет наград. Создайте через «Добавить» — напр. 100 монет = 1 Сан-Себастьян.',
+      'noRewardsYetHint':
+          'Пока нет наград. Создайте через «Добавить» — напр. 100 монет = 1 Сан-Себастьян.',
       'usersTitle': 'Пользователи',
       'businessesTitle': 'Бизнесы',
       'searchBusinessName': 'Поиск по названию бизнеса',
@@ -1602,7 +1829,8 @@ class S {
       'titleAndBodyRequired': 'Введите заголовок и текст',
       'notifSentToAll': 'Уведомление отправлено всем ✓',
       'sendNotification': 'Отправить уведомление',
-      'notifReachAll': 'Оно дойдёт до всех пользователей и появится в их уведомлениях.',
+      'notifReachAll':
+          'Оно дойдёт до всех пользователей и появится в их уведомлениях.',
       'titleLabel': 'Заголовок',
       'bodyLabel': 'Текст',
       'sendingWord': 'Отправка...',
@@ -1617,7 +1845,8 @@ class S {
       'inCirculation': 'В обращении',
       'transactionWord': 'Операции',
       'unknownParen': '(неизвестно)',
-      'adjustPositiveNegative': 'Положительное значение добавляет монеты, отрицательное — списывает.',
+      'adjustPositiveNegative':
+          'Положительное значение добавляет монеты, отрицательное — списывает.',
       'pickUserAndAmount': 'Выберите пользователя и введите ненулевую сумму.',
       'searchUserByEmail': 'Найти пользователя по email',
       'amountExample': 'Сумма (напр. 500 или -200)',
@@ -1646,16 +1875,19 @@ class S {
       'addFood': 'Добавить блюдо',
       'selectBusiness': 'Выберите бизнес',
       'menuLinkSaved': 'Ссылка на меню сохранена ✓',
-      'menuLinkDesc': 'Ссылка на PDF / сайт / изображение. Показывается при отсутствии структурированного меню.',
+      'menuLinkDesc':
+          'Ссылка на PDF / сайт / изображение. Показывается при отсутствии структурированного меню.',
       'saveShort': 'Сохранить',
       'structuredMenu': 'Структурированное меню (категории)',
-      'noFoodYet': 'Пока нет блюд. Через «Добавить блюдо» создайте меню по категориям (напр. «Кофе», «Десерты»).',
+      'noFoodYet':
+          'Пока нет блюд. Через «Добавить блюдо» создайте меню по категориям (напр. «Кофе», «Десерты»).',
       'categoryAndNameRequired': 'Категория и название обязательны',
       'categoryLabel': 'Категория',
       'categoryHint': 'напр. Кофе, Основные',
       'descriptionOptionalField': 'Описание (необязательно)',
       'priceOptional': 'Цена (₼, необязательно)',
-      'discoverCardHint': 'Найдите любимое место в разделе «Обзор» и получите его карту.',
+      'discoverCardHint':
+          'Найдите любимое место в разделе «Обзор» и получите его карту.',
       'coinBalanceNotLoaded': 'Не удалось загрузить баланс монет',
       'myCoinBalance': 'Мой баланс монет',
       'scanQr': 'Отсканируйте QR',
@@ -1672,24 +1904,28 @@ class S {
       'amountWord': 'Сумма',
       'giveAction': 'Выдать',
       'noStories': 'Нет историй',
-      'signOutBody': 'Вы выйдете из аккаунта. Вы сможете вернуться, войдя снова.',
+      'signOutBody':
+          'Вы выйдете из аккаунта. Вы сможете вернуться, войдя снова.',
       'deleteAccountTitle': 'Удалить аккаунт?',
-      'deleteAccountBody': 'Это навсегда удалит ваш аккаунт. Данные профиля будут стёрты, и это нельзя отменить.\n\nЗаработанные монеты и карты также станут недоступны.',
+      'deleteAccountBody':
+          'Это навсегда удалит ваш аккаунт. Данные профиля будут стёрты, и это нельзя отменить.\n\nЗаработанные монеты и карты также станут недоступны.',
       'accountDeleteFailed': 'Не удалось удалить аккаунт',
       'phoneWord': 'Телефон',
       'whatsappSub': 'Отправьте сообщение — ответим в течение 5 минут',
-      'aboutBody': 'Платформа лояльности и учёта клиентов — для кафе, ресторанов и салонов.',
+      'aboutBody':
+          'Платформа лояльности и учёта клиентов — для кафе, ресторанов и салонов.',
       'allRightsReserved': '© 2026 Qazan. Все права защищены.',
       'notifActiveSuffix': 'активно',
       'rewardsActiveTab': 'Активные',
       'rewardsUsedTab': 'Использованные',
       'noActiveRewards': 'Пока нет активных наград',
-      'noActiveRewardsSub': 'Купите подарок за монеты на странице бизнеса или заполните карту с печатями.',
+      'noActiveRewardsSub':
+          'Купите подарок за монеты на странице бизнеса или заполните карту с печатями.',
       'noUsageHistory': 'Пока нет истории использования',
       'noUsageHistorySub': 'Подарки, использованные на кассе, появятся здесь.',
       'coinLabel': 'Монета',
       'stampLabel': 'Печать',
-      'showQrCashier': 'Покажите QR на кассе',
+      'showQrCashier': 'Получите на кассе',
       'usedPrefix': 'Использовано',
       'nowWord': 'сейчас',
       'minAgo': 'мин назад',
@@ -1698,13 +1934,15 @@ class S {
       'noNotifications': 'Нет уведомлений',
       'newNotifsHere': 'Новые уведомления появятся здесь.',
       'menuWord': 'Меню',
+      'fullMenu': 'Всё меню',
       'showQr': 'Показать QR',
       'campaigns': 'Кампании',
       'noCampaignYet': 'Пока нет кампаний',
       'campaignComingSoon': 'Это место скоро добавит предложения.',
       'joinCampaign': 'Присоединиться к кампании',
       'buyWithCoin': 'Купить за монеты',
-      'buyWithCoinHint': 'Нажмите «Купить» — монеты списываются, подарок добавляется в «Мои награды». Затем покажите QR на кассе для подтверждения.',
+      'buyWithCoinHint':
+          'Нажмите «Купить» — баллы спишутся, подарок попадёт в «Мои подарки». Заберите его на кассе.',
       'buyAction': 'Купить',
       'insufficientWord': 'Недостаточно',
       'mAway': 'м',
@@ -1729,7 +1967,8 @@ class S {
       'atLeastOneStar': 'Поставьте хотя бы 1 звезду',
       'memberSinceLabel': 'Клиент с',
       'myQrTitle': 'Мой QR',
-      'showThisCodeHint': 'Покажите этот код заведению — печать добавится автоматически.',
+      'showThisCodeHint':
+          'Покажите этот код заведению — печать добавится автоматически.',
       'stampWordShort': 'печать',
       'coinGivenSuffix': 'монет начислено клиенту',
       'usedSuffixCheck': 'использовано ✓',
@@ -1737,6 +1976,7 @@ class S {
       'willBeDeletedSuffix': 'будет удалено.',
       'rewardsWaitSuffix': 'наград ждут вас!',
       'catCoffee': 'Кафе и кофейни',
+      'catCoffeeShort': 'Кафе',
       'catRestaurant': 'Ресторан',
       'catBeauty': 'Красота',
       'catBarber': 'Барбершоп',
@@ -1744,8 +1984,9 @@ class S {
       'catFitness': 'Фитнес',
       'catBakery': 'Кондитерская',
       'catOther': 'Другое',
-      'scanTapHint': 'Одно касание — печать добавляется автоматически.',
-      'firstCustomerHint': 'Клиент появится здесь, как только вы отсканируете первый QR.',
+      'scanTapHint': 'Одно касание — штамп добавляется автоматически.',
+      'firstCustomerHint':
+          'Клиент появится здесь, как только вы впервые приложите карту к его телефону.',
       'daysLeftSuffix': 'дн. осталось',
       'hoursLeftSuffix': 'ч. осталось',
       'minsLeftSuffix': 'мин осталось',
@@ -1758,15 +1999,19 @@ class S {
       'discountWord': 'скидка',
       'productFallback': 'товар',
       'onbTitle1': 'Зарабатывайте в любимых местах',
-      'onbSub1': 'Открывайте кафе, рестораны и салоны — каждый визит приносит бонус.',
-      'onbTitle2': 'Подтверждайте QR-кодом',
-      'onbSub2': 'Покажите QR при оплате, и баллы лояльности растут автоматически.',
+      'onbSub1':
+          'Открывайте кафе, рестораны и салоны — каждый визит приносит бонус.',
+      'onbSub2':
+          'Кассир прикладывает карту к вашему телефону — штампы и баллы начисляются автоматически.',
       'onbTitle3': 'Собирайте награды',
-      'onbSub3': '6-й кофе за наш счёт — зарабатывайте с предложениями для вас.',
+      'onbSub3':
+          '6-й кофе за наш счёт — зарабатывайте с предложениями для вас.',
       'getStarted': 'Начать',
       'continueAction': 'Продолжить',
-      'roleMismatchBusiness': 'Этот вход для бизнес-аккаунтов. С аккаунтом клиента войдите через «Я клиент».',
-      'roleMismatchCustomer': 'Этот вход для аккаунтов клиентов. С бизнес-аккаунтом войдите через «Я бизнес».',
+      'roleMismatchBusiness':
+          'Этот вход для бизнес-аккаунтов. С аккаунтом клиента войдите через «Я клиент».',
+      'roleMismatchCustomer':
+          'Этот вход для аккаунтов клиентов. С бизнес-аккаунтом войдите через «Я бизнес».',
     },
     'tr': <String, String>{
       'whoAreYou': 'Kimsin?',
@@ -1880,18 +2125,17 @@ class S {
       'notifNewReward': 'Yeni ödül',
       'notifNewRewardSub': 'Bir kart tamamlanınca hemen bilgi ver',
       'notifNearby': 'Yakındaki teklifler',
-      'notifNearbySub':
-          'Mekanlarında yeni bir kampanya başlayınca haber ver',
+      'notifNearbySub': 'Mekanlarında yeni bir kampanya başlayınca haber ver',
       'notifWeekly': 'Haftalık özet',
       'notifWeeklySub': 'Her pazar ne kadar kazandığını gönder',
       'notifMarketing': 'Pazarlama ve kampanyalar',
       'notifMarketingSub': 'Yeni işletmeler ve özel kampanyalar',
       'faqQ1': 'Damgayı nasıl kazanırım?',
       'faqA1':
-          'Sevdiğin mekanda alışveriş yaparken kasada QR kodunu göster. Mekan tarar taramaz damgan otomatik eklenir.',
+          'Alışverişte kasiyer mekanın kartını telefonuna değdirir, damga anında eklenir.',
       'faqQ2': 'Ödülü nasıl alırım?',
       'faqA2':
-          'Kart dolduğunda "Kartlarım" bölümünde bir bildirim göreceksin. Sonraki ziyaretinde QR\'ını göster ve ödülünü al.',
+          'Kart dolunca "Kartlarım" bölümünde bildirim görürsün. Sonraki ziyaretinde hediyeni kasadan teslim alırsın.',
       'faqQ3': 'Birden fazla kartım olabilir mi?',
       'faqA3':
           'Evet! Her mekanın kendi kartı var. Bir mekanın farklı programları için de ayrı kartlar biriktirebilirsin.',
@@ -1910,8 +2154,7 @@ class S {
       'themeDarkSub': 'Her zaman koyu temayı kullan',
       'themeSystem': 'Sistem',
       'themeSystemSub': 'Cihaz ayarını izle',
-      'languageNote':
-          'Not: yerelleştirme yakında tüm ekranlara yayılacak.',
+      'languageNote': 'Not: yerelleştirme yakında tüm ekranlara yayılacak.',
       'businessProfileUpdated': 'İşletme profili güncellendi ✓',
       'photoNotPicked': 'Görsel seçilmedi',
       'photosSaved': 'Fotoğraflar kaydedildi ✓',
@@ -1933,6 +2176,75 @@ class S {
       'address': 'Adres',
       'workingHours': 'Çalışma saatleri',
       'workingHoursHint': 'örn. 09:00 – 23:00',
+      'openNow': 'Açık',
+      'closedNow': 'Kapalı',
+      'collectPoints': 'Puan Topla',
+      'nfcTitle': 'Kartı okut',
+      'nfcHoldPhone': 'Telefonu kasadaki karta yaklaştır',
+      'nfcHoldPhoneBody': 'Kasiyer damga veya puan kartını telefonun arkasına değdirsin.',
+      'nfcShowQrInstead': 'QR göster',
+      'nfcUnsupported': 'Bu telefonda NFC yok',
+      'nfcUnsupportedBody': 'Damga ve puanların için kasiyere başvur — hesabına elle ekleyebilir.',
+      'nfcDisabled': 'NFC kapalı',
+      'nfcDisabledBody': 'Telefon ayarlarından NFC’yi aç ve tekrar dene.',
+      'nfcRetry': 'Tekrar dene',
+      'nfcFailed': 'Olmadı',
+      'nfcAgain': 'Tekrar okut',
+      'nfcNotOurCard': 'Bu bir Qazan kartı değil.',
+      'nfcOfflineQueued': 'İnternet yok — okutma kaydedildi, bağlantı gelince gönderilecek.',
+      'nfcQueuedSent': 'Çevrimdışı {n} okutma gönderildi',
+      'nfcCards': 'NFC kartlar',
+      'nfcTapLog': 'Okutmalar',
+      'nfcWriteCard': 'Karta yaz',
+      'nfcWriteHold': 'Boş kartı telefonun arkasına yaklaştır',
+      'nfcWritten': 'Kart yazıldı',
+      'nfcNewCard': 'Yeni kart',
+      'nfcKindStamp': 'Damga kartı',
+      'nfcKindPoints': 'Puan kartı',
+      'nfcPointsPerTap': 'Okutma başına puan',
+      'nfcCooldown': 'Bekleme (sn)',
+      'nfcDailyCap': 'Günlük limit (müşteri başına)',
+      'nfcBlock': 'Blokla',
+      'nfcUnblock': 'Bloku kaldır',
+      'nfcRotate': 'Yeni kod ver',
+      'nfcSuspiciousOnly': 'Şüpheli',
+      'nfcTapShort': 'Kartı okut',
+      'loginSub': 'Hesabınla giriş yap — müşteri ya da işletme fark etmez.',
+      'countryLabel': 'Ülke',
+      'currencyLabel': 'Para birimi',
+      'roleCustomer2': 'Müşteri',
+      'roleBusiness2': 'İşletme',
+      'pendingRewards': 'Bekleyen hediyeler',
+      'noPendingRewards': 'Bekleyen hediye yok',
+      'noPendingRewardsHint': 'Müşteri kartı tamamlayınca veya coinle hediye alınca burada görünür.',
+      'rewardHandOver': 'Kullanıldı',
+      'rewardHandOverTitle': 'Hediye kullanıldı olarak işaretlensin mi?',
+      'onbTitle2': 'Kartı telefona okut',
+      'nfcCardsTrailing': 'Damga ve puan kartları',
+      'nfcNoCardsBusiness': 'Henüz kart verilmemiş — admin ile iletişime geçin.',
+      'nfcNotWritten': 'Karta yazılmadı',
+      'nfcNotWritable': 'Bu etikete yazılamıyor (kilitli veya uyumsuz).',
+      'nfcWrittenBody': 'Kartı kasaya ver. Artık müşteri telefonlarına okutulabilir.',
+      'nfcCooldownHelp': 'Aynı müşteri bu kartı ne sıklıkla okutabilir.',
+      'menuOwnerHint':
+          'Müşteriler ne sunduğunu ve fiyatları görsün diye menü ekle.',
+      'menuDeleteBody': 'Bu ürün menüden silinecek.',
+      'deleteReviewTitle': 'Yorum silinsin mi?',
+      'lowRatingsOnly': '1–2 yıldız',
+      'myBusinessSection': 'İşletmem',
+      'menuOwnerTrailing': 'Ürünler, fiyatlar',
+      'reviewsOwnerTrailing': 'Müşteri yorumları',
+      'adImageLabel': 'Arka plan fotoğrafı',
+      'adImageHint': 'Boş bırakılırsa mekanın kapak fotoğrafı kullanılır.',
+      'uploadPhoto': 'Fotoğraf yükle',
+      'reviewLockedHint':
+          'Yorum yazmak için bu mekanda en az bir damga veya coin kazan.',
+      'rewardReadyTitle': 'Hediyen hazır!',
+      'rewardReadyBody':
+          'Kartını tamamladın. Hediyeni kasadan teslim al.',
+      'useReward': 'Kullan',
+      'moreCampaigns': '+{n} Kampanya daha',
+      'moreCampaignsShort': '+{n} kampanya',
       'instagramHint': '@hesap',
       'sectionLocationMap': 'Konum (harita)',
       'pickOnMap': 'Haritadan seç',
@@ -2027,13 +2339,16 @@ class S {
       'pwErrLetter': 'En az bir harf olmalı',
       'pwErrDigit': 'En az bir rakam olmalı',
       'skip': 'Geç',
-      'loginBusinessSub': 'İşletme hesabına giriş yap ve müşterilerini takip et.',
+      'loginBusinessSub':
+          'İşletme hesabına giriş yap ve müşterilerini takip et.',
       'loginCustomerSub': 'Giriş yap ve favori mekanlarından kazan.',
       'loginFailed': 'Giriş başarısız',
       'passwordShort': 'Şifre çok kısa',
       'resetPassword': 'Şifreyi sıfırla',
-      'resetPasswordEmailPrompt': 'Hesabının e-postasını yaz — sana 6 haneli kod gönderelim.',
-      'codeSentToEmail': 'Kod e-postana gönderildi. Gelmezse spam klasörünü kontrol et.',
+      'resetPasswordEmailPrompt':
+          'Hesabının e-postasını yaz — sana 6 haneli kod gönderelim.',
+      'codeSentToEmail':
+          'Kod e-postana gönderildi. Gelmezse spam klasörünü kontrol et.',
       'errorTryAgain': 'Bir şeyler ters gitti. Birazdan tekrar dene.',
       'newPasswordReady': 'Artık yeni şifrenle giriş yapabilirsin.',
       'codeSentPrompt': 'adresine gönderilen kodu ve yeni şifreyi gir.',
@@ -2045,9 +2360,11 @@ class S {
       'eightPlusChars': '8+ karakter',
       'updatePasswordAction': 'Şifreyi güncelle',
       'noFavoritesYet': 'Henüz favori yok',
-      'noFavoritesHint': 'Beğendiğin işletmenin profilinde kalp simgesine dokun — burada toplansın.',
+      'noFavoritesHint':
+          'Beğendiğin işletmenin profilinde kalp simgesine dokun — burada toplansın.',
       'pickLocationTitle': 'Konum seç',
-      'mapTapHint': 'İşletme konumunu işaretlemek için haritaya dokun. Enlem/boylam otomatik dolacak.',
+      'mapTapHint':
+          'İşletme konumunu işaretlemek için haritaya dokun. Enlem/boylam otomatik dolacak.',
       'confirmThisLocation': 'Bu konumu onayla',
       'passwordLabel': 'Şifre',
       'businessFallback': 'İşletme',
@@ -2055,7 +2372,7 @@ class S {
       'visitsWord': 'ziyaret',
       'lastVisit': 'son ziyaret',
       'stampWord': 'damga',
-      'rewardWord': 'ödül',
+      'rewardWord': 'hediye',
       'customerTitle': 'Müşteri',
       'recentPurchases': 'Son alışverişler',
       'noActivityYet': 'Henüz aktivite yok',
@@ -2075,7 +2392,8 @@ class S {
       'programUpdated': 'Program güncellendi',
       'newLoyaltyProgram': 'Yeni sadakat programı',
       'editProgram': 'Programı düzenle',
-      'threeSimpleSteps': 'Üç basit adım — kaç damgadan sonra müşteri ne kazanır.',
+      'threeSimpleSteps':
+          'Üç basit adım — kaç damgadan sonra müşteri ne kazanır.',
       'whatCustomerEarns': 'Müşteri ne kazanır?',
       'discountPercentLabel': 'İndirim yüzdesi (%)',
       'amountManatLabel': 'Tutar (₼)',
@@ -2102,7 +2420,8 @@ class S {
       'howManyCoinHint': 'Kaç coin',
       'nameAndValidCoin': 'Bir ad ve geçerli coin miktarı gir',
       'coinGiftsSub': 'Coin ile alınan hediyeler (damga programlarından ayrı).',
-      'noRewardsYetHint': 'Henüz ödül yok. «Ekle» ile oluştur — örn. 100 coin = 1 San Sebastian.',
+      'noRewardsYetHint':
+          'Henüz ödül yok. «Ekle» ile oluştur — örn. 100 coin = 1 San Sebastian.',
       'usersTitle': 'Kullanıcılar',
       'businessesTitle': 'İşletmeler',
       'searchBusinessName': 'İşletme adı ara',
@@ -2113,7 +2432,8 @@ class S {
       'titleAndBodyRequired': 'Başlık ve metin gir',
       'notifSentToAll': 'Bildirim herkese gönderildi ✓',
       'sendNotification': 'Bildirim gönder',
-      'notifReachAll': 'Tüm kullanıcılara ulaşacak ve bildirim kutularında görünecek.',
+      'notifReachAll':
+          'Tüm kullanıcılara ulaşacak ve bildirim kutularında görünecek.',
       'titleLabel': 'Başlık',
       'bodyLabel': 'Metin',
       'sendingWord': 'Gönderiliyor...',
@@ -2128,8 +2448,10 @@ class S {
       'inCirculation': 'Dolaşımda',
       'transactionWord': 'İşlemler',
       'unknownParen': '(bilinmiyor)',
-      'adjustPositiveNegative': 'Pozitif değer coin ekler, negatif değer çıkarır.',
-      'pickUserAndAmount': 'Bir kullanıcı seç ve sıfırdan farklı bir tutar gir.',
+      'adjustPositiveNegative':
+          'Pozitif değer coin ekler, negatif değer çıkarır.',
+      'pickUserAndAmount':
+          'Bir kullanıcı seç ve sıfırdan farklı bir tutar gir.',
       'searchUserByEmail': 'E-posta ile kullanıcı bul',
       'amountExample': 'Tutar (örn. 500 veya -200)',
       'noteOptional': 'Not (isteğe bağlı)',
@@ -2157,10 +2479,12 @@ class S {
       'addFood': 'Yemek ekle',
       'selectBusiness': 'Bir işletme seç',
       'menuLinkSaved': 'Menü bağlantısı kaydedildi ✓',
-      'menuLinkDesc': 'PDF / site / görsel bağlantısı. Yapılandırılmış menü yoksa gösterilir.',
+      'menuLinkDesc':
+          'PDF / site / görsel bağlantısı. Yapılandırılmış menü yoksa gösterilir.',
       'saveShort': 'Kaydet',
       'structuredMenu': 'Yapılandırılmış menü (kategoriler)',
-      'noFoodYet': 'Henüz yemek yok. «Yemek ekle» ile kategorili menü oluştur (örn. «Kahveler», «Tatlılar»).',
+      'noFoodYet':
+          'Henüz yemek yok. «Yemek ekle» ile kategorili menü oluştur (örn. «Kahveler», «Tatlılar»).',
       'categoryAndNameRequired': 'Kategori ve ad gerekli',
       'categoryLabel': 'Kategori',
       'categoryHint': 'örn. Kahveler, Ana yemekler',
@@ -2183,24 +2507,28 @@ class S {
       'amountWord': 'Tutar',
       'giveAction': 'Ver',
       'noStories': 'Hikaye yok',
-      'signOutBody': 'Hesabından çıkış yapacaksın. Tekrar giriş yaparak dönebilirsin.',
+      'signOutBody':
+          'Hesabından çıkış yapacaksın. Tekrar giriş yaparak dönebilirsin.',
       'deleteAccountTitle': 'Hesabını sil?',
-      'deleteAccountBody': 'Bu, hesabını kalıcı olarak siler. Profil verilerin silinir ve bu geri alınamaz.\n\nKazandığın coinler ve kartlar da erişilemez olur.',
+      'deleteAccountBody':
+          'Bu, hesabını kalıcı olarak siler. Profil verilerin silinir ve bu geri alınamaz.\n\nKazandığın coinler ve kartlar da erişilemez olur.',
       'accountDeleteFailed': 'Hesap silme başarısız',
       'phoneWord': 'Telefon',
       'whatsappSub': 'Mesaj gönder — 5 dakika içinde yanıtlarız',
-      'aboutBody': 'Bir sadakat ve müşteri takip platformu — kafeler, restoranlar ve salonlar için.',
+      'aboutBody':
+          'Bir sadakat ve müşteri takip platformu — kafeler, restoranlar ve salonlar için.',
       'allRightsReserved': '© 2026 Qazan. Tüm hakları saklıdır.',
       'notifActiveSuffix': 'aktif',
       'rewardsActiveTab': 'Aktif',
       'rewardsUsedTab': 'Kullanılan',
       'noActiveRewards': 'Henüz aktif ödül yok',
-      'noActiveRewardsSub': 'İşletme sayfasında coin ile hediye al veya bir damga kartını tamamla.',
+      'noActiveRewardsSub':
+          'İşletme sayfasında coin ile hediye al veya bir damga kartını tamamla.',
       'noUsageHistory': 'Henüz kullanım geçmişi yok',
       'noUsageHistorySub': 'Kasada kullandığın hediyeler burada görünecek.',
       'coinLabel': 'Coin',
       'stampLabel': 'Damga',
-      'showQrCashier': 'Kasada QR göster',
+      'showQrCashier': 'Kasadan teslim al',
       'usedPrefix': 'Kullanıldı',
       'nowWord': 'şimdi',
       'minAgo': 'dk önce',
@@ -2209,13 +2537,15 @@ class S {
       'noNotifications': 'Bildirim yok',
       'newNotifsHere': 'Yeni bildirimler burada görünecek.',
       'menuWord': 'Menü',
+      'fullMenu': 'Tüm menü',
       'showQr': 'QR göster',
       'campaigns': 'Kampanyalar',
       'noCampaignYet': 'Henüz kampanya yok',
       'campaignComingSoon': 'Bu mekan yakında teklifler ekleyecek.',
       'joinCampaign': 'Kampanyaya katıl',
       'buyWithCoin': 'Coin ile al',
-      'buyWithCoinHint': '«Al»a dokun — coinler düşülür, hediye Ödüllerim\'e eklenir. Sonra kasada QR kodunu göstererek onayla.',
+      'buyWithCoinHint':
+          '"Al" düğmesine bas — coin düşülür, hediye Hediyelerim\'e eklenir. Sonra kasadan teslim alırsın.',
       'buyAction': 'Al',
       'insufficientWord': 'Yetersiz',
       'mAway': 'm uzakta',
@@ -2248,6 +2578,7 @@ class S {
       'willBeDeletedSuffix': 'silinecek.',
       'rewardsWaitSuffix': 'ödül seni bekliyor!',
       'catCoffee': 'Kafe & Kahve',
+      'catCoffeeShort': 'Kafe',
       'catRestaurant': 'Restoran',
       'catBeauty': 'Güzellik',
       'catBarber': 'Berber',
@@ -2256,7 +2587,8 @@ class S {
       'catBakery': 'Pastane',
       'catOther': 'Diğer',
       'scanTapHint': 'Tek dokunuş — damga otomatik eklenir.',
-      'firstCustomerHint': 'İlk QR'ı taradığın anda müşterin burada görünür.',
+      'firstCustomerHint':
+          'Kartı ilk kez bir müşterinin telefonuna değdirdiğinde burada görünür.',
       'daysLeftSuffix': 'gün kaldı',
       'hoursLeftSuffix': 'saat kaldı',
       'minsLeftSuffix': 'dk kaldı',
@@ -2269,15 +2601,17 @@ class S {
       'discountWord': 'indirim',
       'productFallback': 'ürün',
       'onbTitle1': 'Sevdiğin yerlerden kazan',
-      'onbSub1': 'Kafeleri, restoranları, salonları keşfet — her ziyaret sana bonus getirsin.',
-      'onbTitle2': 'QR kodla onayla',
-      'onbSub2': 'Öderken QR kodunu göster, sadakat puanın otomatik artsın.',
+      'onbSub1':
+          'Kafeleri, restoranları, salonları keşfet — her ziyaret sana bonus getirsin.',
+      'onbSub2': 'Kasiyer kartı telefonuna değdirir — damga ve puan otomatik yazılır.',
       'onbTitle3': 'Ödülleri topla',
       'onbSub3': '6. kahve bizden — sana özel tekliflerle kazan.',
       'getStarted': 'Başlayalım',
       'continueAction': 'Devam et',
-      'roleMismatchBusiness': 'Bu giriş işletme hesapları içindir. Müşteri hesabıyla «Ben müşteriyim» bölümünden giriş yap.',
-      'roleMismatchCustomer': 'Bu giriş müşteri hesapları içindir. İşletme hesabıyla «Ben işletmeyim» bölümünden giriş yap.',
+      'roleMismatchBusiness':
+          'Bu giriş işletme hesapları içindir. Müşteri hesabıyla «Ben müşteriyim» bölümünden giriş yap.',
+      'roleMismatchCustomer':
+          'Bu giriş müşteri hesapları içindir. İşletme hesabıyla «Ben işletmeyim» bölümünden giriş yap.',
     },
   };
 }

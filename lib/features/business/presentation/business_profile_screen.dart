@@ -20,6 +20,7 @@ import '../../companies/domain/business_category.dart';
 import '../../companies/domain/company.dart';
 import '../../media/data/media_repository.dart';
 import 'sheets/map_picker.dart';
+import '../../../core/utils/money.dart';
 
 /// "Mənim biznesim" — the owner manages every feature shown on the public
 /// restaurant profile: details, hours, contact, location, amenities,
@@ -69,8 +70,7 @@ String _amenityLabel(S s, String code) {
   }
 }
 
-class _BusinessProfileScreenState
-    extends ConsumerState<BusinessProfileScreen> {
+class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _tagline = TextEditingController();
   final TextEditingController _address = TextEditingController();
@@ -93,6 +93,8 @@ class _BusinessProfileScreenState
   bool _translationsExpanded = false;
 
   BusinessCategory _category = BusinessCategory.other;
+  String _country = 'AZ';
+  String _currency = 'AZN';
   final Set<String> _amenities = <String>{};
   final List<String> _photoUrls = <String>[];
   String? _logoUrl;
@@ -128,6 +130,8 @@ class _BusinessProfileScreenState
     _taglineRu.text = c.taglineRu ?? '';
     _taglineTr.text = c.taglineTr ?? '';
     _category = c.category;
+    _country = c.country;
+    _currency = c.currency;
     _amenities
       ..clear()
       ..addAll(c.amenities);
@@ -136,10 +140,22 @@ class _BusinessProfileScreenState
   @override
   void dispose() {
     for (final TextEditingController c in <TextEditingController>[
-      _name, _tagline, _address, _phone, _instagram, _hours,
-      _menuUrl, _lat, _lng, _coinRate,
-      _nameEn, _nameRu, _nameTr,
-      _taglineEn, _taglineRu, _taglineTr,
+      _name,
+      _tagline,
+      _address,
+      _phone,
+      _instagram,
+      _hours,
+      _menuUrl,
+      _lat,
+      _lng,
+      _coinRate,
+      _nameEn,
+      _nameRu,
+      _nameTr,
+      _taglineEn,
+      _taglineRu,
+      _taglineTr,
     ]) {
       c.dispose();
     }
@@ -153,6 +169,8 @@ class _BusinessProfileScreenState
         'name': _name.text.trim(),
         'tagline': _tagline.text.trim(),
         'category': _category.wire,
+        'country': _country,
+        'currency': _currency,
         'address': _address.text.trim(),
         'phone': _phone.text.trim(),
         'instagram': _instagram.text.trim(),
@@ -229,12 +247,11 @@ class _BusinessProfileScreenState
     try {
       for (final XFile x in picked) {
         final Uint8List bytes = await x.readAsBytes();
-        final String url =
-            await ref.read(mediaRepositoryProvider).uploadImage(
-                  bytes: bytes,
-                  filename: x.name.isEmpty ? 'photo.jpg' : x.name,
-                  contentType: x.mimeType ?? _guessType(x.name),
-                );
+        final String url = await ref.read(mediaRepositoryProvider).uploadImage(
+              bytes: bytes,
+              filename: x.name.isEmpty ? 'photo.jpg' : x.name,
+              contentType: x.mimeType ?? _guessType(x.name),
+            );
         if (mounted) setState(() => _photoUrls.add(url));
       }
       // Auto-save: persist the new gallery immediately so the change
@@ -366,7 +383,10 @@ class _BusinessProfileScreenState
           _hydrate(company);
           return ListView(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge,
+              AppSpacing.xl,
+              AppSpacing.lg,
+              AppSpacing.xl,
+              AppSpacing.huge,
             ),
             children: <Widget>[
               _section(s.sectionProfilePhoto),
@@ -388,8 +408,8 @@ class _BusinessProfileScreenState
                         Row(
                           children: <Widget>[
                             OutlinedButton.icon(
-                              onPressed:
-                                  _uploadingLogo ? null : _pickLogo,
+                              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                              onPressed: _uploadingLogo ? null : _pickLogo,
                               icon: _uploadingLogo
                                   ? const SizedBox(
                                       width: 16,
@@ -398,9 +418,8 @@ class _BusinessProfileScreenState
                                           strokeWidth: 2),
                                     )
                                   : const Icon(AppIcons.camera, size: 18),
-                              label: Text(_logoUrl == null
-                                  ? s.uploadLogo
-                                  : s.change),
+                              label: Text(
+                                  _logoUrl == null ? s.uploadLogo : s.change),
                             ),
                             if (_logoUrl != null) ...<Widget>[
                               const SizedBox(width: AppSpacing.sm),
@@ -432,14 +451,52 @@ class _BusinessProfileScreenState
               DropdownButtonFormField<BusinessCategory>(
                 initialValue: _category,
                 items: BusinessCategory.values
-                    .map((BusinessCategory c) => DropdownMenuItem<
-                            BusinessCategory>(
+                    .map((BusinessCategory c) =>
+                        DropdownMenuItem<BusinessCategory>(
                           value: c,
                           child: Text(c.labelOf(s)),
                         ))
                     .toList(),
                 onChanged: (BusinessCategory? v) =>
                     setState(() => _category = v ?? _category),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              // Country drives the currency customers see on menus and
+              // rewards (₼ in Azerbaijan, ₺ in Türkiye).
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _country,
+                      decoration: InputDecoration(labelText: s.countryLabel),
+                      items: const <DropdownMenuItem<String>>[
+                        DropdownMenuItem<String>(
+                            value: 'AZ', child: Text('Azərbaycan')),
+                        DropdownMenuItem<String>(
+                            value: 'TR', child: Text('Türkiyə')),
+                      ],
+                      onChanged: (String? v) => setState(() {
+                        _country = v ?? _country;
+                        _currency = Money.forCountry(_country);
+                      }),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _currency,
+                      decoration: InputDecoration(labelText: s.currencyLabel),
+                      items: const <DropdownMenuItem<String>>[
+                        DropdownMenuItem<String>(
+                            value: 'AZN', child: Text('AZN  ₼')),
+                        DropdownMenuItem<String>(
+                            value: 'TRY', child: Text('TRY  ₺')),
+                      ],
+                      onChanged: (String? v) =>
+                          setState(() => _currency = v ?? _currency),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.xxl),
 
@@ -511,23 +568,17 @@ class _BusinessProfileScreenState
                   final bool on = _amenities.contains(a.code);
                   return GestureDetector(
                     onTap: () => setState(() {
-                      on
-                          ? _amenities.remove(a.code)
-                          : _amenities.add(a.code);
+                      on ? _amenities.remove(a.code) : _amenities.add(a.code);
                     }),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                       decoration: BoxDecoration(
-                        color: on
-                            ? AppColors.primarySoft
-                            : AppColors.surfaceAlt,
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.full),
+                        color:
+                            on ? AppColors.caramelSoft : AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                         border: Border.all(
-                          color: on
-                              ? AppColors.primary
-                              : AppColors.border,
+                          color: on ? AppColors.action : AppColors.border,
                         ),
                       ),
                       child: Row(
@@ -536,17 +587,16 @@ class _BusinessProfileScreenState
                           Icon(a.icon,
                               size: 18,
                               color: on
-                                  ? AppColors.primary
+                                  ? AppColors.action
                                   : AppColors.textTertiary),
                           const SizedBox(width: 6),
                           Text(_amenityLabel(s, a.code),
                               style: AppTextStyles.bodySm.copyWith(
                                 color: on
-                                    ? AppColors.primary
+                                    ? AppColors.action
                                     : AppColors.textSecondary,
-                                fontWeight: on
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
+                                fontWeight:
+                                    on ? FontWeight.w700 : FontWeight.w500,
                               )),
                         ],
                       ),
@@ -571,8 +621,7 @@ class _BusinessProfileScreenState
                   for (int i = 0; i < _photoUrls.length; i++)
                     _PhotoThumb(
                       url: _photoUrls[i],
-                      onRemove: () =>
-                          setState(() => _photoUrls.removeAt(i)),
+                      onRemove: () => setState(() => _photoUrls.removeAt(i)),
                     ),
                   _AddPhotoTile(
                     loading: _uploadingPhoto,
@@ -593,8 +642,8 @@ class _BusinessProfileScreenState
                 label: s.coinRate,
                 hint: s.coinRateHint,
                 controller: _coinRate,
-                keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 prefixIcon: AppIcons.token,
               ),
               const SizedBox(height: AppSpacing.md),
@@ -615,7 +664,7 @@ class _BusinessProfileScreenState
                 ),
                 child: Theme(
                   data: Theme.of(context).copyWith(
-                    dividerColor: Colors.transparent,
+                    dividerColor: AppColors.transparent,
                   ),
                   child: ExpansionTile(
                     initiallyExpanded: _translationsExpanded,
@@ -630,8 +679,8 @@ class _BusinessProfileScreenState
                       AppSpacing.lg,
                       AppSpacing.lg,
                     ),
-                    title: Text(s.translationsOptional,
-                        style: AppTextStyles.h3),
+                    title:
+                        Text(s.translationsOptional, style: AppTextStyles.h3),
                     subtitle: Text(
                       s.translationsHint,
                       style: AppTextStyles.caption.copyWith(
@@ -641,18 +690,15 @@ class _BusinessProfileScreenState
                     children: <Widget>[
                       AppTextField(label: s.nameEn, controller: _nameEn),
                       const SizedBox(height: AppSpacing.md),
-                      AppTextField(
-                          label: s.taglineEn, controller: _taglineEn),
+                      AppTextField(label: s.taglineEn, controller: _taglineEn),
                       const SizedBox(height: AppSpacing.lg),
                       AppTextField(label: s.nameRu, controller: _nameRu),
                       const SizedBox(height: AppSpacing.md),
-                      AppTextField(
-                          label: s.taglineRu, controller: _taglineRu),
+                      AppTextField(label: s.taglineRu, controller: _taglineRu),
                       const SizedBox(height: AppSpacing.lg),
                       AppTextField(label: s.nameTr, controller: _nameTr),
                       const SizedBox(height: AppSpacing.md),
-                      AppTextField(
-                          label: s.taglineTr, controller: _taglineTr),
+                      AppTextField(label: s.taglineTr, controller: _taglineTr),
                     ],
                   ),
                 ),
@@ -745,7 +791,10 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
     final S s = ref.watch(sProvider);
     return ListView(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.huge,
       ),
       children: <Widget>[
         Container(
@@ -753,11 +802,10 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
           height: 64,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppColors.primarySoft,
+            color: AppColors.caramelSoft,
             borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
-          child: const Icon(AppIcons.store,
-              color: AppColors.primary, size: 30),
+          child: const Icon(AppIcons.store, color: AppColors.action, size: 30),
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(s.createYourBusiness, style: AppTextStyles.h1),
@@ -781,8 +829,7 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
         DropdownButtonFormField<BusinessCategory>(
           initialValue: _category,
           items: BusinessCategory.values
-              .map((BusinessCategory c) =>
-                  DropdownMenuItem<BusinessCategory>(
+              .map((BusinessCategory c) => DropdownMenuItem<BusinessCategory>(
                     value: c,
                     child: Text(c.labelOf(s)),
                   ))
@@ -830,7 +877,7 @@ class _PhotoThumb extends StatelessWidget {
               height: 96,
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(
-                color: AppColors.surfaceAlt,
+                color: AppColors.surfaceMuted,
                 alignment: Alignment.center,
                 child: const SizedBox(
                   width: 18,
@@ -839,10 +886,10 @@ class _PhotoThumb extends StatelessWidget {
                 ),
               ),
               errorWidget: (_, __, ___) => Container(
-                color: AppColors.surfaceAlt,
+                color: AppColors.surfaceMuted,
                 alignment: Alignment.center,
-                child: const Icon(AppIcons.error,
-                    color: AppColors.textTertiary),
+                child:
+                    const Icon(AppIcons.error, color: AppColors.textTertiary),
               ),
             ),
           ),
@@ -854,11 +901,11 @@ class _PhotoThumb extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(3),
                 decoration: const BoxDecoration(
-                  color: Colors.black54,
+                  color: AppColors.scrim,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(AppIcons.close,
-                    size: 16, color: Colors.white),
+                    size: 16, color: AppColors.onDark),
               ),
             ),
           ),
@@ -885,9 +932,9 @@ class _AddPhotoTile extends ConsumerWidget {
         width: 96,
         height: 96,
         decoration: BoxDecoration(
-          color: AppColors.primarySoft,
+          color: AppColors.caramelSoft,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+          border: Border.all(color: AppColors.action.withValues(alpha: 0.4)),
         ),
         child: loading
             ? const Center(
@@ -900,12 +947,12 @@ class _AddPhotoTile extends ConsumerWidget {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Icon(AppIcons.camera, color: AppColors.primary),
+                  const Icon(AppIcons.camera, color: AppColors.action),
                   const SizedBox(height: 4),
                   Text(s.addPhoto,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                          fontSize: 11, color: AppColors.primary)),
+                          fontSize: 11, color: AppColors.action)),
                 ],
               ),
       ),
@@ -929,11 +976,11 @@ class _LogoPreview extends StatelessWidget {
         height: s,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.primarySoft,
+          color: AppColors.caramelSoft,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.border),
         ),
-        child: const Icon(AppIcons.store, color: AppColors.primary, size: 30),
+        child: const Icon(AppIcons.store, color: AppColors.action, size: 30),
       );
     }
     return ClipRRect(
@@ -946,7 +993,7 @@ class _LogoPreview extends StatelessWidget {
         placeholder: (_, __) => Container(
           width: s,
           height: s,
-          color: AppColors.surfaceAlt,
+          color: AppColors.surfaceMuted,
           alignment: Alignment.center,
           child: const SizedBox(
             width: 18,
@@ -957,10 +1004,9 @@ class _LogoPreview extends StatelessWidget {
         errorWidget: (_, __, ___) => Container(
           width: s,
           height: s,
-          color: AppColors.surfaceAlt,
+          color: AppColors.surfaceMuted,
           alignment: Alignment.center,
-          child:
-              const Icon(AppIcons.error, color: AppColors.textTertiary),
+          child: const Icon(AppIcons.error, color: AppColors.textTertiary),
         ),
       ),
     );

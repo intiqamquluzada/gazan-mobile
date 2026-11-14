@@ -35,7 +35,10 @@ class CompaniesScreen extends ConsumerWidget {
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.fromLTRB(
-                AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.sm,
+                AppSpacing.xl,
+                AppSpacing.md,
+                AppSpacing.xl,
+                AppSpacing.sm,
               ),
               child: _CompanySearchField(),
             ),
@@ -43,8 +46,7 @@ class CompaniesScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             Expanded(
               child: companies.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
+                loading: () => const Center(child: CircularProgressIndicator()),
                 error: (Object e, _) => EmptyState(
                   title: s.errorOccurred,
                   subtitle: e.toString(),
@@ -60,7 +62,9 @@ class CompaniesScreen extends ConsumerWidget {
                   }
                   return ListView.separated(
                     padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, AppSpacing.sm, AppSpacing.xl,
+                      AppSpacing.xl,
+                      AppSpacing.sm,
+                      AppSpacing.xl,
                       AppSpacing.huge,
                     ),
                     itemCount: list.length,
@@ -142,9 +146,8 @@ class _CompanySearchFieldState extends ConsumerState<_CompanySearchField> {
           },
         ),
         filled: true,
-        fillColor: AppColors.surfaceAlt,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        fillColor: AppColors.surfaceMuted,
+        contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           borderSide: BorderSide.none,

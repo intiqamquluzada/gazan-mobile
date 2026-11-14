@@ -1,78 +1,55 @@
-# Telefon push bildirişləri (FCM) — quraşdırma
+# Telefon bildirimleri (FCM) — kurulum
 
-Kod tərəfi HAZIRDIR — yalnız Firebase layihəsi və konfiq faylları lazımdır.
-Onlar əlavə olunana qədər tətbiq normal işləyir, push sadəcə **deaktiv** qalır
-(heç nə çökmür).
+Kod hazır. Firebase ayarları eklenene kadar uygulama normal çalışır, push
+sadece kapalı kalır (uygulama içi bildirim kutusu her zaman çalışır).
 
-## Artıq kodda olan (mənim etdiyim)
+## Kodda olanlar
 
-**Mobile:**
-- `firebase_core` + `firebase_messaging` paketləri (`pubspec.yaml`).
-- `lib/core/push/push_service.dart` — Firebase init + token alma + qeydiyyat
-  (Firebase yoxdursa səssiz no-op).
-- `lib/core/push/push_repository.dart` — `/api/v1/push/tokens` çağırışları.
-- Auth axınına bağlandı: login/restore-dan sonra token qeydiyyatdan keçir,
-  çıxışda silinir (`auth_controller.dart`).
+**Mobil**
+- `firebase_core`, `firebase_messaging`, `flutter_local_notifications`.
+- `lib/core/push/push_service.dart`: başlatma (`main.dart`), girişte izin isteme
+  ve cihaz token'ını backend'e kaydetme, çıkışta silme, uygulama açıkken
+  bildirimi gösterme, bildirime dokununca `route` ekranını açma.
+- Android: `POST_NOTIFICATIONS` izni, `qazan_default` kanalı, minSdk 24.
+  Google Services eklentisi yalnızca `android/app/google-services.json`
+  varsa uygulanır.
+- iOS: `aps-environment` entitlement, `UIBackgroundModes/remote-notification`.
 
-**Backend:**
-- `device_tokens` cədvəli (`V13`) + `push` modulu (token register/unregister:
-  `POST`/`DELETE /api/v1/push/tokens`).
-- `NotificationService` artıq hər bildiriş yaradılanda `PushService`-ə fan-out
-  edir (broadcast → bütün cihazlar, targeted → istifadəçinin cihazları).
-- `PushSender` — `qazan.push.fcm.enabled=false` (default) olduqda loglayır;
-  real FCM göndərişi `deliverViaFcm()`-də implementasiya gözləyir.
+**Backend**
+- `PushSender`: FCM HTTP v1, servis hesabıyla. İşlem commit olduktan sonra
+  arka planda gönderir; Firebase'in "kayıtlı değil" dediği token'ları siler.
+- Kimlere gider: admin duyurusu (herkes), kişiye özel bildirimler, işletmenin
+  müşterilerine bildirimi (kart sahipleri), müşteri SPEND kartına dokununca
+  işletme sahibi ve kasiyerlere "Müşteri kasada bekliyor".
 
-## Sənin etməli olduğun
+## Senin yapacakların
 
-### 1. Firebase layihəsi (pulsuz)
-1. https://console.firebase.google.com → **Add project** → "Qazan".
-2. FlutterFire CLI ilə avtomatik konfiqurasiya (ən asanı):
+1. https://console.firebase.google.com → **Proje ekle** → "Qazan".
+2. **Android uygulaması ekle**: paket adı `az.qazan.app` →
+   `google-services.json` indir → `gazan-mobile/android/app/` içine koy.
+3. **iPhone** (Apple Developer hesabı gerekir): iOS uygulaması ekle, paket
+   `az.qazan.app` → `GoogleService-Info.plist` indir → Xcode ile
+   `ios/Runner`'a ekle. Apple Developer → Keys → **APNs Auth Key (.p8)** →
+   Firebase → Proje ayarları → Cloud Messaging → iOS'a yükle. Xcode'da
+   Push Notifications yeteneğini aç.
+4. **Backend için servis hesabı**: Firebase → Proje ayarları → Hizmet
+   hesapları → **Yeni özel anahtar oluştur** → JSON indir. Git'e koyma.
+   Sunucuda örneğin `/etc/qazan/fcm.json` (sahibi `qazan`, izin 600) ve
+   `/etc/qazan/qazan.env` içine:
    ```
-   dart pub global activate flutterfire_cli
-   flutterfire configure --project=<firebase-project-id>
+   FCM_ENABLED=true
+   FCM_CREDENTIALS_FILE=/etc/qazan/fcm.json
    ```
-   Bu, `lib/firebase_options.dart` yaradır və Android/iOS konfiqini qurur.
-   Sonra `push_service.dart`-da `Firebase.initializeApp()` →
-   `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`
-   et.
+   Docker kurulumunda `deploy/.env` içine `FCM_ENABLED=true` ve
+   `FCM_CREDENTIALS_JSON=<tek satır JSON>`.
 
-### 2. Android
-- `flutterfire configure` `android/app/google-services.json` qoyur.
-- `android/settings.gradle.kts`-ə Google Services plugin:
-  `id("com.google.gms.google-services") version "4.4.2" apply false`
-- `android/app/build.gradle.kts` plugins blokuna:
-  `id("com.google.gms.google-services")`
-
-### 3. iOS (Apple Developer hesabı lazımdır)
-- `flutterfire configure` `ios/Runner/GoogleService-Info.plist` qoyur.
-- Apple Developer → Keys → **APNs Auth Key** (.p8) yarat → Firebase Console →
-  Project Settings → Cloud Messaging → iOS app → APNs key yüklə.
-- Xcode → Runner → Signing & Capabilities → **Push Notifications** +
-  **Background Modes › Remote notifications** əlavə et.
-
-### 4. Backend FCM göndərişi
-1. Firebase Console → Project Settings → Service accounts → **Generate new
-   private key** → JSON yüklə (serverdə təhlükəsiz saxla, git-ə qoyma).
-2. `application.yml`:
-   ```yaml
-   qazan:
-     push:
-       fcm:
-         enabled: true
-         project-id: <firebase-project-id>
-         credentials: /opt/qazan/secrets/fcm-service-account.json
-   ```
-3. `gazan-backend/build.gradle` dependency:
-   `implementation 'com.google.auth:google-auth-library-oauth2-http:1.30.1'`
-4. `PushSender.deliverViaFcm()`-i implementasiya et (JavaDoc-da addımlar var):
-   service-account-dan OAuth2 token al → hər token üçün
-   `POST https://fcm.googleapis.com/v1/projects/<id>/messages:send`.
-
-### 5. Web (istəyə bağlı)
-- `web/firebase-messaging-sw.js` service worker + VAPID açarı (`getToken`).
-- HTTPS şərtdir (mövcud HTTP prod-da web push işləməz — bax STORE_RELEASE.md).
+Dosya kullanmak istemezsen APK'yı şu değerlerle de derleyebilirsin
+(Firebase → Proje ayarları → Android uygulaması):
+`--dart-define=FIREBASE_API_KEY=... --dart-define=FIREBASE_APP_ID=...
+--dart-define=FIREBASE_SENDER_ID=... --dart-define=FIREBASE_PROJECT_ID=...`
 
 ## Test
-1. Firebase config faylları yerində + `flutter run` (real cihaz, emulyator yox).
-2. Login ol → `device_tokens`-da bir sətir görünməlidir.
-3. Admin paneldən bildiriş göndər → telefonun bildiriş zonasında görünməlidir.
+1. Yeni APK'yı kur, giriş yap, bildirim iznine **İzin ver** de.
+2. Sunucuda `device_tokens` tablosunda bir satır görünmeli.
+3. Admin → Bildirimler → gönder: telefonun bildirim çubuğunda görünmeli.
+   Backend logunda `[push] "..." delivered to 1/1 device(s)` satırı olmalı.

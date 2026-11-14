@@ -1,3 +1,4 @@
+import '../../../core/config/app_config.dart';
 import 'business_category.dart';
 
 class Company {
@@ -23,6 +24,9 @@ class Company {
     this.menuUrl,
     this.coinRate,
     this.logoUrl,
+    this.currency = 'AZN',
+    this.status = 'APPROVED',
+    this.country = 'AZ',
     this.nameEn,
     this.nameRu,
     this.nameTr,
@@ -65,6 +69,17 @@ class Company {
   /// Uploaded logo / profile picture. Null → brand monogram fallback.
   final String? logoUrl;
 
+  /// ISO currency of this venue's prices — AZN (₼) or TRY (₺).
+  final String currency;
+
+  /// PENDING until an admin approves the venue; SUSPENDED when taken down.
+  final String status;
+
+  bool get isApproved => status == 'APPROVED';
+
+  /// ISO country code of the venue.
+  final String country;
+
   /// Per-language overrides for the owner-facing editor. `name` /
   /// `tagline` above are already localized for the current request; these
   /// raw fields show what's currently set for each language so the owner
@@ -92,8 +107,8 @@ class Company {
       id: json['id'] as String,
       name: (json['name'] as String?) ?? '',
       tagline: (json['tagline'] as String?) ?? '',
-      category: BusinessCategory.fromJson(
-          (json['category'] as String?) ?? 'OTHER'),
+      category:
+          BusinessCategory.fromJson((json['category'] as String?) ?? 'OTHER'),
       logoEmoji: (json['logoEmoji'] as String?) ?? '🏪',
       coverColorHex: (json['coverColorHex'] as num?)?.toInt() ?? 0xFF1F2937,
       address: (json['address'] as String?) ?? '',
@@ -106,10 +121,15 @@ class Company {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       amenities: _splitList(json['amenities'] as String?),
-      photoUrls: _splitList(json['photoUrls'] as String?),
+      photoUrls: _splitList(json['photoUrls'] as String?)
+          .map(AppConfig.mediaUrl)
+          .toList(growable: false),
       menuUrl: json['menuUrl'] as String?,
       coinRate: (json['coinRate'] as num?)?.toDouble(),
-      logoUrl: json['logoUrl'] as String?,
+      logoUrl: AppConfig.mediaUrlOrNull(json['logoUrl'] as String?),
+      status: (json['status'] as String?) ?? 'APPROVED',
+      currency: (json['currency'] as String?) ?? 'AZN',
+      country: (json['country'] as String?) ?? 'AZ',
       nameEn: json['nameEn'] as String?,
       nameRu: json['nameRu'] as String?,
       nameTr: json['nameTr'] as String?,

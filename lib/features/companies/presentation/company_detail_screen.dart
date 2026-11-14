@@ -1,3 +1,5 @@
+import 'dart:io' show File;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +8,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/location/device_location.dart';
 import '../../menu/data/menu_repository.dart';
+import '../../menu/presentation/menu_preview.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -27,6 +32,9 @@ import '../../wallet/domain/coin_reward.dart';
 import '../../wallet/domain/coin_summary.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
+import '../../../core/utils/maps_launcher.dart';
+import '../../../core/utils/money.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class CompanyDetailScreen extends ConsumerWidget {
   const CompanyDetailScreen({super.key, required this.companyId});
@@ -40,8 +48,7 @@ class CompanyDetailScreen extends ConsumerWidget {
         ref.watch(companyByIdProvider(companyId));
     final AsyncValue<List<LoyaltyProgram>> programsAsync =
         ref.watch(programsForCompanyProvider(companyId));
-    final AsyncValue<List<LoyaltyCard>> cardsAsync =
-        ref.watch(myCardsProvider);
+    final AsyncValue<List<LoyaltyCard>> cardsAsync = ref.watch(myCardsProvider);
 
     return Scaffold(
       body: companyAsync.when(
@@ -95,17 +102,27 @@ class _Body extends ConsumerWidget {
     final S s = ref.watch(sProvider);
     final Color brand = Color(company.coverColorHex);
     final double topInset = MediaQuery.paddingOf(context).top;
-    final bool hasCoinRewards = ref
-        .watch(coinRewardsProvider(company.id))
-        .maybeWhen(
-          data: (List<CoinReward> r) => r.isNotEmpty,
-          orElse: () => false,
-        );
+    final bool hasCoinRewards =
+        ref.watch(coinRewardsProvider(company.id)).maybeWhen(
+              data: (List<CoinReward> r) => r.any((CoinReward x) => x.active),
+              orElse: () => false,
+            );
 
     return Stack(
       children: <Widget>[
-        ListView(
+        RefreshIndicator(
+          // Programs, gifts and the customer's own progress can change
+          // while the page is open (owner edits, a tap at the till).
+          onRefresh: () async {
+            ref
+              ..invalidate(programsForCompanyProvider(company.id))
+              ..invalidate(coinRewardsProvider(company.id))
+              ..invalidate(myCardsProvider)
+              ..invalidate(coinSummaryProvider);
+          },
+          child: ListView(
           padding: EdgeInsets.zero,
+          physics: const AlwaysScrollableScrollPhysics(),
           children: <Widget>[
             _PhotoHeader(company: company, brand: brand),
             Transform.translate(
@@ -127,18 +144,40 @@ class _Body extends ConsumerWidget {
                       hasCoinRewards: hasCoinRewards,
                       cardFor: _cardFor,
                       onJoin: (LoyaltyProgram p) async {
-                        await ref
-                            .read(loyaltyActionsProvider)
-                            .joinProgram(p.id);
+                        try {
+                          await ref
+                              .read(loyaltyActionsProvider)
+                              .joinProgram(p.id);
+                        } on ApiException catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.message)));
+                          }
+                          return;
+                        }
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                                '${company.name} ${s.cardAddedSuffix}'),
+                            content:
+                                Text('${company.name} ${s.cardAddedSuffix}'),
                           ),
                         );
                       },
-                      onShowQr: () => context.push('/qr/show'),
+                      onShowQr: () => context.go('/nfc'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    MenuPreview(
+                      companyId: company.id,
+                      currency: company.currency,
+                      onOpenFull: (List<MenuItem> items) =>
+                          showModalBottomSheet<void>(
+                        context: context,
+                        useRootNavigator: true,
+                        isScrollControlled: true,
+                        showDragHandle: false,
+                        builder: (BuildContext _) =>
+                            _MenuSheet(items: items, currency: company.currency),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     _CoinRewardsSection(company: company),
@@ -162,6 +201,7 @@ class _Body extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
         // Floating back / actions over the photo.
         Padding(
@@ -187,10 +227,9 @@ class _Body extends ConsumerWidget {
                     icon: fav
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
-                    iconColor: fav ? AppColors.error : null,
-                    onTap: () => ref
-                        .read(favoritesProvider.notifier)
-                        .toggle(company.id),
+                    iconColor: fav ? AppColors.danger : null,
+                    onTap: () =>
+                        ref.read(favoritesProvider.notifier).toggle(company.id),
                   );
                 },
               ),
@@ -220,24 +259,58 @@ class _PhotoHeader extends StatefulWidget {
   State<_PhotoHeader> createState() => _PhotoHeaderState();
 }
 
-/// Shares a rich, useful message instead of a raw API URL (which used to
-/// open backend JSON in the browser). Includes the name, tagline, address,
-/// and — when coordinates exist — a Google Maps link to the exact location.
+/// Shares the venue the way a place should be shared: the cover photo as
+/// an image plus a caption with name, category · rating, tagline, address,
+/// hours, a Google Maps link and an invite line.
+///
+/// No `subject` — several targets (Telegram, some messengers, mail) used
+/// only the subject, which is why the old share showed just the name.
 Future<void> _shareCompany(Company company, S s) async {
-  final StringBuffer msg = StringBuffer(company.name);
+  final StringBuffer msg = StringBuffer();
+  msg.writeln(company.name);
+  final List<String> meta = <String>[
+    company.category.labelOf(s),
+    if (company.rating > 0) '⭐ ${company.rating.toStringAsFixed(1)}',
+  ];
+  msg.writeln(meta.join(' · '));
   if (company.tagline.trim().isNotEmpty) {
-    msg.write('\n${company.tagline.trim()}');
+    msg.writeln(company.tagline.trim());
   }
+  msg.writeln();
   if (company.address.trim().isNotEmpty) {
-    msg.write('\n📍 ${company.address.trim()}');
+    msg.writeln('📍 ${company.address.trim()}');
+  }
+  if ((company.workingHours ?? '').trim().isNotEmpty) {
+    msg.writeln('🕒 ${company.workingHours!.trim()}');
+  }
+  if ((company.phone ?? '').trim().isNotEmpty) {
+    msg.writeln('📞 ${company.phone!.trim()}');
   }
   if (company.latitude != null && company.longitude != null) {
-    final String maps =
-        'https://www.google.com/maps/search/?api=1&query=${company.latitude},${company.longitude}';
-    msg.write('\n\n${s.shareOnMap}: $maps');
+    msg.writeln(
+        '🗺 ${s.shareOnMap}: ${googleMapsLink(company.latitude!, company.longitude!)}');
   }
-  msg.write('\n\n${s.shareDiscover} 🎁');
-  await Share.share(msg.toString(), subject: company.name);
+  msg.writeln();
+  msg.write('🎁 ${s.shareDiscover}');
+  final String text = msg.toString();
+
+  // Attach the cover photo when we can get it (usually already cached
+  // from the header); otherwise share the text alone.
+  if (company.photoUrls.isNotEmpty) {
+    try {
+      final File file = await DefaultCacheManager()
+          .getSingleFile(company.photoUrls.first)
+          .timeout(const Duration(seconds: 6));
+      await Share.shareXFiles(
+        <XFile>[XFile(file.path, mimeType: 'image/jpeg')],
+        text: text,
+      );
+      return;
+    } catch (_) {
+      // fall through to text-only
+    }
+  }
+  await Share.share(text);
 }
 
 class _PhotoHeaderState extends State<_PhotoHeader> {
@@ -274,7 +347,7 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
           child: Center(
             child: CompanyLogo(
               name: widget.company.name,
-              brandColor: Colors.white,
+              brandColor: AppColors.onDark,
               imageUrl: widget.company.logoUrl,
               size: 96,
               radius: 28,
@@ -315,7 +388,7 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
                   width: on ? 22 : 7,
                   height: 7,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: on ? 1 : 0.5),
+                    color: AppColors.onDark.withValues(alpha: on ? 1 : 0.5),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 );
@@ -329,9 +402,7 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
 
   Color _shift(Color c, double amount) {
     final HSLColor h = HSLColor.fromColor(c);
-    return h
-        .withLightness((h.lightness + amount).clamp(0.0, 1.0))
-        .toColor();
+    return h.withLightness((h.lightness + amount).clamp(0.0, 1.0)).toColor();
   }
 }
 
@@ -345,7 +416,7 @@ class _GlassCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.onDark,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -353,7 +424,8 @@ class _GlassCircle extends StatelessWidget {
         child: SizedBox(
           width: 42,
           height: 42,
-          child: Icon(icon, size: 19, color: iconColor ?? AppColors.textPrimary),
+          child:
+              Icon(icon, size: 19, color: iconColor ?? AppColors.textPrimary),
         ),
       ),
     );
@@ -417,14 +489,14 @@ class _InfoCard extends ConsumerWidget {
                       Row(
                         children: <Widget>[
                           const Icon(AppIcons.location,
-                              size: 14, color: AppColors.primary),
+                              size: 14, color: AppColors.action),
                           const SizedBox(width: 4),
                           Text(
                             distanceKm < 1
                                 ? '${(distanceKm * 1000).round()} m uzaqda'
                                 : '${distanceKm.toStringAsFixed(1)} km uzaqda',
                             style: AppTextStyles.caption.copyWith(
-                              color: AppColors.primary,
+                              color: AppColors.action,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -436,13 +508,14 @@ class _InfoCard extends ConsumerWidget {
                       const SizedBox(height: 6),
                       Row(
                         children: <Widget>[
-                          if ((company.workingHours ?? '').isNotEmpty) ...<Widget>[
+                          if ((company.workingHours ?? '')
+                              .isNotEmpty) ...<Widget>[
                             const Icon(AppIcons.clock,
-                                size: 14, color: AppColors.primary),
+                                size: 14, color: AppColors.action),
                             const SizedBox(width: 4),
                             Text(company.workingHours!,
                                 style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.primary,
+                                  color: AppColors.action,
                                   fontWeight: FontWeight.w600,
                                 )),
                           ],
@@ -463,10 +536,21 @@ class _InfoCard extends ConsumerWidget {
               const SizedBox(width: AppSpacing.sm),
               _RoundAction(icon: AppIcons.clock),
               const SizedBox(width: 6),
-              _RoundAction(icon: AppIcons.star, label: company.rating
-                  .toStringAsFixed(1)),
+              _RoundAction(
+                  icon: AppIcons.star,
+                  iconColor: AppColors.reward, // star rating = reward colour
+                  label: company.rating.toStringAsFixed(1)),
               const SizedBox(width: 6),
-              _RoundAction(icon: AppIcons.location),
+              _RoundAction(
+                icon: AppIcons.location,
+                onTap: company.latitude == null || company.longitude == null
+                    ? null
+                    : () => openDirections(
+                          latitude: company.latitude!,
+                          longitude: company.longitude!,
+                          label: company.name,
+                        ),
+              ),
             ],
           ),
           // Amenities only render if the owner enabled at least one.
@@ -497,20 +581,23 @@ class _InfoCard extends ConsumerWidget {
 }
 
 class _RoundAction extends StatelessWidget {
-  const _RoundAction({required this.icon, this.label});
+  const _RoundAction(
+      {required this.icon, this.label, this.iconColor, this.onTap});
 
   final IconData icon;
   final String? label;
+  final Color? iconColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final Widget pill = Container(
       height: 40,
       padding: EdgeInsets.symmetric(horizontal: label == null ? 0 : 12),
       width: label == null ? 40 : null,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.primarySoft,
+        color: AppColors.caramelSoft,
         shape: label == null ? BoxShape.circle : BoxShape.rectangle,
         borderRadius:
             label == null ? null : BorderRadius.circular(AppRadius.full),
@@ -518,18 +605,20 @@ class _RoundAction extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(icon, size: 18, color: AppColors.primary),
+          Icon(icon, size: 18, color: iconColor ?? AppColors.action),
           if (label != null) ...<Widget>[
             const SizedBox(width: 4),
             Text(label!,
                 style: AppTextStyles.bodySm.copyWith(
-                  color: AppColors.primary,
+                  color: AppColors.action,
                   fontWeight: FontWeight.w700,
                 )),
           ],
         ],
       ),
     );
+    if (onTap == null) return pill;
+    return GestureDetector(onTap: onTap, child: pill);
   }
 }
 
@@ -577,20 +666,20 @@ class _AmenityChip extends ConsumerWidget {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: on ? AppColors.primarySoft : AppColors.surfaceAlt,
+            color: on ? AppColors.caramelSoft : AppColors.surfaceMuted,
             shape: BoxShape.circle,
           ),
           child: Icon(
             amenity.icon,
             size: 22,
-            color: on ? AppColors.primary : AppColors.textTertiary,
+            color: on ? AppColors.action : AppColors.textTertiary,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           amenity.label(s),
           style: AppTextStyles.caption.copyWith(
-            color: on ? AppColors.primary : AppColors.textTertiary,
+            color: on ? AppColors.action : AppColors.textTertiary,
             fontWeight: on ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
@@ -628,6 +717,7 @@ class _OffersCard extends ConsumerWidget {
     if (items.isNotEmpty) {
       await showModalBottomSheet<void>(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -687,8 +777,8 @@ class _OffersCard extends ConsumerWidget {
               ],
               Expanded(
                 child: _BigButton(
-                  label: s.showQr,
-                  icon: AppIcons.qr,
+                  label: s.nfcTapShort,
+                  icon: AppIcons.nfc,
                   filled: true,
                   onTap: onShowQr,
                 ),
@@ -704,7 +794,14 @@ class _OffersCard extends ConsumerWidget {
               padding: const EdgeInsets.only(top: AppSpacing.lg),
               child: Text(e.toString()),
             ),
-            data: (List<LoyaltyProgram> programs) {
+            data: (List<LoyaltyProgram> all) {
+              // A paused or expired campaign is not on offer to customers.
+              final DateTime now = DateTime.now();
+              final List<LoyaltyProgram> programs = all
+                  .where((LoyaltyProgram p) =>
+                      p.isActive &&
+                      (p.expiresAt == null || p.expiresAt!.isAfter(now)))
+                  .toList(growable: false);
               final bool hasPrograms = programs.isNotEmpty;
               // Coin-only business: hide the campaign block completely.
               if (!hasPrograms && hasCoinRewards) {
@@ -731,11 +828,11 @@ class _OffersCard extends ConsumerWidget {
                           _CampaignRow(
                             program: programs[i],
                             card: cardFor(programs[i].id),
-                            accent: i.isEven
-                                ? AppColors.primary
-                                : AppColors.accent,
+                            accent:
+                                i.isEven ? AppColors.action : AppColors.caramel,
                             onJoin: () => onJoin(programs[i]),
                             onShowQr: onShowQr,
+                            currency: company.currency,
                           ),
                           if (i != programs.length - 1) ...<Widget>[
                             const SizedBox(height: AppSpacing.lg),
@@ -770,9 +867,9 @@ class _BigButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color fg = filled ? Colors.white : AppColors.primary;
+    final Color fg = filled ? AppColors.onDark : AppColors.action;
     return Material(
-      color: filled ? AppColors.primary : AppColors.primarySoft,
+      color: filled ? AppColors.action : AppColors.caramelSoft,
       borderRadius: BorderRadius.circular(AppRadius.lg),
       child: InkWell(
         onTap: onTap,
@@ -784,8 +881,7 @@ class _BigButton extends StatelessWidget {
             children: <Widget>[
               Icon(icon, size: 20, color: fg),
               const SizedBox(width: AppSpacing.sm),
-              Text(label,
-                  style: AppTextStyles.button.copyWith(color: fg)),
+              Text(label, style: AppTextStyles.button.copyWith(color: fg)),
             ],
           ),
         ),
@@ -801,6 +897,7 @@ class _CampaignRow extends ConsumerWidget {
     required this.accent,
     required this.onJoin,
     required this.onShowQr,
+    required this.currency,
   });
 
   final LoyaltyProgram program;
@@ -808,11 +905,12 @@ class _CampaignRow extends ConsumerWidget {
   final Color accent;
   final VoidCallback onJoin;
   final VoidCallback onShowQr;
+  final String currency;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
-    final int total = program.stampsRequired;
+    final int total = program.stampsToFill(card);
     final int done = card?.stamps ?? 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -836,7 +934,8 @@ class _CampaignRow extends ConsumerWidget {
                 children: <Widget>[
                   Text(program.title, style: AppTextStyles.h3),
                   const SizedBox(height: 2),
-                  Text(program.rewardLabelOf(s), style: AppTextStyles.bodySm),
+                  Text(program.rewardLabelOf(s, currency: currency),
+                      style: AppTextStyles.bodySm),
                 ],
               ),
             ),
@@ -856,15 +955,13 @@ class _CampaignRow extends ConsumerWidget {
                   aspectRatio: 1,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: s < done
-                          ? accent
-                          : accent.withValues(alpha: 0.10),
+                      color: s < done ? accent : accent.withValues(alpha: 0.10),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       s < done ? AppIcons.check : program.rewardType.icon,
                       size: 14,
-                      color: s < done ? Colors.white : accent,
+                      color: s < done ? AppColors.onDark : accent,
                     ),
                   ),
                 ),
@@ -899,8 +996,8 @@ class _CampaignRow extends ConsumerWidget {
                 )
               : OutlinedButton.icon(
                   onPressed: onShowQr,
-                  icon: const Icon(AppIcons.qr, size: 18),
-                  label: Text(s.showQr),
+                  icon: const Icon(AppIcons.nfc, size: 18),
+                  label: Text(s.nfcTapShort),
                 ),
         ),
       ],
@@ -918,25 +1015,41 @@ class _CoinRewardsSection extends ConsumerWidget {
   final Company company;
 
   Future<void> _buy(
-      BuildContext context, WidgetRef ref, CoinReward r) async {
+      BuildContext context, WidgetRef ref, CoinReward r, int balance) async {
     final S s = ref.read(sProvider);
+    // Coins leave at once, so the customer confirms what they buy here.
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.buyConfirmTitle,
+      body: s.buyConfirmBody(r.title, r.coinCost, balance - r.coinCost),
+      confirmLabel: s.buyAction,
+      cancelLabel: s.cancel,
+      icon: Icons.card_giftcard_rounded,
+      danger: AppColors.action,
+    );
+    if (!ok || !context.mounted) return;
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final GoRouter router = GoRouter.of(context);
     try {
-      await ref.read(rewardsRepositoryProvider).purchase(r.id);
+      await container.read(rewardsRepositoryProvider).purchase(r.id);
       // Refresh affected state.
-      ref.invalidate(coinSummaryProvider);
-      ref.invalidate(myActiveRewardsProvider);
-      ref.invalidate(myUsedRewardsProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${r.title} ${s.purchasedSeeGifts}')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${s.failed}: $e')),
-        );
-      }
+      container
+        ..invalidate(coinSummaryProvider)
+        ..invalidate(myActiveRewardsProvider)
+        ..invalidate(myUsedRewardsProvider);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${r.title} ${s.purchasedSeeGifts}'),
+          action: SnackBarAction(
+            label: s.viewMyRewards,
+            onPressed: () => router.push('/rewards'),
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -945,8 +1058,7 @@ class _CoinRewardsSection extends ConsumerWidget {
     final S s = ref.watch(sProvider);
     final AsyncValue<List<CoinReward>> rewardsAsync =
         ref.watch(coinRewardsProvider(company.id));
-    final AsyncValue<CoinSummary> summaryAsync =
-        ref.watch(coinSummaryProvider);
+    final AsyncValue<CoinSummary> summaryAsync = ref.watch(coinSummaryProvider);
 
     final int balance = summaryAsync.maybeWhen(
       data: (CoinSummary sum) => sum.companies
@@ -956,7 +1068,10 @@ class _CoinRewardsSection extends ConsumerWidget {
     );
 
     return rewardsAsync.maybeWhen(
-      data: (List<CoinReward> rewards) {
+      data: (List<CoinReward> all) {
+        // Owners also get their off-sale items; customers only see on-sale.
+        final List<CoinReward> rewards =
+            all.where((CoinReward r) => r.active).toList(growable: false);
         if (rewards.isEmpty) return const SizedBox.shrink();
         return Container(
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -970,24 +1085,23 @@ class _CoinRewardsSection extends ConsumerWidget {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  Expanded(
-                      child: Text(s.buyWithCoin, style: AppTextStyles.h2)),
+                  Expanded(child: Text(s.buyWithCoin, style: AppTextStyles.h2)),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
+                      color: AppColors.caramelSoft,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         const Icon(AppIcons.token,
-                            size: 16, color: AppColors.primary),
+                            size: 16, color: AppColors.action),
                         const SizedBox(width: 4),
                         Text('$balance',
                             style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.primary,
+                              color: AppColors.action,
                               fontWeight: FontWeight.w800,
                             )),
                       ],
@@ -1008,11 +1122,10 @@ class _CoinRewardsSection extends ConsumerWidget {
                   reward: r,
                   affordable: balance >= r.coinCost,
                   onBuy: balance >= r.coinCost
-                      ? () => _buy(context, ref, r)
+                      ? () => _buy(context, ref, r, balance)
                       : null,
                 ),
-                if (r != rewards.last)
-                  const SizedBox(height: AppSpacing.sm),
+                if (r != rewards.last) const SizedBox(height: AppSpacing.sm),
               ],
             ],
           ),
@@ -1038,11 +1151,11 @@ class _RewardTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final Color bgColor =
-        affordable ? AppColors.primary : AppColors.borderStrong;
+        affordable ? AppColors.action : AppColors.borderStrong;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: affordable ? AppColors.primarySoft : AppColors.surfaceAlt,
+        color: affordable ? AppColors.caramelSoft : AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -1056,7 +1169,7 @@ class _RewardTile extends ConsumerWidget {
               gradient: kHeroGradient,
               shape: BoxShape.circle,
             ),
-            child: const Icon(AppIcons.gift, color: Colors.white, size: 20),
+            child: const Icon(AppIcons.gift, color: AppColors.onDark, size: 20),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -1087,14 +1200,14 @@ class _RewardTile extends ConsumerWidget {
                     Icon(AppIcons.token,
                         size: 14,
                         color: affordable
-                            ? AppColors.primary
+                            ? AppColors.action
                             : AppColors.textTertiary),
                     const SizedBox(width: 2),
                     Text('${reward.coinCost}',
                         style: AppTextStyles.bodySm.copyWith(
                           fontWeight: FontWeight.w800,
                           color: affordable
-                              ? AppColors.primary
+                              ? AppColors.action
                               : AppColors.textTertiary,
                         )),
                   ],
@@ -1115,7 +1228,7 @@ class _RewardTile extends ConsumerWidget {
                 child: Text(
                   affordable ? s.buyAction : s.insufficientWord,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.onDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -1131,9 +1244,10 @@ class _RewardTile extends ConsumerWidget {
 
 /// Read-only structured menu shown to customers, grouped by category.
 class _MenuSheet extends StatelessWidget {
-  const _MenuSheet({required this.items});
+  const _MenuSheet({required this.items, this.currency = 'AZN'});
 
   final List<MenuItem> items;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -1165,47 +1279,47 @@ class _MenuSheet extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text('Menyu', style: AppTextStyles.h2),
             const SizedBox(height: AppSpacing.md),
-            for (final MapEntry<String, List<MenuItem>> e in byCat.entries)
-              ...<Widget>[
+            for (final MapEntry<String, List<MenuItem>> e
+                in byCat.entries) ...<Widget>[
+              Padding(
+                padding: const EdgeInsets.only(
+                    top: AppSpacing.lg, bottom: AppSpacing.sm),
+                child: Text(e.key,
+                    style: AppTextStyles.overline
+                        .copyWith(color: AppColors.action)),
+              ),
+              for (final MenuItem m in e.value)
                 Padding(
-                  padding: const EdgeInsets.only(
-                      top: AppSpacing.lg, bottom: AppSpacing.sm),
-                  child: Text(e.key,
-                      style: AppTextStyles.overline
-                          .copyWith(color: AppColors.primary)),
-                ),
-                for (final MenuItem m in e.value)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(m.name,
-                                  style: AppTextStyles.bodyLg
-                                      .copyWith(fontWeight: FontWeight.w600)),
-                              if ((m.description ?? '').isNotEmpty)
-                                Text(m.description!,
-                                    style: AppTextStyles.bodySm.copyWith(
-                                        color: AppColors.textSecondary)),
-                            ],
-                          ),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(m.name,
+                                style: AppTextStyles.bodyLg
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            if ((m.description ?? '').isNotEmpty)
+                              Text(m.description!,
+                                  style: AppTextStyles.bodySm.copyWith(
+                                      color: AppColors.textSecondary)),
+                          ],
                         ),
-                        if (m.price != null) ...<Widget>[
-                          const SizedBox(width: AppSpacing.md),
-                          Text('${m.price!.toStringAsFixed(2)} ₼',
-                              style: AppTextStyles.bodyLg.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              )),
-                        ],
+                      ),
+                      if (m.price != null) ...<Widget>[
+                        const SizedBox(width: AppSpacing.md),
+                        Text(Money.format(m.price!, currency),
+                            style: AppTextStyles.bodyLg.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.action,
+                            )),
                       ],
-                    ),
+                    ],
                   ),
-              ],
+                ),
+            ],
           ],
         );
       },

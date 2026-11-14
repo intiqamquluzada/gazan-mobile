@@ -9,17 +9,22 @@ class CustomerSummary {
     required this.lastVisitAt,
     this.avatarUrl,
     this.phone,
+    this.coinBalance = 0,
   });
 
   final String userId;
   final String fullName;
   final String? avatarUrl;
   final String? phone;
+
   /// No per-visit log yet — the card count is a good proxy.
   final int totalVisits;
   final int totalStamps;
   final int rewardsClaimed;
   final DateTime lastVisitAt;
+
+  /// The customer's coins at this venue (coin-only customers have no cards).
+  final int coinBalance;
 
   factory CustomerSummary.fromJson(Map<String, dynamic> json) {
     return CustomerSummary(
@@ -29,6 +34,7 @@ class CustomerSummary {
       totalVisits: ((json['cardCount'] as num?) ?? 0).toInt(),
       totalStamps: ((json['totalStamps'] as num?) ?? 0).toInt(),
       rewardsClaimed: ((json['rewardsClaimed'] as num?) ?? 0).toInt(),
+      coinBalance: ((json['coinBalance'] as num?) ?? 0).toInt(),
       lastVisitAt: DateTime.tryParse(
             (json['lastActivityAt'] as String?) ?? '',
           )?.toLocal() ??

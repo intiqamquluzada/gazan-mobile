@@ -24,6 +24,7 @@ class PushRepository {
   }
 }
 
-final Provider<PushRepository> pushRepositoryProvider = Provider<PushRepository>(
+final Provider<PushRepository> pushRepositoryProvider =
+    Provider<PushRepository>(
   (Ref ref) => PushRepository(ref.read(apiClientProvider)),
 );

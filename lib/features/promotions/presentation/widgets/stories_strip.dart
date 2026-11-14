@@ -80,7 +80,7 @@ class _StoryBubble extends ConsumerWidget {
                     gradient: seen
                         ? null
                         : LinearGradient(
-                            colors: <Color>[brand, AppColors.primary],
+                            colors: <Color>[brand, AppColors.action],
                           ),
                     border: seen
                         ? Border.all(color: AppColors.border, width: 2)
@@ -150,7 +150,7 @@ class _BubbleSkeleton extends StatelessWidget {
             width: 70,
             height: 70,
             decoration: const BoxDecoration(
-              color: AppColors.surfaceAlt,
+              color: AppColors.surfaceMuted,
               shape: BoxShape.circle,
             ),
           ),
@@ -159,7 +159,7 @@ class _BubbleSkeleton extends StatelessWidget {
             width: 48,
             height: 10,
             decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
+              color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(4),
             ),
           ),

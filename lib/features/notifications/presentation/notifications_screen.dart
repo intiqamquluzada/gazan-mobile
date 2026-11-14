@@ -99,11 +99,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         height: 38,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
+                          color: AppColors.caramelSoft,
                           borderRadius: BorderRadius.circular(AppRadius.md),
                         ),
                         child: const Icon(AppIcons.bell,
-                            size: 18, color: AppColors.primary),
+                            size: 18, color: AppColors.action),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
@@ -122,7 +122,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                                     width: 8,
                                     height: 8,
                                     decoration: const BoxDecoration(
-                                      color: AppColors.primary,
+                                      color: AppColors.action,
                                       shape: BoxShape.circle,
                                     ),
                                   ),

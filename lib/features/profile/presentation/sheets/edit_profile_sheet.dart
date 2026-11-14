@@ -122,7 +122,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.action,
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.surface, width: 2),
             ),
@@ -132,11 +132,11 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.onDark,
                     ),
                   )
                 : const Icon(Icons.camera_alt_rounded,
-                    size: 16, color: Colors.white),
+                    size: 16, color: AppColors.onDark),
           ),
         ],
       ),
@@ -152,7 +152,10 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
       padding: bottom,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+          AppSpacing.xl,
+          AppSpacing.md,
+          AppSpacing.xl,
+          AppSpacing.xl,
         ),
         child: Form(
           key: _form,

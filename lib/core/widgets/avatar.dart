@@ -21,7 +21,7 @@ class Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg = background ?? AppColors.primarySoft;
+    final Color bg = background ?? AppColors.caramelSoft;
     return Container(
       width: size,
       height: size,
@@ -41,7 +41,7 @@ class Avatar extends StatelessWidget {
           : Text(
               name.initials,
               style: AppTextStyles.h3.copyWith(
-                color: AppColors.primary,
+                color: AppColors.action,
                 fontSize: size * 0.36,
               ),
             ),

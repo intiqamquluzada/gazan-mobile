@@ -8,6 +8,13 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase (phone notifications) is optional: with android/app/google-services.json
+// present the Google Services plugin wires it up; without it the app still
+// builds and push simply stays off (or comes from --dart-define FIREBASE_*).
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 // Release signing is read from android/key.properties (gitignored). When the
 // file is absent (e.g. CI without secrets, or a fresh clone), we fall back to
 // debug signing so `flutter run` still works.
@@ -25,6 +32,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // flutter_local_notifications needs java.time on older Android.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -33,8 +42,8 @@ android {
 
     defaultConfig {
         applicationId = "az.qazan.app"
-        // Loyalty QR + media uploads need a reasonably modern API floor.
-        minSdk = maxOf(flutter.minSdkVersion, 23)
+        // flutter_local_notifications requires API 24 (Android 7.0).
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -71,4 +80,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

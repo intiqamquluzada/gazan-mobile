@@ -25,6 +25,18 @@ class ReviewsRepository {
       body: <String, dynamic>{'rating': rating, 'comment': comment},
     );
   }
+
+  /// Flags someone else's review for moderation (OTHER|SPAM|ABUSIVE|FAKE).
+  /// Reporting the same review again is accepted silently by the server.
+  Future<void> report(String reviewId, String reason, {String? note}) async {
+    await _api.post<dynamic>(
+      '/api/v1/reviews/$reviewId/report',
+      body: <String, dynamic>{
+        'reason': reason,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+  }
 }
 
 final Provider<ReviewsRepository> reviewsRepositoryProvider =

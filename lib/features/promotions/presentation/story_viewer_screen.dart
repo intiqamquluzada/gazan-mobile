@@ -14,6 +14,7 @@ import '../../companies/domain/company.dart';
 import '../application/promotions_providers.dart';
 import '../data/promotions_repository.dart';
 import '../domain/story.dart';
+import '../../../core/theme/app_colors.dart';
 
 /// Full-screen Instagram-style story viewer for one company.
 ///
@@ -105,20 +106,20 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        backgroundColor: AppColors.media,
+        body: Center(child: CircularProgressIndicator(color: AppColors.onDark)),
       );
     }
     if (_stories.isEmpty) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: AppColors.media,
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.transparent,
+          foregroundColor: AppColors.onDark,
         ),
         body: Center(
           child: Text(ref.read(sProvider).noStories,
-              style: const TextStyle(color: Colors.white)),
+              style: const TextStyle(color: AppColors.onDark)),
         ),
       );
     }
@@ -128,7 +129,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
         ref.watch(companyByIdProvider(widget.companyId));
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.media,
       body: GestureDetector(
         onTapUp: (TapUpDetails d) {
           final double half = MediaQuery.sizeOf(context).width / 2;
@@ -158,7 +159,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
         preferredSize: const Size.fromHeight(80),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md, AppSpacing.md, AppSpacing.md, 0,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            0,
           ),
           child: Column(
             children: <Widget>[
@@ -188,7 +192,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                       height: 32,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: AppColors.onDark.withValues(alpha: 0.18),
                         shape: BoxShape.circle,
                       ),
                       child: Text(
@@ -196,7 +200,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: AppColors.onDark,
                         ),
                       ),
                     ),
@@ -205,7 +209,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                       child: Text(
                         companyAsync.value!.name,
                         style: AppTextStyles.bodyLg.copyWith(
-                          color: Colors.white,
+                          color: AppColors.onDark,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -213,7 +217,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                   ] else
                     const Spacer(),
                   IconButton(
-                    icon: const Icon(AppIcons.close, color: Colors.white),
+                    icon: const Icon(AppIcons.close, color: AppColors.onDark),
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
                 ],
@@ -248,7 +252,10 @@ class _StoryBody extends StatelessWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl, 100, AppSpacing.xl, AppSpacing.xxl,
+            AppSpacing.xl,
+            100,
+            AppSpacing.xl,
+            AppSpacing.xxl,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -260,18 +267,18 @@ class _StoryBody extends StatelessWidget {
                   width: 132,
                   height: 132,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
+                    color: AppColors.onDark.withValues(alpha: 0.16),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(AppIcons.gift,
-                      size: 60, color: Colors.white),
+                      size: 60, color: AppColors.onDark),
                 ),
               ),
               const SizedBox(height: AppSpacing.huge),
               Text(
                 story.headline,
                 style: AppTextStyles.display.copyWith(
-                  color: Colors.white,
+                  color: AppColors.onDark,
                   fontSize: 30,
                 ),
               ),
@@ -279,7 +286,7 @@ class _StoryBody extends StatelessWidget {
               Text(
                 story.body,
                 style: AppTextStyles.bodyLg.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: AppColors.onDark.withValues(alpha: 0.9),
                 ),
               ),
               const Spacer(),
@@ -296,12 +303,12 @@ class _StoryBody extends StatelessWidget {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12,
+                        horizontal: 24,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.full),
+                        color: AppColors.onDark,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -344,13 +351,13 @@ class _ProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color track = Colors.white.withValues(alpha: 0.3);
+    final Color track = AppColors.onDark.withValues(alpha: 0.3);
     return ClipRRect(
       borderRadius: BorderRadius.circular(2),
       child: SizedBox(
         height: 3,
         child: completed
-            ? const ColoredBox(color: Colors.white)
+            ? const ColoredBox(color: AppColors.onDark)
             : isCurrent && controller != null
                 ? AnimatedBuilder(
                     animation: controller!,
@@ -358,7 +365,7 @@ class _ProgressBar extends StatelessWidget {
                       value: controller!.value,
                       backgroundColor: track,
                       valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.white,
+                        AppColors.onDark,
                       ),
                     ),
                   )
@@ -367,4 +374,3 @@ class _ProgressBar extends StatelessWidget {
     );
   }
 }
-

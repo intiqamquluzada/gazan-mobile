@@ -118,7 +118,7 @@ class _QazanLogoPainter extends CustomPainter {
     // ── Tile ──────────────────────────────────────────────────────────
     final Paint tilePaint = Paint();
     if (onDark) {
-      tilePaint.color = Colors.white;
+      tilePaint.color = AppColors.onDark;
     } else {
       tilePaint.shader = const LinearGradient(
         begin: Alignment.topLeft,
@@ -136,8 +136,8 @@ class _QazanLogoPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.center,
           colors: <Color>[
-            Colors.white.withValues(alpha: onDark ? 0.0 : 0.16),
-            Colors.white.withValues(alpha: 0.0),
+            AppColors.onDark.withValues(alpha: onDark ? 0.0 : 0.16),
+            AppColors.onDark.withValues(alpha: 0.0),
           ],
         ).createShader(bounds),
     );
@@ -146,7 +146,7 @@ class _QazanLogoPainter extends CustomPainter {
     final Offset c = Offset(s * 0.5, s * 0.475);
     final double r = s * 0.255;
     final double stroke = s * 0.135;
-    final Color qColor = onDark ? AppColors.primary : Colors.white;
+    final Color qColor = onDark ? AppColors.action : AppColors.onDark;
 
     final Rect ringRect = Rect.fromCircle(center: c, radius: r);
 
@@ -196,9 +196,9 @@ class _QazanLogoPainter extends CustomPainter {
           ..shader = SweepGradient(
             transform: GradientRotation(sweep * 2 * math.pi),
             colors: <Color>[
-              Colors.white.withValues(alpha: 0.0),
-              Colors.white.withValues(alpha: onDark ? 0.5 : 0.85),
-              Colors.white.withValues(alpha: 0.0),
+              AppColors.onDark.withValues(alpha: 0.0),
+              AppColors.onDark.withValues(alpha: onDark ? 0.5 : 0.85),
+              AppColors.onDark.withValues(alpha: 0.0),
             ],
             stops: const <double>[0.0, 0.07, 0.2],
           ).createShader(ringRect),

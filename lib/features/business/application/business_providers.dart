@@ -12,16 +12,18 @@ final Provider<BusinessRepository> businessRepositoryProvider =
   (Ref ref) => RemoteBusinessRepository(ref.read(apiClientProvider)),
 );
 
-final FutureProvider<List<CustomerSummary>> myCustomersProvider =
-    FutureProvider<List<CustomerSummary>>((Ref ref) async {
+// autoDispose: these reload whenever their screen is opened again, since
+// customers keep earning stamps and coins while the owner is elsewhere.
+final AutoDisposeFutureProvider<List<CustomerSummary>> myCustomersProvider =
+    FutureProvider.autoDispose<List<CustomerSummary>>((Ref ref) async {
   if (ref.watch(currentUserProvider)?.role != UserRole.business) {
     return <CustomerSummary>[];
   }
   return ref.read(businessRepositoryProvider).customersForBusiness('me');
 });
 
-final FutureProvider<BusinessStats?> myBusinessStatsProvider =
-    FutureProvider<BusinessStats?>((Ref ref) async {
+final AutoDisposeFutureProvider<BusinessStats?> myBusinessStatsProvider =
+    FutureProvider.autoDispose<BusinessStats?>((Ref ref) async {
   if (ref.watch(currentUserProvider)?.role != UserRole.business) {
     return null;
   }
@@ -29,8 +31,9 @@ final FutureProvider<BusinessStats?> myBusinessStatsProvider =
 });
 
 /// Rich detail for one customer at the signed-in owner's business.
-final FutureProviderFamily<CustomerDetail, String> customerDetailProvider =
-    FutureProvider.family<CustomerDetail, String>(
+final AutoDisposeFutureProviderFamily<CustomerDetail, String>
+    customerDetailProvider =
+    FutureProvider.autoDispose.family<CustomerDetail, String>(
   (Ref ref, String userId) =>
       ref.read(businessRepositoryProvider).customerDetail(userId),
 );

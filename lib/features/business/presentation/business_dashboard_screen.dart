@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/periodic_refresh.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -12,6 +13,8 @@ import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
+import '../../companies/application/companies_providers.dart';
+import '../../companies/domain/company.dart';
 import '../application/business_providers.dart';
 import '../data/business_repository.dart';
 import '../domain/customer_summary.dart';
@@ -28,7 +31,12 @@ class BusinessDashboardScreen extends ConsumerWidget {
     final AsyncValue<List<CustomerSummary>> customersAsync =
         ref.watch(myCustomersProvider);
 
-    return Scaffold(
+    // Customers keep earning while this screen is open.
+    return PeriodicRefresh(
+      onTick: () => ref
+        ..invalidate(myBusinessStatsProvider)
+        ..invalidate(myCustomersProvider),
+      child: Scaffold(
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -62,7 +70,8 @@ class BusinessDashboardScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xxl),
+              const SizedBox(height: AppSpacing.xl),
+              const _ApprovalBanner(),
               statsAsync.when(
                 loading: () => const _StatsSkeleton(),
                 error: (_, __) => const SizedBox.shrink(),
@@ -73,9 +82,31 @@ class BusinessDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xl),
               _PrimaryAction(
-                title: s.scanCustomerQr,
+                title: s.pendingRewards,
                 subtitle: s.scanTapHint,
                 onScan: () => context.go('/business/scan'),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                children: <Widget>[
+                  ActionChip(
+                    avatar: const Icon(Icons.insights_rounded, size: 18),
+                    label: Text(s.analyticsTitle),
+                    onPressed: () => context.push('/business/analytics'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.dialpad_rounded, size: 18),
+                    label: Text(s.manualTitle),
+                    onPressed: () => context.go('/business/manual'),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.nfc_rounded, size: 18),
+                    label: Text(s.nfcCards),
+                    onPressed: () => context.push('/business/nfc'),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.xxl),
               SectionHeader(
@@ -90,7 +121,8 @@ class BusinessDashboardScreen extends ConsumerWidget {
                   child: Center(child: CircularProgressIndicator()),
                 ),
                 error: (Object e, _) => EmptyState(
-                  title: s.error, subtitle: e.toString(),
+                  title: s.error,
+                  subtitle: e.toString(),
                   icon: AppIcons.error,
                 ),
                 data: (List<CustomerSummary> list) {
@@ -114,6 +146,56 @@ class BusinessDashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
+    ),
+    );
+  }
+}
+
+/// Tells an owner why customers cannot see or use the venue yet.
+class _ApprovalBanner extends ConsumerWidget {
+  const _ApprovalBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    final Company? company = ref.watch(myCompanyProvider).valueOrNull;
+    if (company == null || company.isApproved) return const SizedBox.shrink();
+    final bool suspended = company.status == 'SUSPENDED';
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: suspended ? AppColors.dangerSoft : AppColors.rewardSoft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(
+            suspended ? Icons.block_rounded : Icons.hourglass_top_rounded,
+            color: suspended ? AppColors.dangerText : AppColors.onReward,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  suspended ? s.companySuspendedTitle : s.companyPendingTitle,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  suspended ? s.companySuspendedBody : s.companyPendingBody,
+                  style: AppTextStyles.bodySm
+                      .copyWith(color: AppColors.textPrimary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -135,7 +217,7 @@ class _StatsGrid extends StatelessWidget {
                 value: '${stats.activeCustomers}',
                 label: s.activeCustomers,
                 icon: AppIcons.customersActive,
-                tint: AppColors.primary,
+                tint: AppColors.action,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -144,7 +226,7 @@ class _StatsGrid extends StatelessWidget {
                 value: '${stats.stampsToday}',
                 label: s.stampsToday,
                 icon: Icons.bookmark_added_rounded,
-                tint: AppColors.info,
+                tint: AppColors.catTeal,
               ),
             ),
           ],
@@ -166,7 +248,7 @@ class _StatsGrid extends StatelessWidget {
                 value: '${(stats.repeatRate * 100).round()}%',
                 label: s.returnRate,
                 icon: Icons.replay_rounded,
-                tint: AppColors.warning,
+                tint: AppColors.catCoffee,
               ),
             ),
           ],
@@ -213,8 +295,7 @@ class _StatTile extends StatelessWidget {
             child: Icon(icon, size: 20, color: tint),
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(value,
-              style: AppTextStyles.display.copyWith(fontSize: 26)),
+          Text(value, style: AppTextStyles.display.copyWith(fontSize: 26)),
           const SizedBox(height: 2),
           Text(label, style: AppTextStyles.bodySm),
         ],
@@ -231,7 +312,7 @@ class _StatsSkeleton extends StatelessWidget {
     return Container(
       height: 200,
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
     );
@@ -258,14 +339,14 @@ class _PrimaryAction extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: <Color>[AppColors.primary, AppColors.primaryDark],
+            colors: <Color>[AppColors.action, AppColors.actionPressed],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(AppRadius.xl),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.25),
+              color: AppColors.action.withValues(alpha: 0.25),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -278,11 +359,11 @@ class _PrimaryAction extends StatelessWidget {
               height: 56,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: AppColors.onDark.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppRadius.lg),
               ),
-              child: const Icon(AppIcons.qr,
-                  color: Colors.white, size: 28),
+              child: const Icon(Icons.card_giftcard_rounded,
+                  color: AppColors.onDark, size: 28),
             ),
             const SizedBox(width: AppSpacing.lg),
             Expanded(
@@ -290,16 +371,17 @@ class _PrimaryAction extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text(title,
-                      style: AppTextStyles.h3.copyWith(color: Colors.white)),
+                      style:
+                          AppTextStyles.h3.copyWith(color: AppColors.onDark)),
                   const SizedBox(height: 2),
                   Text(subtitle,
                       style: AppTextStyles.bodySm.copyWith(
-                        color: Colors.white.withValues(alpha: 0.85),
+                        color: AppColors.onDark.withValues(alpha: 0.85),
                       )),
                 ],
               ),
             ),
-            const Icon(AppIcons.forward, color: Colors.white),
+            const Icon(AppIcons.forward, color: AppColors.onDark),
           ],
         ),
       ),
@@ -348,12 +430,12 @@ class _CustomerTile extends ConsumerWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: AppColors.caramelSoft,
                   borderRadius: BorderRadius.circular(AppRadius.full),
                 ),
                 child: Text('${c.totalStamps}',
                     style: AppTextStyles.bodySm.copyWith(
-                      color: AppColors.primary,
+                      color: AppColors.action,
                       fontWeight: FontWeight.w700,
                     )),
               ),

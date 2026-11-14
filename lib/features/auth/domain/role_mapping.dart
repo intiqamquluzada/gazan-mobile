@@ -11,6 +11,8 @@ class RoleMapping {
         return UserRole.admin;
       case 'BUSINESS_OWNER':
         return UserRole.business;
+      case 'CASHIER':
+        return UserRole.cashier;
       case 'CUSTOMER':
       default:
         return UserRole.customer;
@@ -23,6 +25,8 @@ class RoleMapping {
         return 'ADMIN';
       case UserRole.business:
         return 'BUSINESS_OWNER';
+      case UserRole.cashier:
+        return 'CASHIER';
       case UserRole.customer:
         return 'CUSTOMER';
     }

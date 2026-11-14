@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/app_icons.dart';
 
 /// Visualizes a customer's stamps for a single loyalty card.
 ///
-/// The last slot is highlighted as the reward slot.
+/// Filled stamps are gold ([AppColors.reward]); empty ones a soft light
+/// tone. The last slot is the reward slot (gift icon). A stamp that turns
+/// filled while on screen "pops" (0.8 → 1.1 → 1.0, ~300 ms) unless the
+/// system asks for reduced motion.
 class StampGrid extends StatelessWidget {
   const StampGrid({
     super.key,
     required this.stamps,
     required this.required,
-    this.brand = Colors.white,
-    this.onSurface = Colors.white,
+    this.onDark = true,
     this.compact = false,
   });
 
   final int stamps;
   final int required;
-  final Color brand;
-  final Color onSurface;
+
+  /// True when drawn on a dark card (empty dots use a translucent light
+  /// tone); false on light surfaces (empty dots use [AppColors.stampEmpty]).
+  final bool onDark;
   final bool compact;
 
   @override
@@ -34,55 +39,108 @@ class StampGrid extends StatelessWidget {
             size: size,
             filled: i < stamps,
             isRewardSlot: i == required - 1,
-            onSurface: onSurface,
+            onDark: onDark,
           ),
       ],
     );
   }
 }
 
-class _StampDot extends StatelessWidget {
+class _StampDot extends StatefulWidget {
   const _StampDot({
     required this.size,
     required this.filled,
     required this.isRewardSlot,
-    required this.onSurface,
+    required this.onDark,
   });
 
   final double size;
   final bool filled;
   final bool isRewardSlot;
-  final Color onSurface;
+  final bool onDark;
+
+  @override
+  State<_StampDot> createState() => _StampDotState();
+}
+
+class _StampDotState extends State<_StampDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+    value: 1,
+  );
+
+  // 0.8 → 1.1 → 1.0
+  late final Animation<double> _scale = TweenSequence<double>(
+    <TweenSequenceItem<double>>[
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 0.8, end: 1.1)
+            .chain(CurveTween(curve: Curves.easeOut)),
+        weight: 60,
+      ),
+      TweenSequenceItem<double>(
+        tween: Tween<double>(begin: 1.1, end: 1.0)
+            .chain(CurveTween(curve: Curves.easeInOut)),
+        weight: 40,
+      ),
+    ],
+  ).animate(_pop);
+
+  @override
+  void didUpdateWidget(covariant _StampDot old) {
+    super.didUpdateWidget(old);
+    final bool reduceMotion =
+        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (!old.filled && widget.filled && !reduceMotion) {
+      _pop.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _pop.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final Color border = onSurface.withValues(alpha: 0.55);
-    final Color fillBg = onSurface.withValues(alpha: 0.95);
+    final double size = widget.size;
+    final Color emptyFill = widget.onDark
+        ? AppColors.onDark.withValues(alpha: 0.14)
+        : context.palette.stampEmpty;
+    final bool reduceMotion =
+        MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 240),
+    final Widget dot = AnimatedContainer(
+      duration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
       width: size,
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: filled ? fillBg : Colors.transparent,
+        color: widget.filled ? AppColors.reward : emptyFill,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: isRewardSlot && !filled ? onSurface : border,
-          width: isRewardSlot && !filled ? 1.6 : 1.2,
-          strokeAlign: BorderSide.strokeAlignInside,
-        ),
+        border: widget.isRewardSlot && !widget.filled
+            ? Border.all(
+                color: AppColors.reward.withValues(alpha: 0.8),
+                width: 1.6,
+                strokeAlign: BorderSide.strokeAlignInside,
+              )
+            : null,
       ),
-      child: filled
+      child: widget.filled
           ? Icon(
-              isRewardSlot ? AppIcons.gift : AppIcons.check,
+              widget.isRewardSlot ? AppIcons.gift : AppIcons.check,
               size: size * 0.55,
-              color: Theme.of(context).colorScheme.surface,
+              color: AppColors.onReward,
             )
-          : isRewardSlot
-              ? Icon(AppIcons.gift, size: size * 0.55, color: onSurface)
+          : widget.isRewardSlot
+              ? Icon(AppIcons.gift, size: size * 0.55, color: AppColors.reward)
               : null,
     );
+
+    return ScaleTransition(scale: _scale, child: dot);
   }
 }

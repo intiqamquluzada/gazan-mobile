@@ -1,3 +1,5 @@
+import 'package:qazan/core/config/app_config.dart';
+
 class Promotion {
   const Promotion({
     required this.id,
@@ -10,6 +12,7 @@ class Promotion {
     required this.cta,
     this.companyId,
     this.endsAt,
+    this.imageUrl,
   });
 
   final String id;
@@ -22,6 +25,9 @@ class Promotion {
   final String cta;
   final String? companyId;
   final DateTime? endsAt;
+
+  /// Optional background photo; null → the linked venue's cover photo.
+  final String? imageUrl;
 
   factory Promotion.fromJson(Map<String, dynamic> json) {
     return Promotion(
@@ -38,6 +44,7 @@ class Promotion {
       endsAt: json['endsAt'] != null
           ? DateTime.parse(json['endsAt'] as String)
           : null,
+      imageUrl: AppConfig.mediaUrlOrNull(json['imageUrl'] as String?),
     );
   }
 }

@@ -21,8 +21,8 @@ class Review {
         userName: (j['userName'] as String?) ?? '',
         rating: (j['rating'] as num?)?.toInt() ?? 0,
         comment: j['comment'] as String?,
-        createdAt:
-            DateTime.tryParse(j['createdAt'] as String? ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(j['createdAt'] as String? ?? '') ??
+            DateTime.now(),
         mine: (j['mine'] as bool?) ?? false,
       );
 }
@@ -34,12 +34,17 @@ class CompanyReviews {
     required this.count,
     required this.reviews,
     this.myReview,
+    this.canReview = false,
   });
 
   final double average;
   final int count;
   final Review? myReview;
   final List<Review> reviews;
+
+  /// Server-decided: only verified visitors (a stamp or coins earned here)
+  /// who don't own the venue may write or edit a review.
+  final bool canReview;
 
   factory CompanyReviews.fromJson(Map<String, dynamic> j) => CompanyReviews(
         average: (j['average'] as num?)?.toDouble() ?? 0,
@@ -50,5 +55,6 @@ class CompanyReviews {
         reviews: ((j['reviews'] as List<dynamic>?) ?? <dynamic>[])
             .map((dynamic e) => Review.fromJson(e as Map<String, dynamic>))
             .toList(),
+        canReview: (j['canReview'] as bool?) ?? false,
       );
 }

@@ -11,6 +11,7 @@ import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/section_header.dart';
+import '../../../core/widgets/trend_line_chart.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
@@ -29,7 +30,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       cancelLabel: s.stay,
     );
     if (ok) {
-      // Router's auth refresh listener handles the redirect to /role.
+      // Router's auth refresh listener handles the redirect to /login.
       await ref.read(authControllerProvider.notifier).signOut();
     }
   }
@@ -112,7 +113,7 @@ class _Dashboard extends ConsumerWidget {
               child: _MgmtCard(
                 icon: AppIcons.star,
                 label: s.promotions,
-                tint: AppColors.warning,
+                tint: AppColors.catCoffee,
                 onTap: () => context.go('/admin/promotions'),
               ),
             ),
@@ -121,12 +122,113 @@ class _Dashboard extends ConsumerWidget {
               child: _MgmtCard(
                 icon: Icons.restaurant_menu_rounded,
                 label: s.menus,
-                tint: AppColors.accent,
+                tint: AppColors.caramel,
                 onTap: () => context.go('/admin/menus'),
               ),
             ),
           ],
         ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _MgmtCard(
+                icon: Icons.rate_review_outlined,
+                label: s.reviewsWord,
+                tint: AppColors.catRestaurant,
+                onTap: () => context.go('/admin/reviews'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _MgmtCard(
+                icon: Icons.nfc_rounded,
+                label: s.nfcCards,
+                tint: AppColors.catTeal,
+                onTap: () => context.go('/admin/nfc'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: _MgmtCard(
+                icon: Icons.history_rounded,
+                label: s.auditTitle,
+                tint: AppColors.action,
+                onTap: () => context.go('/admin/audit'),
+              ),
+            ),
+          ],
+        ),
+        if (stats.pendingCompanies > 0 ||
+            stats.pendingNotifications > 0) ...<Widget>[
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: <Widget>[
+              if (stats.pendingCompanies > 0)
+                ActionChip(
+                  avatar: const Icon(AppIcons.store, size: 18),
+                  label: Text(
+                      '${s.pendingCompaniesLabel}: ${stats.pendingCompanies}'),
+                  onPressed: () => context.go('/admin/businesses'),
+                ),
+              if (stats.pendingNotifications > 0)
+                ActionChip(
+                  avatar: const Icon(AppIcons.bell, size: 18),
+                  label: Text(
+                      '${s.pendingNotificationsLabel}: ${stats.pendingNotifications}'),
+                  onPressed: () => context.go('/admin/notifications'),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: AdminStatTile(
+                value: '${stats.activeUsers30d}',
+                label: s.activeUsers30dLabel,
+                icon: AppIcons.customersActive,
+                tint: AppColors.success,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: AdminStatTile(
+                value: '${stats.newUsers7d} / ${stats.newCompanies7d}',
+                label: s.new7dLabel,
+                icon: Icons.trending_up_rounded,
+                tint: AppColors.catCoffee,
+              ),
+            ),
+          ],
+        ),
+        if (stats.signups.isNotEmpty) ...<Widget>[
+          const SizedBox(height: AppSpacing.xl),
+          Text(s.signupsChartTitle, style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.md),
+          TrendLineChart(
+            height: 160,
+            xLabels: <String>[
+              for (final SignupPoint p in stats.signups) shortDay(p.date),
+            ],
+            series: <TrendSeries>[
+              TrendSeries(
+                label: s.signupsChartTitle,
+                color: AppColors.caramel,
+                values: <num>[
+                  for (final SignupPoint p in stats.signups) p.count,
+                ],
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: AppSpacing.xl),
         Row(
           children: <Widget>[
@@ -135,7 +237,7 @@ class _Dashboard extends ConsumerWidget {
                 value: '${stats.totalUsers}',
                 label: s.usersLabel,
                 icon: AppIcons.customersActive,
-                tint: AppColors.primary,
+                tint: AppColors.action,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -144,7 +246,7 @@ class _Dashboard extends ConsumerWidget {
                 value: '${stats.totalCompanies}',
                 label: s.businessLabel,
                 icon: AppIcons.store,
-                tint: AppColors.info,
+                tint: AppColors.catTeal,
               ),
             ),
           ],
@@ -166,7 +268,7 @@ class _Dashboard extends ConsumerWidget {
                 value: '${stats.coinTransactions}',
                 label: s.coinTransaction,
                 icon: AppIcons.token,
-                tint: AppColors.warning,
+                tint: AppColors.catCoffee,
               ),
             ),
           ],
@@ -177,25 +279,27 @@ class _Dashboard extends ConsumerWidget {
           decoration: BoxDecoration(
             gradient: kHeroGradient,
             borderRadius: BorderRadius.circular(AppRadius.xl),
-            boxShadow: AppShadows.brand(AppColors.primary),
+            boxShadow: AppShadows.brand(AppColors.action),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  const Icon(AppIcons.token, color: Colors.white, size: 22),
+                  const Icon(AppIcons.token, color: AppColors.onDark, size: 22),
                   const SizedBox(width: AppSpacing.sm),
                   Text(s.coinCirculation,
-                      style: AppTextStyles.h3.copyWith(color: Colors.white)),
+                      style:
+                          AppTextStyles.h3.copyWith(color: AppColors.onDark)),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
               Text('${stats.coinsCirculating}',
-                  style: AppTextStyles.display.copyWith(color: Colors.white)),
+                  style:
+                      AppTextStyles.display.copyWith(color: AppColors.onDark)),
               Text(s.currentBalanceCoin,
                   style: AppTextStyles.bodySm.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85))),
+                      color: AppColors.onDark.withValues(alpha: 0.85))),
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: <Widget>[
@@ -250,11 +354,10 @@ class _MiniMetric extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(value,
-            style: AppTextStyles.h2.copyWith(color: Colors.white)),
+        Text(value, style: AppTextStyles.h2.copyWith(color: AppColors.onDark)),
         Text(label,
-            style: AppTextStyles.caption.copyWith(
-                color: Colors.white.withValues(alpha: 0.8))),
+            style: AppTextStyles.caption
+                .copyWith(color: AppColors.onDark.withValues(alpha: 0.8))),
       ],
     );
   }
@@ -299,7 +402,7 @@ class _RolePill extends StatelessWidget {
       child: Column(
         children: <Widget>[
           Text('$count',
-              style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
+              style: AppTextStyles.h2.copyWith(color: AppColors.action)),
           const SizedBox(height: 2),
           Text(label, style: AppTextStyles.caption),
         ],
@@ -372,11 +475,11 @@ class _RecentCompanyTile extends StatelessWidget {
               height: 40,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.primarySoft,
+                color: AppColors.caramelSoft,
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
-              child: const Icon(AppIcons.store,
-                  color: AppColors.primary, size: 20),
+              child:
+                  const Icon(AppIcons.store, color: AppColors.action, size: 20),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -390,7 +493,7 @@ class _RecentCompanyTile extends StatelessWidget {
               ),
             ),
             if (c.featured)
-              const Icon(AppIcons.star, color: AppColors.warning, size: 20),
+              const Icon(AppIcons.star, color: AppColors.reward, size: 20),
           ],
         ),
       ),
@@ -450,7 +553,7 @@ class _DashboardSkeleton extends StatelessWidget {
     return Container(
       height: 260,
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
     );

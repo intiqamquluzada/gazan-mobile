@@ -33,14 +33,13 @@ class EmptyState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: const BoxDecoration(
-                color: AppColors.primarySoft,
+                color: AppColors.caramelSoft,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: AppColors.primary, size: 34),
+              child: Icon(icon, color: AppColors.action, size: 34),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(title,
-                textAlign: TextAlign.center, style: AppTextStyles.h3),
+            Text(title, textAlign: TextAlign.center, style: AppTextStyles.h3),
             if (subtitle != null) ...<Widget>[
               const SizedBox(height: AppSpacing.sm),
               Text(

@@ -2,26 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/platform/app_variant.dart';
 import '../features/auth/application/auth_controller.dart';
+import '../features/auth/domain/app_user.dart';
 import '../features/auth/domain/user_role.dart';
+import '../features/auth/presentation/complete_profile_screen.dart';
 import '../features/auth/presentation/forgot_password_screen.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/auth/presentation/onboarding_screen.dart';
 import '../features/auth/presentation/register_screen.dart';
-import '../features/auth/presentation/role_picker_screen.dart';
 import '../features/auth/presentation/splash_screen.dart';
+import '../features/admin/presentation/admin_audit_screen.dart';
 import '../features/admin/presentation/admin_businesses_screen.dart';
 import '../features/admin/presentation/admin_coins_screen.dart';
+import '../features/admin/presentation/admin_company_detail_screen.dart';
 import '../features/admin/presentation/admin_dashboard_screen.dart';
 import '../features/admin/presentation/admin_menus_screen.dart';
 import '../features/admin/presentation/admin_notifications_screen.dart';
 import '../features/admin/presentation/admin_promotions_screen.dart';
 import '../features/admin/presentation/admin_shell.dart';
+import '../features/admin/presentation/admin_user_detail_screen.dart';
 import '../features/admin/presentation/admin_users_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/business/presentation/business_account_screen.dart';
+import '../features/business/presentation/business_analytics_screen.dart';
 import '../features/business/presentation/business_dashboard_screen.dart';
+import '../features/business/presentation/business_manual_screen.dart';
+import '../features/business/presentation/business_notify_screen.dart';
 import '../features/business/presentation/business_profile_screen.dart';
+import '../features/business/presentation/business_staff_screen.dart';
 import '../features/business/presentation/customer_detail_screen.dart';
 import '../features/business/presentation/customers_list_screen.dart';
 import '../features/business/presentation/manage_programs_screen.dart';
@@ -34,10 +43,19 @@ import '../features/home/presentation/customer_shell.dart';
 import '../features/loyalty/presentation/my_cards_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/promotions/presentation/story_viewer_screen.dart';
-import '../features/qr/presentation/qr_display_screen.dart';
-import '../features/qr/presentation/qr_scanner_screen.dart';
+import '../features/admin/presentation/admin_reviews_screen.dart';
+import '../features/business/presentation/business_menu_screen.dart';
+import '../features/business/presentation/business_reviews_screen.dart';
+import '../features/nfc/application/nfc_intent_listener.dart';
+import '../features/nfc/presentation/nfc_tap_screen.dart';
+import '../features/nfc/presentation/spend_waiting_screen.dart';
+import '../features/business/presentation/business_nfc_screen.dart';
+import '../features/admin/presentation/admin_nfc_screen.dart';
+import '../features/business/presentation/business_pending_rewards_screen.dart';
+import '../features/wallet/presentation/my_rewards_screen.dart';
 
-final GlobalKey<NavigatorState> _rootKey =
+/// Root navigator; overlays that must appear on any screen use its context.
+final GlobalKey<NavigatorState> rootNavigatorKey =
     GlobalKey<NavigatorState>(debugLabel: 'root');
 final GlobalKey<NavigatorState> _customerShellKey =
     GlobalKey<NavigatorState>(debugLabel: 'customerShell');
@@ -54,7 +72,8 @@ class _AuthRefresh extends ChangeNotifier {
     ref.listen<AuthState>(
       authControllerProvider,
       (AuthState? prev, AuthState next) {
-        if (prev?.isAuthenticated != next.isAuthenticated) {
+        if (prev?.isAuthenticated != next.isAuthenticated ||
+            prev?.user?.profileComplete != next.user?.profileComplete) {
           notifyListeners();
         }
       },
@@ -62,32 +81,84 @@ class _AuthRefresh extends ChangeNotifier {
   }
 }
 
+const Set<String> _publicPaths = <String>{
+  '/splash',
+  '/onboarding',
+  '/login',
+  '/register',
+  '/forgot-password',
+};
+
+/// Where a signed-in user may be. Returns the path to send them to when the
+/// location belongs to another role.
+String? _guardRole(UserRole role, String location) {
+  final bool business =
+      location == '/business' || location.startsWith('/business/');
+  final bool admin = location == '/admin' || location.startsWith('/admin/');
+  final bool shared = location == '/notifications' ||
+      location.startsWith('/companies/') ||
+      location.startsWith('/stories/');
+  switch (role) {
+    case UserRole.admin:
+      return admin || shared ? null : UserRole.admin.landingPath;
+    case UserRole.business:
+      return business || shared ? null : UserRole.business.landingPath;
+    case UserRole.cashier:
+      const Set<String> allowed = <String>{
+        '/business/scan',
+        '/business/manual',
+        '/business/account',
+      };
+      return allowed.contains(location) ? null : UserRole.cashier.landingPath;
+    case UserRole.customer:
+      return business || admin ? UserRole.customer.landingPath : null;
+  }
+}
+
+/// The complete redirect policy; every rule the router applies is here.
+String? _redirect(AuthState auth, String location) {
+  final bool isPublic = _publicPaths.any(location.startsWith);
+  final AppUser? user = auth.user;
+
+  if (user == null) {
+    if (AppVariant.isBusinessApp &&
+        (location.startsWith('/register') ||
+            location.startsWith('/onboarding'))) {
+      return '/login';
+    }
+    return isPublic ? null : '/login';
+  }
+  if (location == '/splash') return null;
+
+  if (AppVariant.isBusinessApp &&
+      user.role != UserRole.business &&
+      user.role != UserRole.cashier) {
+    return location == '/business-only' ? null : '/business-only';
+  }
+  // Only customers must supply a phone (Google/Apple sign-up); staff and
+  // admin accounts are created without one.
+  if (user.role == UserRole.customer && !user.profileComplete) {
+    return location == '/complete-profile' ? null : '/complete-profile';
+  }
+  if (isPublic ||
+      location == '/complete-profile' ||
+      location == '/business-only') {
+    return user.role.landingPath;
+  }
+  return _guardRole(user.role, location);
+}
+
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
   final _AuthRefresh authRefresh = _AuthRefresh(ref);
   ref.onDispose(authRefresh.dispose);
 
   return GoRouter(
-    navigatorKey: _rootKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/splash',
     debugLogDiagnostics: false,
     refreshListenable: authRefresh,
-    redirect: (BuildContext context, GoRouterState state) {
-      final AuthState auth = ref.read(authControllerProvider);
-      final String location = state.matchedLocation;
-
-      const Set<String> publicPaths = <String>{
-        '/splash', '/onboarding', '/role', '/login', '/register',
-        '/forgot-password',
-      };
-      final bool isPublic =
-          publicPaths.any((String p) => location.startsWith(p));
-
-      if (!auth.isAuthenticated && !isPublic) return '/role';
-      if (auth.isAuthenticated && isPublic && location != '/splash') {
-        return auth.user!.role.landingPath;
-      }
-      return null;
-    },
+    redirect: (BuildContext context, GoRouterState state) =>
+        _redirect(ref.read(authControllerProvider), state.matchedLocation),
     routes: <RouteBase>[
       GoRoute(
         path: '/splash',
@@ -98,22 +169,15 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         builder: (_, __) => const OnboardingScreen(),
       ),
       GoRoute(
-        path: '/role',
-        builder: (_, __) => const RolePickerScreen(),
-      ),
-      GoRoute(
         path: '/login',
-        builder: (BuildContext _, GoRouterState state) {
-          final UserRole role = _roleFromQuery(state);
-          return LoginScreen(role: role);
-        },
+        builder: (BuildContext _, GoRouterState state) => LoginScreen(
+          initialIdentifier: state.uri.queryParameters['identifier'],
+        ),
       ),
       GoRoute(
         path: '/register',
-        builder: (BuildContext _, GoRouterState state) {
-          final UserRole role = _roleFromQuery(state);
-          return RegisterScreen(role: role);
-        },
+        builder: (BuildContext _, GoRouterState state) =>
+            RegisterScreen(initialRole: _roleFromQuery(state)),
       ),
       GoRoute(
         path: '/forgot-password',
@@ -121,17 +185,24 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           initialEmail: state.uri.queryParameters['email'],
         ),
       ),
+      GoRoute(
+        path: '/complete-profile',
+        builder: (_, __) => const CompleteProfileScreen(),
+      ),
+      GoRoute(
+        path: '/business-only',
+        builder: (_, __) => const BusinessOnlyScreen(),
+      ),
 
       // ───────────────────── Customer shell ─────────────────────
       ShellRoute(
         navigatorKey: _customerShellKey,
         builder: (BuildContext _, GoRouterState __, Widget child) =>
-            CustomerShell(child: child),
+            NfcIntentListener(child: CustomerShell(child: child)),
         routes: <RouteBase>[
           GoRoute(
             path: '/home',
             builder: (_, __) => const DiscoverScreen(),
-            routes: <RouteBase>[],
           ),
           GoRoute(
             path: '/companies',
@@ -142,8 +213,8 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
             builder: (_, __) => const MyCardsScreen(),
           ),
           GoRoute(
-            path: '/qr',
-            builder: (_, __) => const QrDisplayScreen(),
+            path: '/nfc',
+            builder: (_, __) => const NfcTapScreen(),
           ),
           GoRoute(
             path: '/profile',
@@ -154,45 +225,78 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
 
       // Detail pages — pushed on top of the shell.
       GoRoute(
-        parentNavigatorKey: _rootKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/companies/:id',
         builder: (BuildContext _, GoRouterState state) =>
             CompanyDetailScreen(companyId: state.pathParameters['id']!),
       ),
       GoRoute(
-        parentNavigatorKey: _rootKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/stories/:id',
         builder: (BuildContext _, GoRouterState state) =>
             StoryViewerScreen(companyId: state.pathParameters['id']!),
       ),
       GoRoute(
-        parentNavigatorKey: _rootKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/notifications',
         builder: (_, __) => const NotificationsScreen(),
       ),
       GoRoute(
-        parentNavigatorKey: _rootKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/favorites',
         builder: (_, __) => const FavoritesScreen(),
       ),
-      // Standalone "show my QR" route — pushed on top of any screen
-      // (e.g. a company detail) so back returns to the caller instead
-      // of dropping the user out of the app.
       GoRoute(
-        parentNavigatorKey: _rootKey,
-        path: '/qr/show',
-        builder: (_, __) => const QrDisplayScreen(),
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/rewards',
+        builder: (_, __) => const MyRewardsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/spend/:id',
+        builder: (BuildContext _, GoRouterState state) =>
+            SpendWaitingScreen(sessionId: state.pathParameters['id']!),
       ),
       // Business owner's personal account settings (name/phone, password,
       // language, theme, sign-out). Pushed on top of the business shell.
       GoRoute(
-        parentNavigatorKey: _rootKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/business/account',
         builder: (_, __) => const BusinessAccountScreen(),
       ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/business/nfc',
+        builder: (_, __) => const BusinessNfcScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/business/menu',
+        builder: (_, __) => const BusinessMenuScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/business/reviews',
+        builder: (_, __) => const BusinessReviewsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/business/analytics',
+        builder: (_, __) => const BusinessAnalyticsScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/business/staff',
+        builder: (_, __) => const BusinessStaffScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: rootNavigatorKey,
+        path: '/business/notify',
+        builder: (_, __) => const BusinessNotifyScreen(),
+      ),
       // Business — rich detail for one customer (contact + purchase log).
       GoRoute(
-        parentNavigatorKey: _rootKey,
+        parentNavigatorKey: rootNavigatorKey,
         path: '/business/customers/:id',
         builder: (BuildContext _, GoRouterState state) =>
             CustomerDetailScreen(userId: state.pathParameters['id']!),
@@ -210,7 +314,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           ),
           GoRoute(
             path: '/business/scan',
-            builder: (_, __) => const QrScannerScreen(),
+            builder: (_, __) => const BusinessPendingRewardsScreen(),
+          ),
+          GoRoute(
+            path: '/business/manual',
+            builder: (_, __) => const BusinessManualScreen(),
           ),
           GoRoute(
             path: '/business/customers',
@@ -240,10 +348,25 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/admin/users',
             builder: (_, __) => const AdminUsersScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':id',
+                builder: (BuildContext _, GoRouterState state) =>
+                    AdminUserDetailScreen(userId: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: '/admin/businesses',
             builder: (_, __) => const AdminBusinessesScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':id',
+                builder: (BuildContext _, GoRouterState state) =>
+                    AdminCompanyDetailScreen(
+                        companyId: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: '/admin/coins',
@@ -260,6 +383,18 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: '/admin/menus',
             builder: (_, __) => const AdminMenusScreen(),
+          ),
+          GoRoute(
+            path: '/admin/nfc',
+            builder: (_, __) => const AdminNfcScreen(),
+          ),
+          GoRoute(
+            path: '/admin/reviews',
+            builder: (_, __) => const AdminReviewsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/audit',
+            builder: (_, __) => const AdminAuditScreen(),
           ),
         ],
       ),

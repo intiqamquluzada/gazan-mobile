@@ -86,7 +86,7 @@ class _RoleCard extends StatelessWidget {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(
-              color: dark ? AppColors.borderDark : AppColors.border,
+              color: dark ? AppColorsDark.border : AppColors.border,
             ),
             boxShadow: dark ? null : AppShadows.sm,
           ),
@@ -97,10 +97,10 @@ class _RoleCard extends StatelessWidget {
                 height: 60,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: AppColors.caramelSoft,
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 28),
+                child: Icon(icon, color: AppColors.action, size: 28),
               ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(

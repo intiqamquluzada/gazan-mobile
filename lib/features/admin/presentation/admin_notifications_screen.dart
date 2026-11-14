@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../notifications/application/notifications_providers.dart';
+import '../../business/domain/panel_models.dart';
 import '../../notifications/data/notifications_repository.dart';
 
 class AdminNotificationsScreen extends ConsumerStatefulWidget {
@@ -22,6 +24,76 @@ class _AdminNotificationsScreenState
   final TextEditingController _title = TextEditingController();
   final TextEditingController _body = TextEditingController();
   bool _sending = false;
+  final Set<String> _deciding = <String>{};
+
+  Future<void> _decide(SubmittedNotification n, bool approve) async {
+    setState(() => _deciding.add(n.id));
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      await container
+          .read(notificationsRepositoryProvider)
+          .adminDecide(n.id, approve: approve);
+      container
+        ..invalidate(adminPendingNotificationsProvider)
+        ..invalidate(adminSentProvider);
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _deciding.remove(n.id));
+    }
+  }
+
+  Widget _pendingSection(S s) {
+    final List<SubmittedNotification> pending =
+        ref.watch(adminPendingNotificationsProvider).valueOrNull ??
+            const <SubmittedNotification>[];
+    if (pending.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(s.pendingNotificationsLabel, style: AppTextStyles.h3),
+        const SizedBox(height: AppSpacing.sm),
+        for (final SubmittedNotification n in pending)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(n.title,
+                      style: AppTextStyles.bodyLg
+                          .copyWith(fontWeight: FontWeight.w700)),
+                  Text(n.body, style: AppTextStyles.bodySm),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: <Widget>[
+                      TextButton(
+                        onPressed: _deciding.contains(n.id)
+                            ? null
+                            : () => _decide(n, false),
+                        child: Text(s.rejectAction),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      FilledButton(
+                        style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+                        onPressed: _deciding.contains(n.id)
+                            ? null
+                            : () => _decide(n, true),
+                        child: Text(s.approveAction),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
+    );
+  }
 
   @override
   void dispose() {
@@ -58,7 +130,7 @@ class _AdminNotificationsScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${s.failed}: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: AppColors.danger,
           ),
         );
       }
@@ -70,8 +142,7 @@ class _AdminNotificationsScreenState
   @override
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
-    final AsyncValue<List<AppNotification>> sent =
-        ref.watch(adminSentProvider);
+    final AsyncValue<List<AppNotification>> sent = ref.watch(adminSentProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -80,12 +151,13 @@ class _AdminNotificationsScreenState
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.huge),
           children: <Widget>[
+            _pendingSection(s),
             Text(s.sendNotification, style: AppTextStyles.h1),
             const SizedBox(height: AppSpacing.xs),
             Text(
               s.notifReachAll,
-              style: AppTextStyles.bodySm
-                  .copyWith(color: AppColors.textSecondary),
+              style:
+                  AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: AppSpacing.lg),
             TextField(
@@ -148,13 +220,11 @@ class _AdminNotificationsScreenState
                   children: <Widget>[
                     for (final AppNotification n in list)
                       Container(
-                        margin:
-                            const EdgeInsets.only(bottom: AppSpacing.sm),
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surface,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.lg),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
                           border: Border.all(color: AppColors.border),
                           boxShadow: AppShadows.sm,
                         ),
@@ -162,8 +232,8 @@ class _AdminNotificationsScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Text(n.title,
-                                style: AppTextStyles.bodyLg.copyWith(
-                                    fontWeight: FontWeight.w700)),
+                                style: AppTextStyles.bodyLg
+                                    .copyWith(fontWeight: FontWeight.w700)),
                             const SizedBox(height: 2),
                             Text(n.body, style: AppTextStyles.bodySm),
                           ],

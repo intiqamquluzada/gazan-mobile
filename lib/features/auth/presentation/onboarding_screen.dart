@@ -28,7 +28,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           subtitle: s.onbSub1,
         ),
         _OnboardSlide(
-          icon: AppIcons.qr,
+          icon: AppIcons.nfc,
           title: s.onbTitle2,
           subtitle: s.onbSub2,
         ),
@@ -50,7 +50,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _finish() async {
     final SharedPreferences p = await SharedPreferences.getInstance();
     await p.setBool('qazan.seen_onboarding', true);
-    if (mounted) context.go('/role');
+    if (mounted) context.go('/login');
   }
 
   void _next() {
@@ -149,7 +149,7 @@ class _SlideView extends StatelessWidget {
                   width: 240,
                   height: 240,
                   decoration: const BoxDecoration(
-                    color: AppColors.primarySofter,
+                    color: AppColors.surfaceMuted,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -157,25 +157,25 @@ class _SlideView extends StatelessWidget {
                   width: 168,
                   height: 168,
                   decoration: const BoxDecoration(
-                    color: AppColors.primarySoft,
+                    color: AppColors.caramelSoft,
                     shape: BoxShape.circle,
                   ),
                 ),
                 Container(
                   width: 104,
                   height: 104,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: kHeroGradient,
                     shape: BoxShape.circle,
                     boxShadow: <BoxShadow>[
                       BoxShadow(
-                        color: Color(0x33F5560A),
+                        color: AppColors.shadowTint.withValues(alpha: 0.2),
                         blurRadius: 24,
                         offset: Offset(0, 12),
                       ),
                     ],
                   ),
-                  child: Icon(slide.icon, color: Colors.white, size: 46),
+                  child: Icon(slide.icon, color: AppColors.onDark, size: 46),
                 ),
               ],
             ),
@@ -216,7 +216,7 @@ class _PageDots extends StatelessWidget {
           width: active ? 24 : 8,
           height: 8,
           decoration: BoxDecoration(
-            color: active ? AppColors.primary : AppColors.border,
+            color: active ? AppColors.action : AppColors.border,
             borderRadius: BorderRadius.circular(4),
           ),
         );

@@ -1,3 +1,4 @@
+import '../../../core/legal/legal_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,23 +7,31 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/platform/app_variant.dart';
+import '../../../core/utils/phone_util.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/phone_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/widgets/qazan_logo.dart';
 import '../application/auth_controller.dart';
 import '../domain/user_role.dart';
+import 'social_buttons.dart';
 
+/// Single sign-in page for every role — the account itself decides whether
+/// the user lands in the customer, business or admin shell.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, required this.role});
+  const LoginScreen({super.key, this.initialIdentifier});
 
-  final UserRole role;
+  /// Pre-filled when sign-up finds the number is already registered.
+  final String? initialIdentifier;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _email = TextEditingController();
+  late final TextEditingController _email =
+      TextEditingController(text: widget.initialIdentifier ?? '');
   final TextEditingController _password = TextEditingController();
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
   bool _obscure = true;
@@ -34,13 +43,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// An email goes as typed; a phone becomes `+` and digits. A number
+  /// without a country code is read in the device's own country.
+  String _identifier() {
+    final String raw = _email.text.trim();
+    return raw.contains('@')
+        ? raw
+        : PhoneUtil.normalize(raw, defaultDialCode(ref));
+  }
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     try {
       await ref.read(authControllerProvider.notifier).signIn(
-            email: _email.text.trim(),
+            identifier: _identifier(),
             password: _password.text,
-            role: widget.role,
           );
     } catch (_) {
       if (!mounted) return;
@@ -53,14 +70,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     if (!mounted) return;
     final UserRole effective =
-        ref.read(currentUserProvider)?.role ?? widget.role;
+        ref.read(currentUserProvider)?.role ?? UserRole.customer;
     context.go(effective.landingPath);
   }
 
   void _forgotPassword(BuildContext context) {
     // Carry whatever the user already typed into the email field so the
     // reset screen can pre-fill it.
-    final String email = _email.text.trim();
+    final String typed = _email.text.trim();
+    final String email = typed.contains('@') ? typed : '';
     context.push(
       email.isEmpty
           ? '/forgot-password'
@@ -92,23 +110,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(s.welcome, style: AppTextStyles.display),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  widget.role == UserRole.business
-                      ? s.loginBusinessSub
-                      : s.loginCustomerSub,
+                  s.loginSub,
                   style: AppTextStyles.body.copyWith(
                     color: AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxxl),
                 AppTextField(
-                  label: s.email,
-                  hint: s.emailHint,
+                  label: s.phoneOrEmail,
+                  hint: s.phoneOrEmailHint,
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.alternate_email_rounded,
+                  prefixIcon: Icons.person_outline_rounded,
                   textInputAction: TextInputAction.next,
-                  validator: (String? v) =>
-                      (v == null || !v.contains('@')) ? s.invalidEmail : null,
+                  validator: (String? v) {
+                    final String val = (v ?? '').trim();
+                    final bool ok =
+                        val.contains('@') || PhoneUtil.isValid(val);
+                    return ok ? null : s.phoneOrEmailInvalid;
+                  },
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 AppTextField(
@@ -140,22 +160,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   loading: auth.isLoading,
                   onPressed: _submit,
                 ),
-                const SizedBox(height: AppSpacing.xxl),
+                const SizedBox(height: AppSpacing.xl),
+                const SocialButtons(),
+                const SizedBox(height: AppSpacing.xl),
+                if (!AppVariant.isBusinessApp)
                 Center(
                   child: Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
-                      Text(s.noAccount,
-                          style: AppTextStyles.bodySm),
+                      Text(s.noAccount, style: AppTextStyles.bodySm),
                       TextButton(
                         onPressed: () => context.push(
-                          '/register?role=${widget.role.name}',
+                          '/register',
                         ),
                         child: Text(s.register),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: AppSpacing.md),
+                const LegalFooterLinks(),
               ],
             ),
           ),
@@ -164,4 +188,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

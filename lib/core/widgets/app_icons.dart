@@ -17,7 +17,11 @@ class AppIcons {
   static const IconData homeActive = Icons.explore_rounded;
   static const IconData cards = Icons.style_outlined;
   static const IconData cardsActive = Icons.style_rounded;
+  /// Kept for the (hidden) legacy QR screens.
   static const IconData qr = Icons.qr_code_scanner_rounded;
+
+  /// The tap action that replaced QR everywhere in the UI.
+  static const IconData nfc = Icons.nfc_rounded;
   static const IconData profile = Icons.person_outline_rounded;
   static const IconData profileActive = Icons.person_rounded;
   static const IconData dashboard = Icons.grid_view_outlined;

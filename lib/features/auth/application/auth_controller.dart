@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,10 +8,13 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/push/push_service.dart';
+import '../../../core/session/session_events.dart';
 import '../../../core/storage/token_storage.dart';
+import '../../profile/application/profile_settings_controller.dart';
 import '../data/auth_remote_data_source.dart';
 import '../domain/app_user.dart';
 import '../domain/user_role.dart';
+import 'user_scope.dart';
 
 class AuthState {
   const AuthState({this.user, this.isLoading = false, this.error});
@@ -38,6 +42,9 @@ class AuthState {
 class AuthController extends StateNotifier<AuthState> {
   AuthController(this._remote, this._tokens, this._push, this._ref)
       : super(const AuthState()) {
+    _expiredSub = _ref.read(sessionEventsProvider).expired.listen((_) {
+      if (state.isAuthenticated) _endLocalSession();
+    });
     _restoreSession();
   }
 
@@ -45,6 +52,7 @@ class AuthController extends StateNotifier<AuthState> {
   final TokenStorage _tokens;
   final PushService _push;
   final Ref _ref;
+  late final StreamSubscription<void> _expiredSub;
 
   final Completer<void> _restoreCompleter = Completer<void>();
 
@@ -53,22 +61,22 @@ class AuthController extends StateNotifier<AuthState> {
   /// user straight to their shell instead of flashing the auth screens.
   Future<void> get restored => _restoreCompleter.future;
 
+  @override
+  void dispose() {
+    _expiredSub.cancel();
+    super.dispose();
+  }
+
   /// On boot we rehydrate the session so the user (almost) never has to
-  /// sign in again. As long as *either* token is present we call
-  /// `/users/me`:
-  ///   * a still-valid access token authenticates the call directly;
-  ///   * an expired one triggers a 401 → the [RefreshInterceptor]
-  ///     transparently swaps in a fresh token via the refresh token and
-  ///     retries.
-  /// So the session survives across days/weeks — it only ends when the
-  /// refresh token itself is dead (expired or revoked by logout).
+  /// sign in again. The session survives across days and bad networks: it
+  /// ends only when the server rejects the refresh token. If `/users/me`
+  /// cannot be reached, the last known profile keeps the user signed in.
   Future<void> _restoreSession() async {
     try {
       final String? access = await _tokens.readAccessToken();
       final String? refresh = await _tokens.readRefreshToken();
-      final bool hasAnyToken =
-          (access != null && access.isNotEmpty) ||
-              (refresh != null && refresh.isNotEmpty);
+      final bool hasAnyToken = (access != null && access.isNotEmpty) ||
+          (refresh != null && refresh.isNotEmpty);
       if (!hasAnyToken) return;
 
       state = state.copyWith(isLoading: true);
@@ -77,68 +85,54 @@ class AuthController extends StateNotifier<AuthState> {
         state = AuthState(user: user);
         unawaited(_push.syncToken());
       } catch (_) {
-        // Both tokens rejected — wipe and let the user sign in again.
-        await _tokens.clear();
-        state = const AuthState();
+        // The refresh interceptor clears the tokens only when they are
+        // truly dead, so tokens still being here means a transient failure.
+        final String? stillThere = await _tokens.readRefreshToken();
+        if (stillThere == null || stillThere.isEmpty) {
+          state = const AuthState();
+          return;
+        }
+        final AppUser? cached = await _cachedUser();
+        state = AuthState(user: cached);
       }
     } finally {
       if (!_restoreCompleter.isCompleted) _restoreCompleter.complete();
     }
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-    required UserRole role,
-  }) async {
-    developer.log('signIn: start  email=$email', name: 'qazan.auth');
-    state = state.copyWith(isLoading: true, clearError: true);
+  Future<AppUser?> _cachedUser() async {
     try {
-      developer.log('signIn: calling _remote.login', name: 'qazan.auth');
-      final AuthSession session = await _remote.login(
-        email: email,
-        password: password,
-      );
-      developer.log('signIn: got session user=${session.user.email}',
-          name: 'qazan.auth');
-
-      // Role-entrance guard: a business owner must sign in from the
-      // business entrance and a customer from the customer entrance.
-      // Admins are exempt — they can sign in from any entrance.
-      final UserRole actual = session.user.role;
-      if (actual != UserRole.admin && actual != role) {
-        // Undo the login on the server side and surface a clear message.
-        try {
-          await _remote.logout();
-        } catch (_) {/* best-effort */}
-        final S s = _ref.read(sProvider);
-        final String msg = role == UserRole.business
-            ? s.roleMismatchBusiness
-            : s.roleMismatchCustomer;
-        state = AuthState(error: msg);
-        throw ApiException(code: 'ROLE_MISMATCH', message: msg, status: 403);
-      }
-
-      state = AuthState(user: session.user);
-      unawaited(_push.syncToken());
-      developer.log('signIn: state updated', name: 'qazan.auth');
-    } catch (e, st) {
-      developer.log('signIn: FAILED type=${e.runtimeType}',
-          name: 'qazan.auth', error: e, stackTrace: st);
-      state = AuthState(error: _friendlyMessage(e));
-      rethrow;
-    } finally {
-      if (state.user == null) {
-        state = state.copyWith(isLoading: false);
-      }
+      final String? raw = await _tokens.readUserJson();
+      if (raw == null) return null;
+      return AuthRemoteDataSource.userFromJson(
+          jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
     }
   }
 
-  /// Turns any thrown error into a short, user-facing message.
-  String _friendlyMessage(Object e) {
-    if (e is ApiException) return e.message;
-    return _ref.read(sProvider).errorTryAgain;
-  }
+  /// [identifier] is an email or a normalized phone. The account's own role
+  /// decides where the user lands.
+  Future<void> signIn({
+    required String identifier,
+    required String password,
+  }) =>
+      _authenticate(() => _remote.login(
+            identifier: identifier,
+            password: password,
+          ));
+
+  /// Signs in with an identity token from Google or Apple.
+  Future<void> signInSocial({
+    required String provider,
+    required String idToken,
+    String? fullName,
+  }) =>
+      _authenticate(() => _remote.social(
+            provider: provider,
+            idToken: idToken,
+            fullName: fullName,
+          ));
 
   Future<void> signUp({
     required String fullName,
@@ -147,31 +141,36 @@ class AuthController extends StateNotifier<AuthState> {
     required UserRole role,
     String? phone,
     DateTime? birthDate,
-  }) async {
-    developer.log('signUp: start  email=$email', name: 'qazan.auth');
+  }) =>
+      _authenticate(() => _remote.register(
+            email: email,
+            password: password,
+            fullName: fullName,
+            role: role,
+            phone: phone,
+            birthDate: birthDate,
+            locale: _ref.read(languageProvider).toUpperCase(),
+          ));
+
+  Future<void> _authenticate(Future<AuthSession> Function() call) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final AuthSession session = await _remote.register(
-        email: email,
-        password: password,
-        fullName: fullName,
-        role: role,
-        phone: phone,
-        birthDate: birthDate,
-      );
-      developer.log('signUp: success user=${session.user.email}',
-          name: 'qazan.auth');
+      final AuthSession session = await call();
+      resetUserScopedProviders(_ref);
       state = AuthState(user: session.user);
       unawaited(_push.syncToken());
     } catch (e, st) {
-      developer.log('signUp: failed', name: 'qazan.auth', error: e, stackTrace: st);
+      developer.log('auth failed',
+          name: 'qazan.auth', error: e, stackTrace: st);
       state = AuthState(error: _friendlyMessage(e));
       rethrow;
-    } finally {
-      if (state.user == null) {
-        state = state.copyWith(isLoading: false);
-      }
     }
+  }
+
+  /// Turns any thrown error into a short, user-facing message.
+  String _friendlyMessage(Object e) {
+    if (e is ApiException) return e.message;
+    return _ref.read(sProvider).errorTryAgain;
   }
 
   /// Signs the user out. The remote logout is best-effort — even if the
@@ -185,8 +184,21 @@ class AuthController extends StateNotifier<AuthState> {
       developer.log('signOut: remote logout failed (ignored)',
           name: 'qazan.auth', error: e, stackTrace: st);
     } finally {
-      state = const AuthState();
+      try {
+        await _tokens.clear();
+      } catch (_) {}
+      _endLocalSession();
     }
+  }
+
+  void _endLocalSession() {
+    state = const AuthState();
+    resetUserScopedProviders(_ref);
+  }
+
+  /// Replaces the signed-in user with what the server just returned.
+  void applyUser(AppUser user) {
+    state = AuthState(user: user);
   }
 
   void updateProfile(

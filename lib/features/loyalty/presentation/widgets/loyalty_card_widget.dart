@@ -5,8 +5,8 @@ import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import '../../../../core/utils/extensions.dart';
 import '../../../../core/widgets/app_icons.dart';
+import '../../../../core/widgets/company_logo.dart';
 import '../../../companies/domain/company.dart';
 import '../../domain/loyalty_card.dart';
 import '../../domain/loyalty_program.dart';
@@ -33,7 +33,7 @@ class LoyaltyCardWidget extends ConsumerWidget {
     final S s = ref.watch(sProvider);
     final Color brand = Color(company.coverColorHex);
     final int stamps = card?.stamps ?? 0;
-    final int required = program.stampsRequired;
+    final int required = program.stampsToFill(card);
     final int rewards = card?.rewardsAvailable ?? 0;
 
     return InkWell(
@@ -42,40 +42,27 @@ class LoyaltyCardWidget extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
+          // Premium dark coffee card for every venue; the venue's own
+          // colour survives only in the logo tile.
+          gradient: const LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: <Color>[brand, _darken(brand, 0.18)],
+            colors: AppColors.heroGradient,
           ),
           borderRadius: BorderRadius.circular(AppRadius.xl),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: brand.withValues(alpha: 0.25),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          boxShadow: AppShadows.md,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Row(
               children: <Widget>[
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Text(
-                    company.name.initials,
-                    style: AppTextStyles.h3.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                CompanyLogo(
+                  name: company.name,
+                  brandColor: brand,
+                  imageUrl: company.logoUrl,
+                  size: 44,
+                  radius: AppRadius.md,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -83,10 +70,11 @@ class LoyaltyCardWidget extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(company.name,
-                          style: AppTextStyles.h3.copyWith(color: Colors.white)),
+                          style: AppTextStyles.h3
+                              .copyWith(color: AppColors.onDark)),
                       Text(program.title,
                           style: AppTextStyles.bodySm.copyWith(
-                            color: Colors.white.withValues(alpha: 0.85),
+                            color: AppColors.onDarkMuted,
                           )),
                     ],
                   ),
@@ -98,18 +86,18 @@ class LoyaltyCardWidget extends ConsumerWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.reward,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         const Icon(AppIcons.gift,
-                            size: 14, color: AppColors.success),
+                            size: 14, color: AppColors.onReward),
                         const SizedBox(width: 4),
                         Text('$rewards',
                             style: AppTextStyles.caption.copyWith(
-                              color: AppColors.success,
+                              color: AppColors.onReward,
                               fontWeight: FontWeight.w700,
                             )),
                       ],
@@ -119,7 +107,18 @@ class LoyaltyCardWidget extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.lg),
             StampGrid(stamps: stamps, required: required),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
+            // Progress toward the next reward: dark track, gold fill.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.full),
+              child: LinearProgressIndicator(
+                value: required == 0 ? 0 : (stamps / required).clamp(0, 1),
+                minHeight: 6,
+                color: AppColors.reward,
+                backgroundColor: AppColors.progressTrackOnDark,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
@@ -128,13 +127,13 @@ class LoyaltyCardWidget extends ConsumerWidget {
                       ? '$rewards ${s.rewardWord} ${s.readyWord}'
                       : '$stamps / $required ${s.stampWord}',
                   style: AppTextStyles.bodySm.copyWith(
-                    color: Colors.white,
+                    color: AppColors.onDark,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(program.rewardLabelOf(s),
+                Text(program.rewardLabelOf(s, currency: company.currency),
                     style: AppTextStyles.caption.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
+                      color: AppColors.onDarkMuted,
                       fontWeight: FontWeight.w600,
                     )),
               ],
@@ -143,10 +142,5 @@ class LoyaltyCardWidget extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  Color _darken(Color color, double amount) {
-    final HSLColor hsl = HSLColor.fromColor(color);
-    return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
   }
 }
