@@ -4,6 +4,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
@@ -13,6 +14,7 @@ import '../../../core/storage/token_storage.dart';
 import '../../profile/application/profile_settings_controller.dart';
 import '../data/auth_remote_data_source.dart';
 import '../domain/app_user.dart';
+import '../domain/role_mapping.dart';
 import '../domain/user_role.dart';
 import 'user_scope.dart';
 
@@ -127,11 +129,13 @@ class AuthController extends StateNotifier<AuthState> {
     required String provider,
     required String idToken,
     String? fullName,
+    String? authorizationCode,
   }) =>
       _authenticate(() => _remote.social(
             provider: provider,
             idToken: idToken,
             fullName: fullName,
+            authorizationCode: authorizationCode,
           ));
 
   Future<void> signUp({
@@ -192,13 +196,35 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   void _endLocalSession() {
+    // A new account on this phone must register its own push token.
+    _push.forgetLocal();
     state = const AuthState();
     resetUserScopedProviders(_ref);
+  }
+
+  /// Keeps the offline cold-start profile in step with the live one.
+  void _cacheUser(AppUser user) {
+    final String? avatar = user.avatarUrl;
+    final Map<String, dynamic> json = <String, dynamic>{
+      'id': user.id,
+      'fullName': user.fullName,
+      'email': user.email,
+      'phone': user.phone,
+      'birthDate': user.birthDate?.toIso8601String(),
+      'avatarUrl': avatar == null ? null : AppConfig.storedMediaUrl(avatar),
+      'role': RoleMapping.toBackend(user.role),
+      'profileComplete': user.profileComplete,
+      'staffCompanyId': user.staffCompanyId,
+    };
+    unawaited(_tokens.saveUserJson(jsonEncode(json)).catchError((Object e) {
+      developer.log('cacheUser failed (ignored)', name: 'qazan.auth', error: e);
+    }));
   }
 
   /// Replaces the signed-in user with what the server just returned.
   void applyUser(AppUser user) {
     state = AuthState(user: user);
+    _cacheUser(user);
   }
 
   void updateProfile(
@@ -213,6 +239,8 @@ class AuthController extends StateNotifier<AuthState> {
         avatarUrl: avatarUrl,
       ),
     );
+    final AppUser? updated = state.user;
+    if (updated != null) _cacheUser(updated);
   }
 }
 

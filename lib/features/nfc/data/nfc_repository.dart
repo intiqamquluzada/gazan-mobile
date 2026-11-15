@@ -107,6 +107,17 @@ class NfcRepository {
   static const String _queuedAtKey = '_queuedAt';
   static const Uuid _uuid = Uuid();
 
+  // Every read-modify-write of the stored queue runs through this chain,
+  // so a tap queued while a flush is sending is never overwritten.
+  Future<void> _queueLock = Future<void>.value();
+  Future<List<NfcTapResult>>? _flushing;
+
+  Future<T> _withQueueLock<T>(Future<T> Function() action) {
+    final Future<T> result = _queueLock.then((_) => action());
+    _queueLock = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
   Future<NfcTapResult> tap({
     required String token,
     String? tagUid,
@@ -147,7 +158,10 @@ class NfcRepository {
 
   bool _looksOffline(Object e) => e is ApiException && e.isNetwork;
 
-  Future<void> _enqueue(Map<String, dynamic> body) async {
+  Future<void> _enqueue(Map<String, dynamic> body) =>
+      _withQueueLock(() => _enqueueLocked(body));
+
+  Future<void> _enqueueLocked(Map<String, dynamic> body) async {
     try {
       final SharedPreferences p = await SharedPreferences.getInstance();
       final List<String> q = p.getStringList(_queueKey) ?? <String>[];
@@ -165,11 +179,21 @@ class NfcRepository {
 
   /// Sends everything that was queued while offline. Returns how many taps
   /// were finally accepted (used for the "+N while you were offline" note).
-  Future<List<NfcTapResult>> flushQueue() async {
+  Future<List<NfcTapResult>> flushQueue() {
+    // One flush at a time; a second caller just shares the running one.
+    final Future<List<NfcTapResult>> running = _flushing ?? _flush();
+    _flushing = running;
+    return running.whenComplete(() {
+      if (identical(_flushing, running)) _flushing = null;
+    });
+  }
+
+  Future<List<NfcTapResult>> _flush() async {
     final List<NfcTapResult> done = <NfcTapResult>[];
     try {
       final SharedPreferences p = await SharedPreferences.getInstance();
-      final List<String> q = p.getStringList(_queueKey) ?? <String>[];
+      final List<String> q = await _withQueueLock(
+          () async => p.getStringList(_queueKey) ?? <String>[]);
       if (q.isEmpty) return done;
       final List<String> left = <String>[];
       for (final String raw in q) {
@@ -190,7 +214,14 @@ class NfcRepository {
           if (_looksOffline(e)) left.add(raw);
         }
       }
-      await p.setStringList(_queueKey, left);
+      // Keep whatever was queued while we were sending.
+      await _withQueueLock(() async {
+        final Set<String> sent = q.toSet();
+        final List<String> added = (p.getStringList(_queueKey) ?? <String>[])
+            .where((String raw) => !sent.contains(raw))
+            .toList();
+        await p.setStringList(_queueKey, <String>[...left, ...added]);
+      });
     } catch (_) {}
     return done;
   }

@@ -31,10 +31,34 @@ class _AdminBusinessesScreenState extends ConsumerState<AdminBusinessesScreen> {
   final Set<String> _busy = <String>{};
   String? _status; // null = all
 
+  /// Bumped per request so a slow, outdated response (e.g. from before the
+  /// filter changed) is dropped instead of mixed into the list.
+  int _seq = 0;
+
+  /// Last `?status=` seen in the URL; the dashboard links here with
+  /// `?status=PENDING`.
+  String? _queryStatus;
+  bool _queryRead = false;
+
   @override
-  void initState() {
-    super.initState();
-    _load(reset: true);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final String? q =
+        GoRouterState.of(context).uri.queryParameters['status'];
+    if (_queryRead && q == _queryStatus) return;
+    final bool first = !_queryRead;
+    _queryRead = true;
+    _queryStatus = q;
+    const List<String> known = <String>['PENDING', 'APPROVED', 'SUSPENDED'];
+    if (q != null && known.contains(q)) {
+      _status = q;
+    } else if (!first) {
+      _status = null;
+    }
+    // Out of the build phase before the load's setState runs.
+    Future<void>.microtask(() {
+      if (mounted) _load(reset: true);
+    });
   }
 
   @override
@@ -44,38 +68,46 @@ class _AdminBusinessesScreenState extends ConsumerState<AdminBusinessesScreen> {
   }
 
   Future<void> _load({bool reset = false}) async {
-    if (reset) {
-      setState(() {
-        _loading = true;
-        _error = null;
-        _page = 0;
-      });
-    }
+    final int seq = ++_seq;
+    final int page = reset ? 0 : _page + 1;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final AdminPage<AdminCompany> p =
           await ref.read(adminRepositoryProvider).companies(
                 q: _search.text.trim(),
                 status: _status,
-                page: _page,
+                page: page,
               );
+      if (!mounted || seq != _seq) return;
       setState(() {
         if (reset) _items.clear();
         _items.addAll(p.content);
+        // The page only advances once it actually arrived.
+        _page = page;
         _totalPages = p.totalPages;
         _total = p.totalElements;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted || seq != _seq) return;
       setState(() {
         _loading = false;
         _error = e.toString();
       });
+      if (_items.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${ref.read(sProvider).failed}: $e'),
+          backgroundColor: AppColors.danger,
+        ));
+      }
     }
   }
 
   Future<void> _loadMore() async {
-    if (_page + 1 >= _totalPages) return;
-    setState(() => _page++);
+    if (_loading || _page + 1 >= _totalPages) return;
     await _load();
   }
 

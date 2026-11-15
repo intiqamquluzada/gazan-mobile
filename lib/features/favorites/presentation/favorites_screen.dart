@@ -22,23 +22,50 @@ class FavoritesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(s.favorites)),
-      body: favorites.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => Center(
-          child: Text(s.notLoaded, style: AppTextStyles.body),
+      body: RefreshIndicator(
+        onRefresh: () async => ref.invalidate(favoriteCompaniesProvider),
+        // Every state scrolls, so pull-to-refresh can retry a failed load.
+        child: favorites.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (Object e, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: <Widget>[
+              const SizedBox(height: 160),
+              Center(
+                child: Text(s.notLoaded, style: AppTextStyles.body),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Center(
+                child: TextButton(
+                  onPressed: () => ref.invalidate(favoriteCompaniesProvider),
+                  child: Text(s.retry),
+                ),
+              ),
+            ],
+          ),
+          data: (List<Company> list) {
+            if (list.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: const <Widget>[
+                  SizedBox(height: 80),
+                  _Empty(),
+                ],
+              );
+            }
+            return ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              itemCount: list.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.md),
+              itemBuilder: (BuildContext context, int i) => CompanyCard(
+                company: list[i],
+                onTap: () => context.push('/companies/${list[i].id}'),
+              ),
+            );
+          },
         ),
-        data: (List<Company> list) {
-          if (list.isEmpty) return const _Empty();
-          return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (BuildContext context, int i) => CompanyCard(
-              company: list[i],
-              onTap: () => context.push('/companies/${list[i].id}'),
-            ),
-          );
-        },
       ),
     );
   }

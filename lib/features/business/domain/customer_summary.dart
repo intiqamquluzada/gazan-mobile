@@ -26,10 +26,15 @@ class CustomerSummary {
   /// The customer's coins at this venue (coin-only customers have no cards).
   final int coinBalance;
 
+  /// The name to show, or [fallback] (a localized "Customer") when the
+  /// customer never filled theirs in.
+  String nameOr(String fallback) =>
+      fullName.trim().isEmpty ? fallback : fullName;
+
   factory CustomerSummary.fromJson(Map<String, dynamic> json) {
     return CustomerSummary(
       userId: (json['userId'] as String?) ?? '',
-      fullName: (json['fullName'] as String?) ?? 'Müştəri',
+      fullName: (json['fullName'] as String?) ?? '',
       phone: json['phone'] as String?,
       totalVisits: ((json['cardCount'] as num?) ?? 0).toInt(),
       totalStamps: ((json['totalStamps'] as num?) ?? 0).toInt(),

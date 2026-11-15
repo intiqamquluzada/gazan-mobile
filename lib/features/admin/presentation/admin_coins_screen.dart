@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -342,6 +343,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
   final TextEditingController _note = TextEditingController();
   List<AdminUser> _results = <AdminUser>[];
   AdminUser? _picked;
+  String? _companyId;
   bool _searching = false;
   bool _submitting = false;
   String? _error;
@@ -378,6 +380,11 @@ class _AdjustSheetState extends State<_AdjustSheet> {
       setState(() => _error = widget.ref.read(sProvider).pickUserAndAmount);
       return;
     }
+    // Coins only exist per venue, so the adjustment must name one.
+    if (_companyId == null) {
+      setState(() => _error = widget.ref.read(sProvider).pVenueRequired);
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -385,6 +392,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
     try {
       await widget.ref.read(adminRepositoryProvider).adjustCoins(
             userId: _picked!.id,
+            companyId: _companyId,
             amount: amount,
             note: _note.text.trim(),
           );
@@ -479,6 +487,42 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Consumer(
+                builder: (BuildContext context, WidgetRef ref, _) {
+                  final AsyncValue<List<AdminCompany>> companiesAsync =
+                      ref.watch(adminCompanyOptionsProvider);
+                  final List<AdminCompany> companies =
+                      companiesAsync.valueOrNull ?? const <AdminCompany>[];
+                  return DropdownButtonFormField<String>(
+                    initialValue:
+                        companies.any((AdminCompany c) => c.id == _companyId)
+                            ? _companyId
+                            : null,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: s.pVenue,
+                      helperText: companiesAsync.hasError
+                          ? s.networkError
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                    items: <DropdownMenuItem<String>>[
+                      for (final AdminCompany c in companies)
+                        DropdownMenuItem<String>(
+                          value: c.id,
+                          child: Text(c.name, overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                    onChanged: (String? v) => setState(() {
+                      _companyId = v;
+                      _error = null;
+                    }),
+                  );
+                },
               ),
               const SizedBox(height: AppSpacing.md),
               TextField(

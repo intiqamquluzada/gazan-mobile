@@ -80,15 +80,20 @@ class LoyaltyProgram {
   /// Localized reward description, in the venue's own [currency].
   String rewardLabelOf(S s, {String? currency}) {
     final String money = Money.format(rewardValue ?? 0, currency);
+    // 'məhsul' is the stored default, not something the owner typed:
+    // show it in the reader's language.
+    final String trimmed = rewardItem.trim();
+    final String item =
+        trimmed.isEmpty || trimmed == 'məhsul' ? s.productFallback : trimmed;
     switch (rewardType) {
       case LoyaltyRewardType.freeItem:
-        return '1 ${s.freeWord} $rewardItem';
+        return '1 ${s.freeWord} $item';
       case LoyaltyRewardType.percentageDiscount:
-        return '$rewardItem ${s.onWord} ${_fmt(rewardValue ?? 0)}% ${s.discountWord}';
+        return '$item ${s.onWord} ${_fmt(rewardValue ?? 0)}% ${s.discountWord}';
       case LoyaltyRewardType.fixedDiscount:
-        return '$rewardItem ${s.onWord} $money ${s.discountWord}';
+        return '$item ${s.onWord} $money ${s.discountWord}';
       case LoyaltyRewardType.cashback:
-        return '$money cashback';
+        return '$money ${s.rewardCashback.toLowerCase()}';
     }
   }
 

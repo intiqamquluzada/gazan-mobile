@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_controller.dart';
 import 'features/profile/application/profile_settings_controller.dart';
 import 'features/loyalty/application/loyalty_providers.dart';
+import 'features/notifications/application/notifications_providers.dart';
 import 'features/rewards/application/rewards_providers.dart';
 import 'features/wallet/application/wallet_providers.dart';
 import 'routing/app_router.dart';
@@ -37,7 +38,9 @@ class QazanApp extends ConsumerWidget {
     push.onDataChanged = () => ref
       ..invalidate(coinSummaryProvider)
       ..invalidate(myCardsProvider)
-      ..invalidate(myActiveRewardsProvider);
+      ..invalidate(myActiveRewardsProvider)
+      ..invalidate(notificationInboxProvider)
+      ..invalidate(unreadCountProvider);
     return MaterialApp.router(
       title: AppVariant.isBusinessApp ? 'Qazan İşletme' : AppStrings.appName,
       debugShowCheckedModeBanner: false,

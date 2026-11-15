@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
+import '../../../core/widgets/confirm_sheet.dart';
+import '../application/admin_providers.dart';
+import '../domain/admin_models.dart';
 import '../../notifications/application/notifications_providers.dart';
 import '../../business/domain/panel_models.dart';
 import '../../notifications/data/notifications_repository.dart';
@@ -26,7 +30,32 @@ class _AdminNotificationsScreenState
   bool _sending = false;
   final Set<String> _deciding = <String>{};
 
+  String? _venueName(String? companyId) {
+    if (companyId == null) return null;
+    final List<AdminCompany> all =
+        ref.read(adminCompanyOptionsProvider).valueOrNull ??
+            const <AdminCompany>[];
+    return all.where((AdminCompany c) => c.id == companyId).firstOrNull?.name;
+  }
+
   Future<void> _decide(SubmittedNotification n, bool approve) async {
+    if (approve) {
+      // Approving pushes to real phones straight away — make it deliberate.
+      final S s = ref.read(sProvider);
+      final bool ok = await showConfirmSheet(
+        context,
+        title: s.approveAction,
+        body: n.targetCompanyId == null
+            ? s.pApproveNotifAllBody
+            : s.pApproveNotifVenueBody(
+                _venueName(n.targetCompanyId) ?? s.pVenue),
+        confirmLabel: s.approveAction,
+        cancelLabel: s.cancel,
+        icon: AppIcons.bell,
+        danger: AppColors.caramel,
+      );
+      if (!ok || !mounted) return;
+    }
     setState(() => _deciding.add(n.id));
     final ProviderContainer container =
         ProviderScope.containerOf(context, listen: false);
@@ -37,7 +66,8 @@ class _AdminNotificationsScreenState
           .adminDecide(n.id, approve: approve);
       container
         ..invalidate(adminPendingNotificationsProvider)
-        ..invalidate(adminSentProvider);
+        ..invalidate(adminSentProvider)
+        ..invalidate(adminStatsProvider);
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
@@ -50,6 +80,13 @@ class _AdminNotificationsScreenState
         ref.watch(adminPendingNotificationsProvider).valueOrNull ??
             const <SubmittedNotification>[];
     if (pending.isEmpty) return const SizedBox.shrink();
+    // Loads the venue names shown on each pending card.
+    final List<AdminCompany> companies =
+        ref.watch(adminCompanyOptionsProvider).valueOrNull ??
+            const <AdminCompany>[];
+    String? venueOf(String? id) => id == null
+        ? null
+        : companies.where((AdminCompany c) => c.id == id).firstOrNull?.name;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -66,6 +103,23 @@ class _AdminNotificationsScreenState
                       style: AppTextStyles.bodyLg
                           .copyWith(fontWeight: FontWeight.w700)),
                   Text(n.body, style: AppTextStyles.bodySm),
+                  const SizedBox(height: AppSpacing.xs),
+                  Row(
+                    children: <Widget>[
+                      const Icon(Icons.storefront_rounded,
+                          size: 16, color: AppColors.textSecondary),
+                      const SizedBox(width: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          n.targetCompanyId == null
+                              ? s.pAllUsers
+                              : venueOf(n.targetCompanyId) ?? '…',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,

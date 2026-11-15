@@ -263,6 +263,13 @@ class PushService {
     _registered = token;
   }
 
+  /// Forgets this device's registration locally (session ended, maybe
+  /// without a reachable server), so the next sign-in registers again.
+  void forgetLocal() {
+    _registered = null;
+    _signedIn = false;
+  }
+
   /// Call on sign-out, before the session is cleared (needs the auth token).
   Future<void> clearToken() async {
     _signedIn = false;

@@ -1,6 +1,8 @@
 // Value types for the business panel's cashier window, staff and analytics,
 // parsed straight from the backend JSON.
 
+import '../../../core/config/app_config.dart';
+
 int _int(Object? v) => ((v as num?) ?? 0).toInt();
 
 DateTime? _date(Object? v) =>
@@ -82,7 +84,7 @@ class SpendSession {
         customerId: (j['customerId'] as String?) ?? '',
         customerName: (j['customerName'] as String?) ?? '—',
         customerPhone: j['customerPhone'] as String?,
-        avatarUrl: j['avatarUrl'] as String?,
+        avatarUrl: AppConfig.mediaUrlOrNull(j['avatarUrl'] as String?),
         coinBalance: _int(j['coinBalance']),
         cards: _maps(j['cards']).map(SpendCard.fromJson).toList(),
         rewards: _maps(j['rewards']).map(SpendReward.fromJson).toList(),
@@ -237,6 +239,8 @@ class SubmittedNotification {
     required this.body,
     required this.status,
     this.createdAt,
+    this.targetCompanyId,
+    this.submittedBy,
   });
 
   final String id;
@@ -245,6 +249,12 @@ class SubmittedNotification {
   final String status; // PENDING | APPROVED | REJECTED | SENT
   final DateTime? createdAt;
 
+  /// Venue whose customers receive it (null for broadcasts).
+  final String? targetCompanyId;
+
+  /// User id of the owner who submitted it.
+  final String? submittedBy;
+
   factory SubmittedNotification.fromJson(Map<String, dynamic> j) =>
       SubmittedNotification(
         id: j['id'] as String,
@@ -252,5 +262,7 @@ class SubmittedNotification {
         body: (j['body'] as String?) ?? '',
         status: (j['status'] as String?) ?? 'PENDING',
         createdAt: _date(j['createdAt']),
+        targetCompanyId: j['targetCompanyId'] as String?,
+        submittedBy: j['submittedBy'] as String?,
       );
 }

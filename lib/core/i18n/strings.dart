@@ -42,7 +42,7 @@ class S {
   String get forgotPassword => _('forgotPassword', 'Şifrəni unutmusan?');
   String get noAccount => _('noAccount', 'Hesabın yoxdur?');
   String get haveAccount => _('haveAccount', 'Hesabın var?');
-  String get welcome => _('welcome', 'Xoş gəldin 👋');
+  String get welcome => _('welcome', 'Xoş gəlmisiniz');
   String get createAccount => _('createAccount', 'Hesab yarat');
 
   // ── Customer tabs ────────────────────────────────────────────────
@@ -826,7 +826,7 @@ class S {
       'forgotPassword': 'Forgot your password?',
       'noAccount': "Don't have an account?",
       'haveAccount': 'Already have an account?',
-      'welcome': 'Welcome 👋',
+      'welcome': 'Welcome',
       'createAccount': 'Create account',
       'tabHome': 'Discover',
       'tabCompanies': 'Places',
@@ -1428,7 +1428,7 @@ class S {
       'forgotPassword': 'Забыли пароль?',
       'noAccount': 'Нет аккаунта?',
       'haveAccount': 'Уже есть аккаунт?',
-      'welcome': 'Добро пожаловать 👋',
+      'welcome': 'Добро пожаловать',
       'createAccount': 'Создать аккаунт',
       'tabHome': 'Открыть',
       'tabCompanies': 'Места',
@@ -2027,10 +2027,10 @@ class S {
       'password': 'Şifre',
       'fullName': 'Ad ve soyad',
       'phone': 'Telefon numarası',
-      'forgotPassword': 'Şifreni mi unuttun?',
-      'noAccount': 'Hesabın yok mu?',
+      'forgotPassword': 'Şifrenizi mi unuttunuz?',
+      'noAccount': 'Hesabınız yok mu?',
       'haveAccount': 'Hesabın var mı?',
-      'welcome': 'Hoş geldin 👋',
+      'welcome': 'Hoş Geldiniz',
       'createAccount': 'Hesap oluştur',
       'tabHome': 'Keşfet',
       'tabCompanies': 'Yerler',
@@ -2346,7 +2346,7 @@ class S {
       'passwordShort': 'Şifre çok kısa',
       'resetPassword': 'Şifreyi sıfırla',
       'resetPasswordEmailPrompt':
-          'Hesabının e-postasını yaz — sana 6 haneli kod gönderelim.',
+          'Hesabının e-postasını yaz — sana 6 haneli doğrulama kodu göndereceğiz.',
       'codeSentToEmail':
           'Kod e-postana gönderildi. Gelmezse spam klasörünü kontrol et.',
       'errorTryAgain': 'Bir şeyler ters gitti. Birazdan tekrar dene.',

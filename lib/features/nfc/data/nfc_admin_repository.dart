@@ -85,7 +85,7 @@ class NfcCard {
         id: j['id'] as String,
         companyId: (j['companyId'] as String?) ?? '',
         companyName: (j['companyName'] as String?) ?? '',
-        kind: (j['kind'] as String?) ?? 'POINTS',
+        kind: (j['kind'] as String?) ?? 'UNASSIGNED',
         status: (j['status'] as String?) ?? 'ACTIVE',
         label: j['label'] as String?,
         programId: j['programId'] as String?,
@@ -97,7 +97,7 @@ class NfcCard {
         dailyCapPerUser: (j['dailyCapPerUser'] as num?)?.toInt() ?? 0,
         provisionedAt: j['provisionedAt'] == null
             ? null
-            : DateTime.tryParse(j['provisionedAt'] as String),
+            : DateTime.tryParse(j['provisionedAt'] as String)?.toLocal(),
         token: j['token'] as String?,
       );
 }
@@ -135,7 +135,7 @@ class NfcTapLog {
         distanceM: (j['distanceM'] as num?)?.toInt(),
         createdAt: j['createdAt'] == null
             ? null
-            : DateTime.tryParse(j['createdAt'] as String),
+            : DateTime.tryParse(j['createdAt'] as String)?.toLocal(),
         note: j['note'] as String?,
       );
 }

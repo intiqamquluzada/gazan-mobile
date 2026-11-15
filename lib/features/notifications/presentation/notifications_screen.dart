@@ -33,7 +33,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       // Non-fatal — the badge will simply refresh next time.
     }
     if (!mounted) return;
-    ref.invalidate(unreadCountProvider);
+    // Fetch afresh: a push may have arrived while the inbox was cached.
+    ref
+      ..invalidate(notificationInboxProvider)
+      ..invalidate(unreadCountProvider);
   }
 
   String _ago(DateTime? d) {
@@ -58,14 +61,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         onRefresh: () async => ref.invalidate(notificationInboxProvider),
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (Object e, _) => EmptyState(
-            title: s.notLoaded,
-            subtitle: e.toString(),
-            icon: AppIcons.error,
+          // Scrollable so pull-to-refresh works on these states too.
+          error: (Object e, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: <Widget>[
+              const SizedBox(height: 120),
+              EmptyState(
+                title: s.notLoaded,
+                subtitle: e.toString(),
+                icon: AppIcons.error,
+              ),
+            ],
           ),
           data: (List<AppNotification> list) {
             if (list.isEmpty) {
               return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: <Widget>[
                   const SizedBox(height: 120),
                   EmptyState(
@@ -77,6 +88,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               );
             }
             return ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(AppSpacing.xl),
               itemCount: list.length,
               separatorBuilder: (_, __) =>

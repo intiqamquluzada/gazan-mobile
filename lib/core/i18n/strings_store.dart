@@ -9,8 +9,8 @@ extension StoreStrings on S {
   String get privacyPolicy => _st('privacyPolicy', 'Məxfilik siyasəti');
   String get termsOfUse => _st('termsOfUse', 'İstifadə şərtləri');
   String get consentPrefix => _st('consentPrefix', 'Qeydiyyatdan keçməklə ');
-  String get consentAnd => _st('consentAnd', ' və ');
-  String get consentSuffix => _st('consentSuffix', ' qəbul edirsən.');
+  String get consentAnd => _st('consentAnd', 'ni qəbul edir və ');
+  String get consentSuffix => _st('consentSuffix', ' ilə tanış olduğunu təsdiqləyirsən.');
   String get legalSection => _st('legalSection', 'Hüquqi');
 
   String get reportReview => _st('reportReview', 'Şikayət et');
@@ -40,7 +40,7 @@ const Map<String, Map<String, String>> _store = <String, Map<String, String>>{
     'privacyPolicy': 'Privacy policy',
     'termsOfUse': 'Terms of use',
     'consentPrefix': 'By signing up you accept the ',
-    'consentAnd': ' and the ',
+    'consentAnd': ' and confirm that you have read the ',
     'consentSuffix': '.',
     'legalSection': 'Legal',
     'reportReview': 'Report',
@@ -61,8 +61,8 @@ const Map<String, Map<String, String>> _store = <String, Map<String, String>>{
     'privacyPolicy': 'Политика конфиденциальности',
     'termsOfUse': 'Условия использования',
     'consentPrefix': 'Регистрируясь, вы принимаете ',
-    'consentAnd': ' и ',
-    'consentSuffix': '.',
+    'consentAnd': ' и подтверждаете, что ознакомились с документом «',
+    'consentSuffix': '».',
     'legalSection': 'Правовая информация',
     'reportReview': 'Пожаловаться',
     'reportReviewTitle': 'Почему вы жалуетесь на отзыв?',
@@ -82,8 +82,8 @@ const Map<String, Map<String, String>> _store = <String, Map<String, String>>{
     'privacyPolicy': 'Gizlilik politikası',
     'termsOfUse': 'Kullanım koşulları',
     'consentPrefix': 'Kayıt olarak ',
-    'consentAnd': ' ve ',
-    'consentSuffix': ' kabul edersin.',
+    'consentAnd': 'nı kabul etmiş ve ',
+    'consentSuffix': ' (aydınlatma metni) hakkında bilgilendirildiğini onaylamış olursun.',
     'legalSection': 'Yasal',
     'reportReview': 'Şikayet et',
     'reportReviewTitle': 'Bu yorumu neden şikayet ediyorsun?',

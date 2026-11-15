@@ -80,13 +80,13 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
   flutter_native_splash: ^2.4.3
 
-# Native launch screen (shown before Flutter boots) — brand purple + white Q.
+# Native launch screen (shown before Flutter boots) — brand green + white Q.
 # Regenerate with: dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#2B211B"
+  color: "#2A8236"
   image: assets/branding/app_icon_foreground.png
   android_12:
-    color: "#2B211B"
+    color: "#2A8236"
     image: assets/branding/app_icon_foreground.png
   web: false
 
@@ -102,12 +102,13 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/branding/app_icon.png"
-    background_color: "#2B211B"
-    theme_color: "#2B211B"
+    background_color: "#2A8236"
+    theme_color: "#2A8236"
 
 flutter:
   uses-material-design: true
   assets:
     - assets/branding/
+    - assets/illustrations/
     # Bundled Inter fonts — used by google_fonts offline (no gstatic).
     - assets/google_fonts/

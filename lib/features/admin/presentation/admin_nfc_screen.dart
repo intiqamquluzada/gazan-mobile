@@ -1,23 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/platform/app_variant.dart';
 import '../../../core/nfc/nfc_payload.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
-import '../../companies/application/companies_providers.dart';
-import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
 import '../../nfc/data/nfc_admin_repository.dart';
+import '../application/admin_providers.dart';
+import '../domain/admin_models.dart';
 
 /// Admin → NFC: the card inventory. Issue a card for a venue, write it onto
 /// a blank tag, rotate its secret, block it, and watch the tap log for abuse.
@@ -65,9 +68,17 @@ class AdminNfcScreen extends ConsumerWidget {
   }
 }
 
-/// Writes the card's token onto a blank tag (Android only).
+/// Writes the card's token onto a blank tag (Android only). Elsewhere the
+/// token is shown so it can be written with another device.
 Future<void> _writeFlow(BuildContext context, NfcCard card) async {
-  if (card.token == null || !PlatformCaps.canWriteNfc) return;
+  if (card.token == null) return;
+  if (!PlatformCaps.canWriteNfc) {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _TokenDialog(token: card.token!),
+    );
+    return;
+  }
   final ProviderContainer container =
       ProviderScope.containerOf(context, listen: false);
   await showDialog<void>(
@@ -76,6 +87,48 @@ Future<void> _writeFlow(BuildContext context, NfcCard card) async {
     builder: (_) => _WriteDialog(card: card),
   );
   container.invalidate(adminNfcCardsProvider);
+}
+
+/// Shows a freshly issued card token on devices that cannot write NFC.
+class _TokenDialog extends ConsumerWidget {
+  const _TokenDialog({required this.token});
+
+  final String token;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    return AlertDialog(
+      title: Text(s.pNfcTokenTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(s.pNfcTokenBody, style: AppTextStyles.bodySm),
+          const SizedBox(height: AppSpacing.md),
+          SelectableText(token,
+              style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700)),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton.icon(
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: token));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(SnackBar(content: Text(s.pCopied)));
+            }
+          },
+          icon: const Icon(Icons.copy_rounded, size: 18),
+          label: Text(s.pCopy),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(s.close),
+        ),
+      ],
+    );
+  }
 }
 
 class _WriteDialog extends ConsumerStatefulWidget {
@@ -225,15 +278,13 @@ class _AdminCardTile extends ConsumerWidget {
                     style: AppTextStyles.body
                         .copyWith(fontWeight: FontWeight.w700)),
               ),
-              Text(card.isStamp ? s.nfcKindStamp : s.nfcKindPoints,
+              Text(nfcKindLabel(s, card.kind),
                   style: AppTextStyles.caption
                       .copyWith(color: p.textSecondary)),
             ],
           ),
           Text(
-            card.isStamp
-                ? (card.programTitle ?? '—')
-                : '${card.pointsValue} ${s.coinLabel}',
+            card.describe(s),
             style: AppTextStyles.bodySm.copyWith(color: p.textSecondary),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -263,24 +314,13 @@ class _AdminCardTile extends ConsumerWidget {
                 // this needs a phone that can write.
                 onPressed: !PlatformCaps.canWriteNfc
                     ? null
-                    : () async {
-                        final NfcCard fresh = await ref
-                            .read(nfcAdminRepositoryProvider)
-                            .rotate(card.id);
-                        if (context.mounted) await _writeFlow(context, fresh);
-                      },
+                    : () => _rotate(context, s),
                 icon: const Icon(Icons.autorenew_rounded, size: 18),
                 label: Text(s.nfcRotate),
               ),
               const Spacer(),
               TextButton.icon(
-                onPressed: () async {
-                  final ProviderContainer container =
-                      ProviderScope.containerOf(context, listen: false);
-                  await container.read(nfcAdminRepositoryProvider).setStatus(
-                      card.id, card.isActive ? 'REVOKED' : 'ACTIVE');
-                  container.invalidate(adminNfcCardsProvider);
-                },
+                onPressed: () => _toggleStatus(context, s),
                 icon: Icon(
                     card.isActive
                         ? Icons.block_rounded
@@ -303,6 +343,50 @@ class _AdminCardTile extends ConsumerWidget {
   }
 }
 
+extension on _AdminCardTile {
+  Future<void> _rotate(BuildContext context, S s) async {
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.nfcRotate,
+      body: s.pNfcRotateWarn,
+      confirmLabel: s.nfcRotate,
+      cancelLabel: s.cancel,
+      icon: Icons.autorenew_rounded,
+    );
+    if (!ok || !context.mounted) return;
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      final NfcCard fresh =
+          await container.read(nfcAdminRepositoryProvider).rotate(card.id);
+      container.invalidate(adminNfcCardsProvider);
+      if (context.mounted) await _writeFlow(context, fresh);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('${s.failed}: $e'),
+          backgroundColor: AppColors.danger));
+    }
+  }
+
+  Future<void> _toggleStatus(BuildContext context, S s) async {
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      await container
+          .read(nfcAdminRepositoryProvider)
+          .setStatus(card.id, card.isActive ? 'REVOKED' : 'ACTIVE');
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(
+          content: Text('${s.failed}: $e'),
+          backgroundColor: AppColors.danger));
+    } finally {
+      container.invalidate(adminNfcCardsProvider);
+    }
+  }
+}
+
 /// Issue a card: venue + kind (+ campaign for stamp cards).
 class _NewCardSheet extends ConsumerStatefulWidget {
   const _NewCardSheet();
@@ -312,7 +396,7 @@ class _NewCardSheet extends ConsumerStatefulWidget {
 }
 
 class _NewCardSheetState extends ConsumerState<_NewCardSheet> {
-  Company? _company;
+  AdminCompany? _company;
   String _kind = 'UNASSIGNED';
   LoyaltyProgram? _program;
   final TextEditingController _label = TextEditingController();
@@ -356,8 +440,10 @@ class _NewCardSheetState extends ConsumerState<_NewCardSheet> {
   @override
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
-    final List<Company> companies =
-        ref.watch(companiesProvider).valueOrNull ?? const <Company>[];
+    // Admin list: includes pending venues, which still need their cards.
+    final List<AdminCompany> companies =
+        ref.watch(adminCompanyOptionsProvider).valueOrNull ??
+            const <AdminCompany>[];
     final List<LoyaltyProgram> programs = _company == null
         ? const <LoyaltyProgram>[]
         : (ref.watch(programsForCompanyProvider(_company!.id)).valueOrNull ??
@@ -374,15 +460,19 @@ class _NewCardSheetState extends ConsumerState<_NewCardSheet> {
           children: <Widget>[
             Text(s.nfcNewCard, style: AppTextStyles.h2),
             const SizedBox(height: AppSpacing.lg),
-            DropdownButtonFormField<Company>(
-              initialValue: _company,
+            DropdownButtonFormField<String>(
+              initialValue: _company?.id,
+              isExpanded: true,
               decoration: InputDecoration(labelText: s.selectBusiness),
               items: companies
-                  .map((Company c) => DropdownMenuItem<Company>(
-                      value: c, child: Text(c.name)))
+                  .map((AdminCompany c) => DropdownMenuItem<String>(
+                      value: c.id,
+                      child: Text(c.name, overflow: TextOverflow.ellipsis)))
                   .toList(),
-              onChanged: (Company? c) => setState(() {
-                _company = c;
+              onChanged: (String? id) => setState(() {
+                _company = companies
+                    .where((AdminCompany c) => c.id == id)
+                    .firstOrNull;
                 _program = null;
               }),
             ),
@@ -485,6 +575,11 @@ class _TapsState extends ConsumerState<_Taps> {
               if (snap.connectionState != ConnectionState.done) {
                 return const Center(child: CircularProgressIndicator());
               }
+              if (snap.hasError) {
+                return ListView(children: <Widget>[
+                  EmptyState(title: s.notLoaded, subtitle: '${snap.error}'),
+                ]);
+              }
               final List<NfcTapLog> list = snap.data ?? const <NfcTapLog>[];
               if (list.isEmpty) {
                 return ListView(children: <Widget>[
@@ -514,7 +609,7 @@ class _TapsState extends ConsumerState<_Taps> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            Text(t.result,
+                            Text(nfcResultLabel(s, t.result),
                                 style: AppTextStyles.body
                                     .copyWith(fontWeight: FontWeight.w600)),
                             Text(
@@ -523,6 +618,7 @@ class _TapsState extends ConsumerState<_Taps> {
                                 if (t.stampsDelta > 0) '+${t.stampsDelta} ●',
                                 if (t.distanceM != null) '${t.distanceM} m',
                                 if (t.note != null) t.note!,
+                                if (t.createdAt != null) _stamp(t.createdAt!),
                               ].join(' · '),
                               style: AppTextStyles.caption
                                   .copyWith(color: p.textTertiary),
@@ -543,4 +639,9 @@ class _TapsState extends ConsumerState<_Taps> {
       ],
     );
   }
+}
+
+String _stamp(DateTime d) {
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${two(d.day)}.${two(d.month)} ${two(d.hour)}:${two(d.minute)}';
 }

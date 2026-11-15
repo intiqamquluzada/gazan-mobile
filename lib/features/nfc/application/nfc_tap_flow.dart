@@ -7,6 +7,7 @@ import '../../../core/location/device_location.dart';
 import '../../../core/widgets/celebrations.dart';
 import '../../../routing/app_router.dart';
 import '../../loyalty/application/loyalty_providers.dart';
+import '../../reviews/application/reviews_providers.dart';
 import '../../rewards/application/rewards_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../data/nfc_repository.dart';
@@ -47,6 +48,9 @@ class NfcTapFlow {
       // must not show a second one when it reloads.
       if (result.rewardUnlocked) RewardCelebrationLedger.markCelebratedByTap();
       _refreshBalances();
+      // A tap is what unlocks reviewing this venue.
+      final String? companyId = result.companyId;
+      if (companyId != null) _ref.invalidate(companyReviewsProvider(companyId));
       unawaited(HapticFeedback.heavyImpact());
       _present(result);
       return result;

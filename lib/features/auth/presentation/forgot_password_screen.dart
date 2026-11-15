@@ -8,6 +8,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/brand_header.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../data/auth_remote_data_source.dart';
 
@@ -55,7 +56,14 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Future<void> _sendCode() async {
-    if (!_form.currentState!.validate()) return;
+    if (_step == _Step.email) {
+      if (!_form.currentState!.validate()) return;
+    } else if (!_email.text.contains('@')) {
+      // Resending from the code step: the code/password fields may still
+      // be empty, so only the address matters here.
+      _toast(ref.read(sProvider).invalidEmail);
+      return;
+    }
     setState(() => _loading = true);
     try {
       await ref
@@ -98,7 +106,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           ],
         ),
       );
-      if (mounted) context.pop();
+      if (!mounted) return;
+      context.canPop() ? context.pop() : context.go('/login');
     } on ApiException catch (e) {
       _toast(e.message);
     } catch (_) {
@@ -113,7 +122,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final S s = ref.watch(sProvider);
     final bool onEmail = _step == _Step.email;
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(leadingWidth: 72, leading: const CircleBackButton()),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -126,7 +135,21 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
             key: _form,
             child: ListView(
               children: <Widget>[
-                Text(s.resetPassword, style: AppTextStyles.display),
+                Center(
+                  child: Image.asset(
+                    'assets/illustrations/forgot_mail.png',
+                    width: 150,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  s.resetPassword,
+                  style: AppTextStyles.h1.copyWith(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2),
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   onEmail
@@ -150,6 +173,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   const SizedBox(height: AppSpacing.xxl),
                   PrimaryButton(
                     label: s.sendCode,
+                    trailingIcon: Icons.arrow_forward_rounded,
                     loading: _loading,
                     onPressed: _loading ? null : _sendCode,
                   ),
@@ -186,6 +210,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   const SizedBox(height: AppSpacing.xxl),
                   PrimaryButton(
                     label: s.updatePasswordAction,
+                    trailingIcon: Icons.arrow_forward_rounded,
                     loading: _loading,
                     onPressed: _loading ? null : _resetPassword,
                   ),

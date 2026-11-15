@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/pill_tab_bar.dart';
 
 import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -43,12 +44,7 @@ class MyRewardsBody extends ConsumerWidget {
       length: 2,
       child: Column(
         children: <Widget>[
-          TabBar(
-            tabs: <Widget>[
-              Tab(text: s.rewardsActiveTab),
-              Tab(text: s.rewardsUsedTab),
-            ],
-          ),
+          PillTabBar(tabs: <String>[s.rewardsActiveTab, s.rewardsUsedTab]),
           Expanded(
             child: TabBarView(
               children: <Widget>[
@@ -96,25 +92,35 @@ class _RewardsList extends ConsumerWidget {
       },
       child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: ref.read(sProvider).notLoaded,
-          subtitle: e.toString(),
-          icon: AppIcons.error,
+        // Scrollable so pull-to-refresh works on these states too.
+        error: (Object e, _) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: <Widget>[
+            const SizedBox(height: 24),
+            EmptyState(
+              title: ref.read(sProvider).notLoaded,
+              subtitle: e.toString(),
+              icon: AppIcons.error,
+            ),
+          ],
         ),
         data: (List<AppRewardClaim> list) {
           if (list.isEmpty) {
             return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: <Widget>[
-                const SizedBox(height: 80),
+                const SizedBox(height: 24),
                 EmptyState(
                   title: emptyTitle,
                   subtitle: emptySubtitle,
                   icon: AppIcons.gift,
+                  image: 'assets/illustrations/onb_gift.png',
                 ),
               ],
             );
           }
           return ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge),
             itemCount: list.length,

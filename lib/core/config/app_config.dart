@@ -53,11 +53,15 @@ class AppConfig {
   /// Google's OAuth client of type "Web"; its ID is the token audience the
   /// backend verifies. Empty hides the Google button.
   static const String googleServerClientId =
-      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID', defaultValue: '');
+      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID',
+          defaultValue:
+              '201188254579-4dm34cth1fv5i9lj6pac999b89hv74gp.apps.googleusercontent.com');
 
   /// iOS OAuth client (only needed for Google sign-in on iPhone).
   static const String googleIosClientId =
-      String.fromEnvironment('GOOGLE_IOS_CLIENT_ID', defaultValue: '');
+      String.fromEnvironment('GOOGLE_IOS_CLIENT_ID',
+          defaultValue:
+              '201188254579-tvg2reerpoegenqdkl3om48qf1e8hure.apps.googleusercontent.com');
 
   /// Public legal pages (privacy policy, terms, account deletion) served by
   /// the backend. Override with `--dart-define=LEGAL_BASE_URL=...` once they

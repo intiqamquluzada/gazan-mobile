@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
@@ -112,6 +114,30 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
 
   Future<void> _changeRole(AdminUser u, String role) async {
     Navigator.of(context).pop();
+    final S s = ref.read(sProvider);
+    final String who = u.fullName.isEmpty ? u.email : u.fullName;
+    final bool toAdmin = role == 'ADMIN';
+    final bool demotingOwner =
+        u.role == 'BUSINESS_OWNER' && role != 'BUSINESS_OWNER';
+    final String body = toAdmin
+        ? s.pRoleToAdminBody(who)
+        : demotingOwner
+            ? s.pRoleDemoteOwnerBody(who)
+            : s.pRoleChangeBody(who, roleLabel(s, role));
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.pRoleChangeTitle,
+      body: body,
+      confirmLabel: roleLabel(s, role),
+      cancelLabel: s.cancel,
+      icon: toAdmin
+          ? Icons.admin_panel_settings_rounded
+          : Icons.manage_accounts_rounded,
+      // Granting admin or stripping an owner of their venue is dangerous;
+      // a plain role swap gets the neutral accent.
+      danger: toAdmin || demotingOwner ? AppColors.danger : AppColors.caramel,
+    );
+    if (!ok || !mounted) return;
     try {
       await ref.read(adminRepositoryProvider).setUserRole(u.id, role);
       _snack('${u.email} → ${roleLabel(ref.read(sProvider), role)}');
@@ -125,6 +151,17 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   Future<void> _toggleActive(AdminUser u) async {
     Navigator.of(context).pop();
     final S s = ref.read(sProvider);
+    final String who = u.fullName.isEmpty ? u.email : u.fullName;
+    final bool ok = await showConfirmSheet(
+      context,
+      title: u.active ? s.blockUser : s.activateUser,
+      body: u.active ? s.pBlockUserBody(who) : s.pUnblockUserBody(who),
+      confirmLabel: u.active ? s.blockUser : s.activateUser,
+      cancelLabel: s.cancel,
+      icon: u.active ? Icons.block_rounded : AppIcons.check,
+      danger: u.active ? AppColors.danger : AppColors.success,
+    );
+    if (!ok || !mounted) return;
     try {
       await ref.read(adminRepositoryProvider).setUserActive(u.id, !u.active);
       _snack(u.active

@@ -7,8 +7,8 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../../core/widgets/brand_header.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -23,19 +23,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   List<_OnboardSlide> _slidesOf(S s) => <_OnboardSlide>[
         _OnboardSlide(
-          icon: AppIcons.store,
-          title: s.onbTitle1,
-          subtitle: s.onbSub1,
+          art: 'assets/illustrations/onb_shop.png',
+          brand: true,
+          before: s.onb1a,
+          highlight: s.onb1b,
+          after: s.onb1c,
+          style: _Highlight.underline,
+          body: s.onbBody1,
         ),
         _OnboardSlide(
-          icon: AppIcons.nfc,
-          title: s.onbTitle2,
-          subtitle: s.onbSub2,
+          art: 'assets/illustrations/onb_nfc.png',
+          before: s.onb2a,
+          highlight: s.onb2b,
+          after: s.onb2c,
+          style: _Highlight.chip,
+          body: s.onbBody2,
         ),
         _OnboardSlide(
-          icon: AppIcons.gift,
-          title: s.onbTitle3,
-          subtitle: s.onbSub3,
+          art: 'assets/illustrations/onb_gift.png',
+          before: s.onb3a,
+          highlight: s.onb3b,
+          after: s.onb3c,
+          style: _Highlight.underline,
+          body: s.onbBody3,
         ),
       ];
 
@@ -73,14 +83,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: TextButton(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl, AppSpacing.sm, AppSpacing.sm, 0),
+              child: Row(
+                children: <Widget>[
+                  const BrandMark(size: 28),
+                  const Spacer(),
+                  TextButton(
                   onPressed: _finish,
-                  child: Text(s.skip),
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.palette.textPrimary,
+                  ),
+                  child: Text(
+                    s.skip,
+                    style: AppTextStyles.body
+                        .copyWith(fontWeight: FontWeight.w500),
+                  ),
                 ),
+                ],
               ),
             ),
             Expanded(
@@ -103,7 +124,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
               child: PrimaryButton(
                 label: last ? s.getStarted : s.continueAction,
-                icon: last ? null : AppIcons.forward,
+                trailingIcon: Icons.arrow_forward_rounded,
                 onPressed: _next,
               ),
             ),
@@ -114,16 +135,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
+enum _Highlight { underline, chip }
+
 class _OnboardSlide {
   const _OnboardSlide({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
+    required this.art,
+    required this.before,
+    required this.highlight,
+    required this.after,
+    required this.style,
+    required this.body,
+    this.brand = false,
   });
 
-  final IconData icon;
-  final String title;
-  final String subtitle;
+  /// 3D illustration (transparent PNG).
+  final String art;
+  final String before;
+  final String highlight;
+  final String after;
+  final _Highlight style;
+  final String body;
+
+  /// First slide also carries the logo and word-mark above the art.
+  final bool brand;
 }
 
 class _SlideView extends StatelessWidget {
@@ -133,69 +167,132 @@ class _SlideView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          // Layered icon mark: soft outer halo → tinted disc → glyph.
-          SizedBox(
-            width: 240,
-            height: 240,
-            child: Stack(
-              alignment: Alignment.center,
+    final TextStyle title = AppTextStyles.display.copyWith(
+      color: context.palette.ink,
+      fontWeight: FontWeight.w800,
+      height: 1.25,
+    );
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) {
+        // Shrink the art on short screens so the text never clips.
+        final double artW = (c.maxHeight * 0.62)
+            .clamp(190.0, 330.0)
+            .toDouble();
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: c.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Container(
-                  width: 240,
-                  height: 240,
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    shape: BoxShape.circle,
+                SizedBox(
+                  width: artW,
+                  height: artW * 0.82,
+                  child: Image.asset(
+                    slide.art,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
                   ),
                 ),
-                Container(
-                  width: 168,
-                  height: 168,
-                  decoration: const BoxDecoration(
-                    color: AppColors.caramelSoft,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                Container(
-                  width: 104,
-                  height: 104,
-                  decoration: BoxDecoration(
-                    gradient: kHeroGradient,
-                    shape: BoxShape.circle,
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: AppColors.shadowTint.withValues(alpha: 0.2),
-                        blurRadius: 24,
-                        offset: Offset(0, 12),
-                      ),
+                const SizedBox(height: AppSpacing.xxl),
+                Text.rich(
+                  TextSpan(
+                    style: title,
+                    children: <InlineSpan>[
+                      TextSpan(text: slide.before),
+                      if (slide.highlight.isNotEmpty)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.baseline,
+                          baseline: TextBaseline.alphabetic,
+                          child: _Highlighted(
+                            text: slide.highlight,
+                            style: title,
+                            kind: slide.style,
+                          ),
+                        ),
+                      TextSpan(text: slide.after),
                     ],
                   ),
-                  child: Icon(slide.icon, color: AppColors.onDark, size: 46),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  slide.body,
+                  style: AppTextStyles.body.copyWith(
+                    color: context.palette.textSecondary,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.huge),
-          Text(
-            slide.title,
-            style: AppTextStyles.h1,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            slide.subtitle,
-            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        );
+      },
+    );
+  }
+}
+
+/// The emphasised word in a slide title: green with a hand-drawn swoosh
+/// under it, or green on a mint chip.
+class _Highlighted extends StatelessWidget {
+  const _Highlighted({
+    required this.text,
+    required this.style,
+    required this.kind,
+  });
+
+  final String text;
+  final TextStyle style;
+  final _Highlight kind;
+
+  @override
+  Widget build(BuildContext context) {
+    const Color green = Color(0xFF3E9A45);
+    final Text word = Text(text, style: style.copyWith(color: green));
+    if (kind == _Highlight.chip) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: context.palette.surfaceAccent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: word,
+      );
+    }
+    return CustomPaint(
+      foregroundPainter: const _SwooshPainter(green),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: word,
       ),
     );
   }
+}
+
+class _SwooshPainter extends CustomPainter {
+  const _SwooshPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double y = size.height - 3;
+    final Path p = Path()
+      ..moveTo(size.width * 0.02, y)
+      ..quadraticBezierTo(size.width * 0.5, y - 9, size.width, y - 3);
+    canvas.drawPath(
+      p,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = 4
+        ..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SwooshPainter old) => old.color != color;
 }
 
 class _PageDots extends StatelessWidget {
@@ -213,10 +310,10 @@ class _PageDots extends StatelessWidget {
         return AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           margin: const EdgeInsets.symmetric(horizontal: 4),
-          width: active ? 24 : 8,
-          height: 8,
+          width: active ? 22 : 16,
+          height: 7,
           decoration: BoxDecoration(
-            color: active ? AppColors.action : AppColors.border,
+            color: active ? AppColors.caramel : context.palette.border,
             borderRadius: BorderRadius.circular(4),
           ),
         );

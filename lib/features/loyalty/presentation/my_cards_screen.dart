@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/pill_tab_bar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/i18n/strings.dart';
 import '../../companies/application/companies_providers.dart';
@@ -43,12 +44,7 @@ class MyCardsScreen extends ConsumerWidget {
               },
             ),
           ],
-          bottom: TabBar(
-            tabs: <Widget>[
-              Tab(text: s.myCards),
-              Tab(text: s.tabRewards),
-            ],
-          ),
+          bottom: PillTabBar(tabs: <String>[s.myCards, s.tabRewards]),
         ),
         body: const TabBarView(
           children: <Widget>[
@@ -99,6 +95,7 @@ class _CardsTab extends ConsumerWidget {
       onRefresh: () async {
         ref.invalidate(myCardsProvider);
         ref.invalidate(coinSummaryProvider);
+        ref.invalidate(programByIdProvider);
       },
       child: ListView(
         padding: const EdgeInsets.fromLTRB(
@@ -110,7 +107,9 @@ class _CardsTab extends ConsumerWidget {
         children: <Widget>[
           _CoinBalanceCard(coinsAsync: coins),
           const SizedBox(height: AppSpacing.xl),
-          Text(s.loyaltyCards, style: AppTextStyles.h2),
+          Text(s.loyaltyCards,
+              style: AppTextStyles.h2.copyWith(
+                  color: context.palette.ink, fontWeight: FontWeight.w800)),
           const SizedBox(height: AppSpacing.md),
           cards.when(
             loading: () => const Padding(
@@ -163,26 +162,28 @@ class _CoinBalanceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S str = ref.watch(sProvider);
+    final AppPalette p = context.palette;
     return Container(
       decoration: BoxDecoration(
-        gradient: kHeroGradient,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: AppShadows.md,
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
       ),
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.md),
       child: coinsAsync.when(
         loading: () => SizedBox(
           height: 80,
           child: Center(
             child: CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(
-                  AppColors.onDark.withValues(alpha: 0.8)),
+                  p.caramel),
             ),
           ),
         ),
         error: (Object e, _) => Text(
           str.coinBalanceNotLoaded,
-          style: AppTextStyles.bodySm.copyWith(color: AppColors.onDark),
+          style: AppTextStyles.bodySm.copyWith(color: p.textSecondary),
         ),
         // Coins only count where they were earned, so the venues are the
         // headline; the grand total is just a footnote.
@@ -191,28 +192,39 @@ class _CoinBalanceCard extends ConsumerWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                const Icon(AppIcons.token, color: AppColors.onDark, size: 22),
+                Icon(AppIcons.token, color: p.caramel, size: 24),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(str.coinsByVenue,
-                      style: AppTextStyles.h3
-                          .copyWith(color: AppColors.onDark)),
+                      style: AppTextStyles.h3.copyWith(
+                          color: context.palette.ink, fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
             if (s.companies.isEmpty)
               Text(str.noCoinsYet,
-                  style: AppTextStyles.body
-                      .copyWith(color: AppColors.onDarkMuted))
+                  style: AppTextStyles.body.copyWith(color: p.textSecondary))
             else
-              for (final CompanyBalance c in s.companies)
-                _VenueBalanceRow(balance: c),
+              for (int i = 0; i < s.companies.length; i++) ...<Widget>[
+                if (i > 0) Divider(height: 1, color: p.divider),
+                _VenueBalanceRow(balance: s.companies[i]),
+              ],
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              '${str.coinsOnlyHere} ${str.coinsTotalAcross(s.total)}',
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.onDarkMuted),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(Icons.info_outline_rounded,
+                    size: 16, color: p.caramel),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    '${str.coinsOnlyHere} ${str.coinsTotalAcross(s.total)}',
+                    style: AppTextStyles.caption
+                        .copyWith(color: p.textSecondary),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -222,19 +234,20 @@ class _CoinBalanceCard extends ConsumerWidget {
 }
 
 /// One venue's coins; tapping opens that venue, where they can be spent.
-class _VenueBalanceRow extends StatelessWidget {
+class _VenueBalanceRow extends ConsumerWidget {
   const _VenueBalanceRow({required this.balance});
 
   final CompanyBalance balance;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
     final String? id = balance.companyId;
     return InkWell(
       onTap: id == null ? null : () => context.push('/companies/$id'),
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: <Widget>[
             Expanded(
@@ -242,15 +255,17 @@ class _VenueBalanceRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyles.body
-                      .copyWith(color: AppColors.onDark)),
+                      .copyWith(color: context.palette.textPrimary)),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text('${balance.balance}',
-                style: AppTextStyles.h2.copyWith(color: AppColors.onDark)),
+                style: AppTextStyles.h3.copyWith(
+                    color: context.palette.caramelText,
+                    fontWeight: FontWeight.w800)),
             const SizedBox(width: 4),
-            Text('coin',
-                style: AppTextStyles.bodySm
-                    .copyWith(color: AppColors.onDarkMuted)),
+            Text(s.coinUnit,
+                style: AppTextStyles.caption
+                    .copyWith(color: context.palette.textSecondary)),
           ],
         ),
       ),
@@ -274,12 +289,22 @@ class _CardEntry extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (Company? company) {
         if (company == null) return const SizedBox.shrink();
-        return FutureBuilder<LoyaltyProgram?>(
-          future:
-              ref.read(loyaltyRepositoryProvider).programById(card.programId),
-          builder: (BuildContext _, AsyncSnapshot<LoyaltyProgram?> snap) {
-            final LoyaltyProgram? program = snap.data;
-            if (program == null) return const _CardSkeleton();
+        final AsyncValue<LoyaltyProgram?> programAsync =
+            ref.watch(programByIdProvider(card.programId));
+        if (programAsync.isLoading && !programAsync.hasValue) {
+          return const _CardSkeleton();
+        }
+        final LoyaltyProgram? program = programAsync.valueOrNull;
+        if (program == null) {
+          return _CardLoadError(
+            message: s.cardNotLoaded,
+            retryLabel: s.retry,
+            onRetry: () =>
+                ref.invalidate(programByIdProvider(card.programId)),
+          );
+        }
+        return Builder(
+          builder: (BuildContext _) {
             return Column(
               children: <Widget>[
                 LoyaltyCardWidget(
@@ -322,6 +347,43 @@ class _CardEntry extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _CardLoadError extends StatelessWidget {
+  const _CardLoadError({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette p = context.palette;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: p.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.error_outline_rounded, color: p.textSecondary),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTextStyles.bodySm.copyWith(color: p.textSecondary),
+            ),
+          ),
+          TextButton(onPressed: onRetry, child: Text(retryLabel)),
+        ],
+      ),
     );
   }
 }

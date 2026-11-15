@@ -58,7 +58,9 @@ class AdminShell extends ConsumerWidget {
           label: s.tabNotify, icon: AppIcons.bell, activeIcon: AppIcons.bell),
     ];
     return PopScope(
-      canPop: currentIdx == 0,
+      // Only the first tab's own page may exit the app; sub-pages that
+      // fall back to index 0 (e.g. NFC, analytics) return to it instead.
+      canPop: GoRouterState.of(context).uri.path == _routes[0],
       onPopInvokedWithResult: (bool didPop, Object? _) {
         if (didPop) return;
         context.go(_routes[0]);

@@ -8,6 +8,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/money.dart';
 import '../../companies/application/companies_providers.dart';
@@ -28,7 +29,17 @@ class ManageProgramsScreen extends ConsumerWidget {
       return Scaffold(
         body: companyAsync.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : EmptyState(title: s.noBusinessProfile),
+            : companyAsync.hasError
+                ? EmptyState(
+                    title: s.notLoaded,
+                    subtitle: '${companyAsync.error}',
+                    icon: Icons.error_outline_rounded,
+                    action: OutlinedButton(
+                      onPressed: () => ref.invalidate(myCompanyProvider),
+                      child: Text(s.retry),
+                    ),
+                  )
+                : EmptyState(title: s.noBusinessProfile),
       );
     }
     final String businessId = company.id;
@@ -237,18 +248,20 @@ class _ProgramTile extends ConsumerWidget {
     final S s = ref.read(sProvider);
     final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (BuildContext _) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: Text(s.deleteProgramTitle),
         content: Text('"${p.title}" ${s.willBeDeletedSuffix}'),
         actions: <Widget>[
+          // Pop the dialog's own route, not the page underneath it.
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(s.cancel),
           ),
           FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.dangerText),
-            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.dangerText,
+                minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(s.delete),
           ),
         ],
@@ -308,7 +321,8 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
     final LoyaltyProgram? p = widget.existing;
     _title = TextEditingController(text: p?.title ?? '');
     _description = TextEditingController(text: p?.description ?? '');
-    _rewardItem = TextEditingController(text: p?.rewardItem ?? 'qəhvə');
+    _rewardItem = TextEditingController(
+        text: p?.rewardItem ?? ref.read(sProvider).pDefaultRewardItem);
     _rewardValue =
         TextEditingController(text: p?.rewardValue?.toString() ?? '');
     _stamps = p?.stampsRequired ?? 5;
@@ -341,7 +355,7 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
       case LoyaltyRewardType.fixedDiscount:
         return '$item ${s.onWord} ${Money.format(value, _currency)} ${s.discountWord}';
       case LoyaltyRewardType.cashback:
-        return '${Money.format(value, _currency)} cashback';
+        return '${Money.format(value, _currency)} ${s.pCashbackWord}';
     }
   }
 

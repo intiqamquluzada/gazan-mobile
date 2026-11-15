@@ -50,7 +50,7 @@ class BusinessShell extends ConsumerWidget {
     final String location = GoRouterState.of(context).uri.toString();
     final int currentIdx = _indexFor(routes, location);
     final AppNavItem till = AppNavItem(
-      label: s.tabRewards,
+      label: s.cashierWindow,
       icon: Icons.point_of_sale_rounded,
       activeIcon: Icons.point_of_sale_rounded,
       prominent: !cashier,
@@ -84,7 +84,9 @@ class BusinessShell extends ConsumerWidget {
                 activeIcon: AppIcons.store),
           ];
     return PopScope(
-      canPop: currentIdx == 0,
+      // Only the first tab's own page may exit the app; sub-pages that
+      // fall back to index 0 (e.g. NFC, analytics) return to it instead.
+      canPop: GoRouterState.of(context).uri.path == routes[0],
       onPopInvokedWithResult: (bool didPop, Object? _) {
         if (didPop) return;
         context.go(routes[0]);

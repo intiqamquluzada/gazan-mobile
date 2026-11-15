@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/nfc/nfc_reader.dart';
 import '../../../core/platform/app_variant.dart';
@@ -136,8 +137,13 @@ class _CardTile extends ConsumerWidget {
         container.invalidate(myNfcCardsProvider);
       } on ApiException catch (e) {
         messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      } catch (e) {
+        messenger.showSnackBar(SnackBar(content: Text('${s.failed}: $e')));
       }
     }
+
+    // Only the platform can lift a revoke, so the owner gets no toggle.
+    final bool revoked = card.status == 'REVOKED';
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -215,6 +221,14 @@ class _CardTile extends ConsumerWidget {
                 label: Text(s.nfcAssignAction),
               ),
               const Spacer(),
+              if (revoked)
+                Flexible(
+                  child: Text(s.pNfcRevokedContactAdmin,
+                      textAlign: TextAlign.end,
+                      style: AppTextStyles.caption
+                          .copyWith(color: AppColors.dangerText)),
+                )
+              else
               TextButton.icon(
                 onPressed: toggle,
                 icon: Icon(
@@ -293,11 +307,15 @@ class _TapRow extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                tap.accepted
-                    ? (tap.stampsDelta > 0
+                !tap.accepted
+                    ? nfcResultLabel(s, tap.result)
+                    : tap.stampsDelta > 0
                         ? '+${tap.stampsDelta} ${s.stampWord}'
-                        : '+${tap.pointsDelta}')
-                    : nfcResultLabel(s, tap.result),
+                        : tap.pointsDelta > 0
+                            ? '+${tap.pointsDelta} ${s.coinLabel}'
+                            // A spend-card tap credits nothing; it opened
+                            // the cashier window.
+                            : nfcKindLabel(s, 'SPEND'),
                 style: AppTextStyles.body
                     .copyWith(fontWeight: FontWeight.w600),
               ),

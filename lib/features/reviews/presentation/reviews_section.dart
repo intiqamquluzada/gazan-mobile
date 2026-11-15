@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../companies/application/companies_providers.dart';
 import '../application/reviews_providers.dart';
 import '../data/reviews_repository.dart';
 import '../domain/review.dart';
@@ -30,11 +31,11 @@ class ReviewsSection extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: AppShadows.md,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
       ),
       child: async.when(
         loading: () => const Center(
@@ -56,7 +57,12 @@ class ReviewsSection extends ConsumerWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            Text(s.reviewsWord, style: AppTextStyles.h3),
+            const Icon(Icons.chat_bubble_outline_rounded,
+                size: 19, color: AppColors.caramel),
+            const SizedBox(width: AppSpacing.sm),
+            Text(s.reviewsWord,
+                style: AppTextStyles.h3.copyWith(
+                    color: context.palette.ink, fontWeight: FontWeight.w700)),
             const Spacer(),
             if (r.count > 0) ...<Widget>[
               Text(r.average.toStringAsFixed(1),
@@ -343,7 +349,10 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
             rating: _rating,
             comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
           );
-      ref.invalidate(companyReviewsProvider(widget.companyId));
+      // The venue's average rating and count live on the company too.
+      ref
+        ..invalidate(companyReviewsProvider(widget.companyId))
+        ..invalidate(companyByIdProvider(widget.companyId));
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(

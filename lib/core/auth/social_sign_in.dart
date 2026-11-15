@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -10,11 +11,16 @@ class SocialCredential {
     required this.provider,
     required this.idToken,
     this.fullName,
+    this.authorizationCode,
   });
 
   final String provider; // GOOGLE | APPLE
   final String idToken;
   final String? fullName;
+
+  /// Apple only: one-time code the server trades for a refresh token, so
+  /// it can revoke the Apple session when the account is deleted.
+  final String? authorizationCode;
 }
 
 /// Native Google / Apple sign-in. Phones only: the Windows business app
@@ -22,18 +28,28 @@ class SocialCredential {
 class SocialSignIn {
   const SocialSignIn._();
 
+  /// Screenshot / design tooling only: show both buttons on any platform.
+  @visibleForTesting
+  static bool previewButtons = false;
+
+  /// On iOS Google is offered only together with Sign in with Apple:
+  /// App Review guideline 4.8 requires an equivalent privacy-focused login
+  /// whenever a third-party login is shown.
   static bool get googleAvailable =>
+      previewButtons ||
       PlatformCaps.isMobile &&
-      !AppVariant.isBusinessApp &&
-      AppConfig.googleServerClientId.isNotEmpty;
+          !AppVariant.isBusinessApp &&
+          AppConfig.googleServerClientId.isNotEmpty &&
+          (!PlatformCaps.isIOS || _appleEnabled);
 
   /// Off unless the build opts in with `--dart-define=APPLE_SIGN_IN=true`:
   /// the backend must have APPLE_CLIENT_IDS configured first, and a button
   /// that cannot sign anyone in fails App Review.
   static const bool _appleEnabled =
-      bool.fromEnvironment('APPLE_SIGN_IN', defaultValue: false);
+      bool.fromEnvironment('APPLE_SIGN_IN', defaultValue: true);
 
   static bool get appleAvailable =>
+      previewButtons ||
       _appleEnabled && PlatformCaps.isIOS && !AppVariant.isBusinessApp;
 
   /// Returns null when the user backs out of the account picker.
@@ -79,6 +95,7 @@ class SocialSignIn {
         provider: 'APPLE',
         idToken: token,
         fullName: name.isEmpty ? null : name,
+        authorizationCode: c.authorizationCode,
       );
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) return null;

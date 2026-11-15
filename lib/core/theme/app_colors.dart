@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 /// Central colour tokens — the ONLY place hex values live.
 ///
-/// Palette: warm coffee / beige / cream for a calm, premium loyalty feel.
-/// Every neutral leans slightly warm (never pure grey). Widgets reference
+/// Palette: fresh green on white / soft mint — a calm, premium loyalty feel.
+/// Green is an accent, not a fill: canvases stay white or near-white mint,
+/// cards are white, and green marks actions, active states and progress. Widgets reference
 /// these tokens (or [AppPalette] via `context.palette` when a value must
 /// follow light/dark mode) — never raw hex.
 ///
@@ -19,53 +20,61 @@ class AppColors {
   const AppColors._();
 
   // ── Backgrounds ────────────────────────────────────────────────────
-  static const Color background = Color(0xFFF8F4EF); // warm cream canvas
+  static const Color background = Color(0xFFF5FAF3); // near-white mint canvas
   static const Color surface = Color(0xFFFFFFFF); // cards
-  static const Color surfaceMuted = Color(0xFFF1ECE6); // chips, icon buttons
-  static const Color surfaceAccent = Color(0xFFF3E6D6); // selected / accent
+  static const Color surfaceMuted = Color(0xFFF0F5EE); // chips, icon buttons
+  static const Color surfaceAccent = Color(0xFFE6F4DF); // selected / accent
 
-  // ── Coffee premium surfaces (balance card, loyalty card, QR disc) ──
-  // Lightened from the spec's espresso (#2B211B / #3A2E26) — it read too
-  // heavy on screen. White text stays AA (6.7:1 on surfaceDark).
-  static const Color surfaceDark = Color(0xFF7A5439);
-  static const Color surfaceDark2 = Color(0xFF9C7556);
+  // ── Brand green surfaces (balance card, loyalty card, QR disc) ──
+  // Mid-tone green, never forest-dark. White text stays AA (5.3:1).
+  static const Color surfaceDark = Color(0xFF2C7A3A);
+  static const Color surfaceDark2 = Color(0xFF4FA548);
   static const Color onDark = Color(0xFFFFFFFF);
-  static const Color onDarkMuted = Color(0xFFF3E9DF);
+  static const Color onDarkMuted = Color(0xFFE6F4DF);
 
-  /// Coffee gradient for premium cards, splash, QR disc.
+  /// Brand green gradient for premium cards, splash, QR disc.
   static const List<Color> heroGradient = <Color>[surfaceDark2, surfaceDark];
 
-  /// Light latte band behind the discover header (dark text on top).
+  /// Light mint band behind the discover header (dark text on top).
   static const List<Color> heroLightGradient = <Color>[
-    Color(0xFFF6ECE1),
-    Color(0xFFECDCCA),
+    Color(0xFFF1F8EE),
+    Color(0xFFE2F1DB),
   ];
 
   // ── Actions ────────────────────────────────────────────────────────
-  // Lightened from spec #6F4A32; white label still 5.4:1 (AA).
-  static const Color action = Color(0xFF8A6245);
-  static const Color actionPressed = Color(0xFF6F4A32);
+  // Mid-tone green; white label 4.8:1 (AA). Filled buttons draw
+  // [actionGradient] on top of it.
+  static const Color action = Color(0xFF2A8236);
+  static const Color actionPressed = Color(0xFF23702E);
   static const Color onAction = Color(0xFFFFFFFF);
-  static const Color caramel = Color(0xFFA67C5B); // icons / indicators
-  static const Color caramelText = Color(0xFF8A6245); // caramel as text (AA)
-  static const Color caramelSoft = Color(0xFFF5ECE3); // secondary button bg
+  static const Color caramel = Color(0xFF3E9A45); // icons / indicators
+  static const Color caramelText = Color(0xFF23702E); // green as text (AA)
+  static const Color caramelSoft = Color(0xFFE8F5E3); // secondary button bg (mint)
+
+  /// Primary button fill: light-to-mid green, top-left to bottom-right.
+  static const List<Color> actionGradient = <Color>[
+    Color(0xFF55AD45),
+    Color(0xFF2A8236),
+  ];
 
   // ── Reward (reward moments ONLY — see class doc) ──────────────────
-  static const Color reward = Color(0xFFE0B26A);
+  static const Color reward = Color(0xFFE5A93A);
   static const Color rewardSoft = Color(0xFFFBF1E0);
   static const Color onReward = Color(0xFF3A2A12);
 
   // ── Highlight (rare: "Yeni" badge, new-content tags) ──────────────
-  static const Color highlight = Color(0xFF4F6B4A);
-  static const Color highlightSoft = Color(0xFFEAF0E7);
+  static const Color highlight = Color(0xFF2A8236);
+  static const Color highlightSoft = Color(0xFFE6F4DF);
 
   // ── Text ───────────────────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFF1E1915);
-  // Spec #7D746C → #766D65: the spec tone was 4.18:1 on the cream canvas.
-  static const Color textSecondary = Color(0xFF766D65);
-  // Spec #A59D95 → #8E857C (3.6:1 on white). Hints, placeholders,
+  /// Deep green for brand headings (logo word-mark, sign-in title).
+  static const Color ink = Color(0xFF1C4A2A);
+  static const Color textPrimary = Color(0xFF1A2B20);
+  // 5.3:1 on the mint canvas.
+  static const Color textSecondary = Color(0xFF5F6B63);
+  // 3.3:1 on white. Hints, placeholders,
   // disabled and inactive icons only — never body copy.
-  static const Color textTertiary = Color(0xFF8E857C);
+  static const Color textTertiary = Color(0xFF828C85);
 
   // ── Status ─────────────────────────────────────────────────────────
   static const Color success = Color(0xFF22A861); // dots, icons, fills
@@ -76,15 +85,15 @@ class AppColors {
   static const Color dangerSoft = Color(0xFFFBE9EC);
 
   // ── Lines, tracks, shadows ─────────────────────────────────────────
-  static const Color border = Color(0xFFECE4DC);
-  static const Color borderStrong = Color(0xFFDDD2C7);
-  static const Color divider = Color(0xFFE6DDD5);
-  static const Color progressTrack = Color(0xFFECE4DC);
-  static const Color progressTrackOnDark = Color(0xFF5E412C);
-  static const Color stampEmpty = Color(0xFFE9E3DC);
+  static const Color border = Color(0xFFE3EBE0);
+  static const Color borderStrong = Color(0xFFD3DED0);
+  static const Color divider = Color(0xFFE6ECE3);
+  static const Color progressTrack = Color(0xFFE3EBE0);
+  static const Color progressTrackOnDark = Color(0xFF6DB865);
+  static const Color stampEmpty = Color(0xFFE8EEE5);
 
-  /// Base tint for card / elevated shadows — rgb(90, 60, 35).
-  static const Color shadowTint = Color(0xFF5A3C23);
+  /// Base tint for card / elevated shadows — rgb(30, 58, 36).
+  static const Color shadowTint = Color(0xFF1E3A24);
 
   // ── Category accents (max 4; everything else uses the neutral pair) ─
   static const Color catCoffee = Color(0xFF8A5A1F);
@@ -108,27 +117,27 @@ class AppColors {
 class AppColorsDark {
   const AppColorsDark._();
 
-  static const Color background = Color(0xFF16110E);
-  static const Color surface = Color(0xFF211A15);
-  static const Color surfaceMuted = Color(0xFF2C231D);
-  static const Color surfaceAccent = Color(0xFF3A2E24);
-  static const Color textPrimary = Color(0xFFF5EFE9);
-  static const Color textSecondary = Color(0xFFB8ADA3);
-  static const Color textTertiary = Color(0xFF8C8279);
-  static const Color action = Color(0xFFC9A07E);
-  static const Color actionPressed = Color(0xFFB88E6B);
-  static const Color onAction = Color(0xFF1E1915);
-  static const Color caramel = Color(0xFFC9A07E);
-  static const Color caramelText = Color(0xFFC9A07E);
-  static const Color caramelSoft = Color(0xFF33281F);
+  static const Color background = Color(0xFF0F1511);
+  static const Color surface = Color(0xFF18201A);
+  static const Color surfaceMuted = Color(0xFF202A23);
+  static const Color surfaceAccent = Color(0xFF243A2A);
+  static const Color textPrimary = Color(0xFFEEF3EE);
+  static const Color textSecondary = Color(0xFFA9B5AC);
+  static const Color textTertiary = Color(0xFF7C887F);
+  static const Color action = Color(0xFF6CC46A);
+  static const Color actionPressed = Color(0xFF5AB058);
+  static const Color onAction = Color(0xFF0F1511);
+  static const Color caramel = Color(0xFF6CC46A);
+  static const Color caramelText = Color(0xFF7FD07C);
+  static const Color caramelSoft = Color(0xFF1F3324);
   static const Color reward = Color(0xFFE8BD78);
   static const Color rewardSoft = Color(0xFF3A2F1E);
-  static const Color highlight = Color(0xFF7E9C77);
-  static const Color highlightSoft = Color(0xFF26301F);
-  static const Color border = Color(0xFF3A2F27);
-  static const Color divider = Color(0xFF3A2F27);
-  static const Color progressTrack = Color(0xFF3A2F27);
-  static const Color stampEmpty = Color(0xFF3A2F27);
+  static const Color highlight = Color(0xFF7FD07C);
+  static const Color highlightSoft = Color(0xFF1F3324);
+  static const Color border = Color(0xFF2A352D);
+  static const Color divider = Color(0xFF2A352D);
+  static const Color progressTrack = Color(0xFF2A352D);
+  static const Color stampEmpty = Color(0xFF2A352D);
   static const Color successSoft = Color(0xFF1C2E22);
   static const Color dangerSoft = Color(0xFF3A1F24);
 }
@@ -143,6 +152,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     required this.surfaceMuted,
     required this.surfaceAccent,
     required this.textPrimary,
+    required this.ink,
     required this.textSecondary,
     required this.textTertiary,
     required this.action,
@@ -168,6 +178,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     surfaceMuted: AppColors.surfaceMuted,
     surfaceAccent: AppColors.surfaceAccent,
     textPrimary: AppColors.textPrimary,
+    ink: AppColors.ink,
     textSecondary: AppColors.textSecondary,
     textTertiary: AppColors.textTertiary,
     action: AppColors.action,
@@ -193,6 +204,7 @@ class AppPalette extends ThemeExtension<AppPalette> {
     surfaceMuted: AppColorsDark.surfaceMuted,
     surfaceAccent: AppColorsDark.surfaceAccent,
     textPrimary: AppColorsDark.textPrimary,
+    ink: AppColorsDark.textPrimary,
     textSecondary: AppColorsDark.textSecondary,
     textTertiary: AppColorsDark.textTertiary,
     action: AppColorsDark.action,
@@ -217,6 +229,9 @@ class AppPalette extends ThemeExtension<AppPalette> {
   final Color surfaceMuted;
   final Color surfaceAccent;
   final Color textPrimary;
+
+  /// Deep brand green used for headings; light text in dark mode.
+  final Color ink;
   final Color textSecondary;
   final Color textTertiary;
   final Color action;

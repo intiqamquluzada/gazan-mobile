@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -25,11 +26,25 @@ import '../data/nfc_repository.dart';
 class NfcTapScreen extends ConsumerStatefulWidget {
   const NfcTapScreen({super.key});
 
+  /// Screenshot / design tooling only: skip the hardware check and show
+  /// the "hold your phone to the card" state.
+  @visibleForTesting
+  static bool previewWaiting = false;
+
   @override
   ConsumerState<NfcTapScreen> createState() => _NfcTapScreenState();
 }
 
-enum _Phase { checking, unsupported, disabled, waiting, sending, done, error }
+enum _Phase {
+  checking,
+  unsupported,
+  disabled,
+  waiting,
+  sending,
+  repeat,
+  done,
+  error,
+}
 
 class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
   _Phase _phase = _Phase.checking;
@@ -50,6 +65,10 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
   }
 
   Future<void> _start() async {
+    if (NfcTapScreen.previewWaiting) {
+      setState(() => _phase = _Phase.waiting);
+      return;
+    }
     try {
       final NfcAvailability a = await NfcManager.instance.checkAvailability();
       if (!mounted) return;
@@ -79,7 +98,7 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _error = '$e';
+          _error = ref.read(sProvider).errorTryAgain;
         });
       }
     }
@@ -109,7 +128,11 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
       final NfcTapResult? res = await flow.submit(token: token, uid: read.uid);
       if (!mounted) return;
       if (res == null) {
-        unawaited(_again());
+        // Same card still on the phone (or a tap in flight): say so and
+        // pause, rather than re-reading and buzzing in a loop.
+        setState(() => _phase = _Phase.repeat);
+        await Future<void>.delayed(const Duration(seconds: 2));
+        if (mounted && _phase == _Phase.repeat) unawaited(_again());
         return;
       }
       setState(() {
@@ -151,9 +174,16 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
         title: Text(s.nfcTitle),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Center(child: _body(s)),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints c) =>
+              SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                  minHeight: c.maxHeight - AppSpacing.xl * 2),
+              child: Center(child: _body(s)),
+            ),
+          ),
         ),
       ),
     );
@@ -183,6 +213,16 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
         return _Waiting(s: s);
       case _Phase.sending:
         return const CircularProgressIndicator();
+      case _Phase.repeat:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(AppIcons.check, size: 64, color: AppColors.caramel),
+            const SizedBox(height: AppSpacing.lg),
+            Text(s.nfcAlreadyCounted,
+                textAlign: TextAlign.center, style: AppTextStyles.h3),
+          ],
+        );
       case _Phase.error:
         return _Message(
           icon: Icons.error_outline_rounded,
@@ -198,7 +238,9 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
   }
 }
 
-/// Pulsing "hold your phone to the card" state.
+/// "Hold your phone to the card": the 3D phone-and-reader art floats
+/// gently while soft mint rings ripple out behind it — a calm, continuous
+/// hint that the phone is listening.
 class _Waiting extends StatefulWidget {
   const _Waiting({required this.s});
 
@@ -212,16 +254,16 @@ class _WaitingState extends State<_Waiting>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1600),
+    duration: const Duration(milliseconds: 2400),
   );
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (reduceMotionOf(context)) {
-      _c.value = 0.5;
+      _c.value = 0.3;
     } else if (!_c.isAnimating) {
-      _c.repeat(reverse: true);
+      _c.repeat();
     }
   }
 
@@ -233,57 +275,76 @@ class _WaitingState extends State<_Waiting>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        SizedBox(
-          width: 220,
-          height: 220,
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (_, __) {
-              final double t = Curves.easeInOut.transform(_c.value);
-              return Stack(
-                alignment: Alignment.center,
-                children: <Widget>[
-                  for (double ring in <double>[1.0, 0.78, 0.56])
-                    Container(
-                      width: 220 * ring * (0.92 + 0.08 * t),
-                      height: 220 * ring * (0.92 + 0.08 * t),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.caramel
-                            .withValues(alpha: 0.08 + 0.06 * (1 - t) * ring),
+    final AppPalette p = context.palette;
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints c) {
+        final double art = (c.maxWidth * 0.86).clamp(240.0, 360.0).toDouble();
+        return AnimatedBuilder(
+          animation: _c,
+          builder: (BuildContext context, Widget? child) {
+            final double t = _c.value;
+            final double bob = math.sin(t * 2 * math.pi);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                SizedBox(
+                  width: art,
+                  height: art * 0.86,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    clipBehavior: Clip.none,
+                    children: <Widget>[
+                      // Ripples: three rings expanding and fading out.
+                      for (int i = 0; i < 3; i++)
+                        Builder(builder: (_) {
+                          final double r = (t + i / 3) % 1;
+                          return Opacity(
+                            opacity: (1 - r) * 0.55,
+                            child: Container(
+                              width: art * (0.55 + 0.5 * r),
+                              height: art * (0.55 + 0.5 * r),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: p.surfaceAccent,
+                              ),
+                            ),
+                          );
+                        }),
+                      Transform.translate(
+                        offset: Offset(0, -6 * bob),
+                        child: child,
                       ),
-                    ),
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: AppColors.heroGradient,
-                      ),
-                    ),
-                    child: const Icon(Icons.nfc_rounded,
-                        size: 44, color: AppColors.onDark),
+                    ],
                   ),
-                ],
-              );
-            },
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  widget.s.nfcHoldPhone,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.display.copyWith(
+                    color: context.palette.ink,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  widget.s.nfcHoldPhoneBody,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.body
+                      .copyWith(color: p.textSecondary, height: 1.5),
+                ),
+              ],
+            );
+          },
+          child: Image.asset(
+            'assets/illustrations/onb_nfc.png',
+            width: art * 0.92,
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.medium,
           ),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Text(widget.s.nfcHoldPhone,
-            textAlign: TextAlign.center, style: AppTextStyles.h2),
-        const SizedBox(height: AppSpacing.sm),
-        Text(widget.s.nfcHoldPhoneBody,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodySm
-                .copyWith(color: AppColors.textSecondary)),
-      ],
+        );
+      },
     );
   }
 }
@@ -298,10 +359,14 @@ class _Success extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool stamp = result.isStamp;
+    final int? now = result.stampsNow;
+    final int? goal = result.stampsRequired;
+    final String program = result.programTitle ?? '';
     final String headline = result.isSpend
         ? s.spendWaitingBody
         : stamp
-            ? '+${result.stampsAdded} ${s.stampWord}'
+            ? '+${result.stampsAdded} '
+                '${result.stampsAdded == 1 ? s.stampWordShort : s.stampWord}'
             : '+${result.pointsAdded} ${s.coinLabel}';
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -322,10 +387,14 @@ class _Success extends StatelessWidget {
             textAlign: TextAlign.center, style: AppTextStyles.display),
         const SizedBox(height: AppSpacing.xs),
         Text(result.companyName, style: AppTextStyles.h3),
-        if (stamp && result.stampsNow != null) ...<Widget>[
+        if (stamp && now != null && goal != null) ...<Widget>[
           const SizedBox(height: AppSpacing.sm),
-          Text('${result.stampsNow}/${result.stampsRequired} · '
-              '${result.programTitle ?? ''}'),
+          Text(program.isEmpty ? '$now/$goal' : '$now/$goal · $program'),
+        ] else if (stamp) ...<Widget>[
+          if (program.isNotEmpty) ...<Widget>[
+            const SizedBox(height: AppSpacing.sm),
+            Text(program),
+          ],
         ] else if (!result.isSpend) ...<Widget>[
           const SizedBox(height: AppSpacing.sm),
           Text(s.coinsAtVenue(result.pointsBalance)),

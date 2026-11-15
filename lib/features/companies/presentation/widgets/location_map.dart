@@ -35,31 +35,41 @@ class LocationMap extends ConsumerWidget {
     final S s = ref.watch(sProvider);
     final LatLng point = LatLng(latitude, longitude);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.sm, AppSpacing.lg),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: AppShadows.md,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Text(s.address, style: AppTextStyles.h3),
+              const Icon(Icons.place_outlined,
+                  size: 20, color: AppColors.caramel),
+              const SizedBox(width: AppSpacing.sm),
+              Text(s.address,
+                  style: AppTextStyles.h3.copyWith(
+                      color: context.palette.ink, fontWeight: FontWeight.w700)),
               const Spacer(),
               TextButton.icon(
                 onPressed: _openDirections,
                 icon: const Icon(Icons.directions_rounded, size: 18),
-                label: Text(s.directions),
+                label: Text(s.directions,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          ClipRRect(
+          const SizedBox(height: AppSpacing.xs),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             child: SizedBox(
-              height: 170,
+              height: 150,
               child: Stack(
                 children: <Widget>[
                   FlutterMap(
@@ -91,11 +101,19 @@ class LocationMap extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      // Required by the OpenStreetMap tile usage policy.
+                      DefaultTextStyle.merge(
+                        style: const TextStyle(fontSize: 9),
+                        child: const SimpleAttributionWidget(
+                          source: Text('OpenStreetMap contributors'),
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
             ),
+          ),
           ),
         ],
       ),

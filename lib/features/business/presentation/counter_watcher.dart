@@ -2,18 +2,26 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
+import '../../../core/platform/app_variant.dart';
 import '../../../core/platform/window_attention.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/user_role.dart';
 import '../application/panel_providers.dart';
 import '../domain/panel_models.dart';
 
 /// Watches the till from every business tab: when a customer taps the
-/// venue's "spend" card, the app jumps to the cashier screen (which then
-/// opens that customer's window by itself), whatever tab or pushed page the
-/// cashier was on. On the desktop till the window is also brought forward.
+/// venue's "spend" card, the till app (Windows) and cashiers jump to the
+/// cashier screen (which then opens that customer's window by itself),
+/// whatever tab or pushed page they were on. On the desktop till the window
+/// is also brought forward. An owner on a phone is usually doing something
+/// else, so they get a snackbar with an "Open" action instead of being
+/// yanked off the page (and losing a half-filled form).
 ///
 /// Phones only watch while the app is in the foreground (a closed or
 /// backgrounded phone app gets a push notification instead); the desktop
@@ -75,8 +83,24 @@ class _CounterWatcherState extends ConsumerState<CounterWatcher>
       if (fresh.isEmpty) return;
       final GoRouter router = GoRouter.of(context);
       final String here = router.routeInformationProvider.value.uri.path;
-      if (here != CounterWatcher.tillRoute) router.go(CounterWatcher.tillRoute);
-      unawaited(WindowAttention.raise());
+      if (here == CounterWatcher.tillRoute) return;
+      final bool autoJump = AppVariant.isBusinessApp ||
+          _desktop ||
+          ref.read(currentUserProvider)?.role == UserRole.cashier;
+      if (autoJump) {
+        router.go(CounterWatcher.tillRoute);
+        unawaited(WindowAttention.raise());
+        return;
+      }
+      final S s = ref.read(sProvider);
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+        content: Text(s.pCustomerAtTill),
+        duration: const Duration(seconds: 8),
+        action: SnackBarAction(
+          label: s.pOpen,
+          onPressed: () => router.go(CounterWatcher.tillRoute),
+        ),
+      ));
     } catch (_) {
       // Offline or signed out: the till screen shows its own error.
     } finally {

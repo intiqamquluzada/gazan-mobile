@@ -45,7 +45,7 @@ class CustomerShell extends ConsumerWidget {
           activeIcon: AppIcons.homeActive),
       AppNavItem(
           label: s.tabCompanies,
-          icon: AppIcons.store,
+          icon: Icons.storefront_outlined,
           activeIcon: AppIcons.store),
       const AppNavItem(
           label: '',

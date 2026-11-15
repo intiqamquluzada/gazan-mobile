@@ -14,6 +14,7 @@ import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../notifications/presentation/notification_bell.dart';
+import '../../promotions/application/promotions_providers.dart';
 import '../../promotions/presentation/widgets/promotions_carousel.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
@@ -27,9 +28,11 @@ class DiscoverScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final AsyncValue<List<Company>> companies = ref.watch(companiesProvider);
-    final String userName =
-        ref.watch(currentUserProvider)?.fullName.split(' ').first ??
-            s.friendFallback;
+    final String firstName = (ref.watch(currentUserProvider)?.fullName ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .first;
+    final String userName = firstName.isEmpty ? s.friendFallback : firstName;
 
     // Keep the last loaded list visible while a new query is fetching so
     // the feed never collapses into a spinner under the search field.
@@ -40,6 +43,7 @@ class DiscoverScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(companiesProvider);
           ref.invalidate(featuredCompaniesProvider);
+          ref.invalidate(promotionsProvider);
         },
         child: CustomScrollView(
           slivers: <Widget>[

@@ -55,10 +55,11 @@ class _MenuPreviewState extends ConsumerState<MenuPreview> {
     final AppPalette p = context.palette;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.lg),
       decoration: BoxDecoration(
         color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         boxShadow: AppShadows.sm,
       ),
       child: Column(
@@ -69,11 +70,21 @@ class _MenuPreviewState extends ConsumerState<MenuPreview> {
               const Icon(Icons.restaurant_menu_rounded,
                   size: 20, color: AppColors.caramel),
               const SizedBox(width: AppSpacing.sm),
-              Text(s.menuWord, style: AppTextStyles.h3),
+              Text(s.menuWord,
+                  style: AppTextStyles.h3.copyWith(
+                      color: context.palette.ink, fontWeight: FontWeight.w700)),
               const Spacer(),
               TextButton(
                 onPressed: () => widget.onOpenFull(sorted),
-                child: Text('${s.fullMenu} (${items.length})'),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Text('${s.fullMenu} (${items.length})',
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                    const Icon(Icons.chevron_right_rounded, size: 18),
+                  ],
+                ),
               ),
             ],
           ),
@@ -96,6 +107,10 @@ class _MenuPreviewState extends ConsumerState<MenuPreview> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: on ? p.action : p.surfaceMuted,
+                        gradient: on
+                            ? const LinearGradient(
+                                colors: AppColors.actionGradient)
+                            : null,
                         borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                       child: Text(
@@ -111,10 +126,13 @@ class _MenuPreviewState extends ConsumerState<MenuPreview> {
               ),
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.sm),
           for (int i = 0; i < visible.length; i++) ...<Widget>[
             if (i > 0) Divider(height: AppSpacing.lg, color: p.divider),
-            _Row(item: visible[i], currency: widget.currency),
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: _Row(item: visible[i], currency: widget.currency),
+            ),
           ],
         ],
       ),

@@ -35,6 +35,7 @@ class LoyaltyCardWidget extends ConsumerWidget {
     final int stamps = card?.stamps ?? 0;
     final int required = program.stampsToFill(card);
     final int rewards = card?.rewardsAvailable ?? 0;
+    final AppPalette p = context.palette;
 
     return InkWell(
       onTap: onTap,
@@ -42,15 +43,10 @@ class LoyaltyCardWidget extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          // Premium dark coffee card for every venue; the venue's own
-          // colour survives only in the logo tile.
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: AppColors.heroGradient,
-          ),
+          // White card; green carries the venue name and the reward slot.
+          color: p.surface,
           borderRadius: BorderRadius.circular(AppRadius.xl),
-          boxShadow: AppShadows.md,
+          boxShadow: AppShadows.sm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,12 +66,12 @@ class LoyaltyCardWidget extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(company.name,
-                          style: AppTextStyles.h3
-                              .copyWith(color: AppColors.onDark)),
+                          style: AppTextStyles.h3.copyWith(
+                              color: p.caramelText,
+                              fontWeight: FontWeight.w800)),
                       Text(program.title,
-                          style: AppTextStyles.bodySm.copyWith(
-                            color: AppColors.onDarkMuted,
-                          )),
+                          style: AppTextStyles.bodySm
+                              .copyWith(color: p.textSecondary)),
                     ],
                   ),
                 ),
@@ -103,19 +99,23 @@ class LoyaltyCardWidget extends ConsumerWidget {
                       ],
                     ),
                   ),
+                if (onTap != null) ...<Widget>[
+                  const SizedBox(width: AppSpacing.xs),
+                  Icon(Icons.chevron_right_rounded, color: p.textPrimary),
+                ],
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
-            StampGrid(stamps: stamps, required: required),
+            StampGrid(stamps: stamps, required: required, onDark: false),
             const SizedBox(height: AppSpacing.md),
-            // Progress toward the next reward: dark track, gold fill.
+            // Progress toward the next reward.
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.full),
               child: LinearProgressIndicator(
                 value: required == 0 ? 0 : (stamps / required).clamp(0, 1),
-                minHeight: 6,
-                color: AppColors.reward,
-                backgroundColor: AppColors.progressTrackOnDark,
+                minHeight: 5,
+                color: p.caramel,
+                backgroundColor: p.progressTrack,
               ),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -127,13 +127,13 @@ class LoyaltyCardWidget extends ConsumerWidget {
                       ? '$rewards ${s.rewardWord} ${s.readyWord}'
                       : '$stamps / $required ${s.stampWord}',
                   style: AppTextStyles.bodySm.copyWith(
-                    color: AppColors.onDark,
+                    color: p.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(program.rewardLabelOf(s, currency: company.currency),
                     style: AppTextStyles.caption.copyWith(
-                      color: AppColors.onDarkMuted,
+                      color: p.textPrimary,
                       fontWeight: FontWeight.w600,
                     )),
               ],

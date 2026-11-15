@@ -766,7 +766,7 @@ class _CompactContent extends StatelessWidget {
   }
 }
 
-class _HeartButton extends StatelessWidget {
+class _HeartButton extends ConsumerWidget {
   const _HeartButton({
     required this.size,
     required this.iconSize,
@@ -782,11 +782,11 @@ class _HeartButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Semantics(
       button: true,
       toggled: active,
-      label: 'Favorit: $label',
+      label: '${ref.watch(sProvider).favoriteSemantic}: $label',
       child: Material(
         color: _kHeartBg,
         shape: const CircleBorder(),

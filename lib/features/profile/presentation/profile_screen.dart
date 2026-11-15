@@ -330,19 +330,19 @@ class ProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.alternate_email_rounded),
               title: Text(s.email),
               subtitle: const Text('hello@qazan.az'),
-              onTap: () => _launch('mailto:hello@qazan.az'),
+              onTap: () => _launch(context, 'mailto:hello@qazan.az', s),
             ),
             ListTile(
               leading: const Icon(Icons.phone_rounded),
               title: Text(s.phoneWord),
               subtitle: const Text('+994 12 555 00 00'),
-              onTap: () => _launch('tel:+994125550000'),
+              onTap: () => _launch(context, 'tel:+994125550000', s),
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline_rounded),
               title: const Text('WhatsApp'),
               subtitle: Text(s.whatsappSub),
-              onTap: () => _launch('https://wa.me/994125550000'),
+              onTap: () => _launch(context, 'https://wa.me/994125550000', s),
             ),
             const SizedBox(height: AppSpacing.lg),
             PrimaryButton(
@@ -355,10 +355,19 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _launch(String uri) async {
-    final Uri u = Uri.parse(uri);
-    if (await canLaunchUrl(u)) {
-      await launchUrl(u, mode: LaunchMode.externalApplication);
+  // canLaunchUrl is unreliable under Android 11+ package visibility, so
+  // just try and tell the user when nothing could handle the link.
+  Future<void> _launch(BuildContext context, String uri, S s) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    bool ok = false;
+    try {
+      ok = await launchUrl(Uri.parse(uri),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok) {
+      messenger.showSnackBar(SnackBar(content: Text(s.couldNotOpenLink)));
     }
   }
 

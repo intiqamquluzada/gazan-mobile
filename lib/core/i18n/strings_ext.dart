@@ -31,6 +31,24 @@ extension PanelStrings on S {
   String get birthDateRequired => _p('birthDateRequired', 'Doğum tarixini seç');
   String get socialSignInFailed => _p('socialSignInFailed', 'Giriş alınmadı. Yenidən cəhd et.');
   String get orContinueWith => _p('orContinueWith', 'və ya');
+  // Onboarding: title = a + highlighted b + c.
+  String get onb1a => _p('onb1a', 'Sevdiyin yerlərdən ');
+  String get onb1b => _p('onb1b', 'qazan');
+  String get onb1c => _p('onb1c', '');
+  String get onb2a => _p('onb2a', 'Kartını ');
+  String get onb2b => _p('onb2b', 'NFC');
+  String get onb2c => _p('onb2c', ' ilə oxut');
+  String get onb3a => _p('onb3a', 'Mükafatlarını topla və istifadə et');
+  String get onb3b => _p('onb3b', '');
+  String get onb3c => _p('onb3c', '');
+  String get onbBody1 => _p('onbBody1', 'Kafe, restoran, salon və daha çox məkanda alış-veriş et, xüsusi mükafatlar qazan.');
+  String get onbBody2 => _p('onbBody2', 'Telefonunu kassadakı Qazan NFC kartına yaxınlaşdır, xalların dərhal yazılsın.');
+  String get onbBody3 => _p('onbBody3', 'Topladığın xallarla xüsusi endirimlər, hədiyyələr və sürpriz üstünlüklərdən yararlan.');
+  String get aboutTab => _p('aboutTab', 'Haqqında');
+  String get brandSubtitle => _p('brandSubtitle', 'Müştəri sadiqlik platforması');
+  String get loginTagline => _p('loginTagline', 'Xal qazan, üstünlüklərdən yararlan və sənə özəl kampaniyaları qaçırma.');
+  String get signInWithGoogle => _p('signInWithGoogle', 'Google ilə daxil ol');
+  String get signInWithApple => _p('signInWithApple', 'Apple ilə daxil ol');
   String get continueWithGoogle => _p('continueWithGoogle', 'Google ilə davam et');
   String get continueWithApple => _p('continueWithApple', 'Apple ilə davam et');
   String get completeProfileTitle => _p('completeProfileTitle', 'Son bir addım');
@@ -144,6 +162,12 @@ extension PanelStrings on S {
   String get promoCompany => _p('promoCompany', 'Biznes');
   String get promoNoCompany => _p('promoNoCompany', 'Bağlı deyil');
   String get promoEndsAt => _p('promoEndsAt', 'Bitmə tarixi');
+  // Customer-side fixes.
+  String get cardNotLoaded => _p('cardNotLoaded', 'Kart yüklənmədi');
+  String get coinUnit => _p('coinUnit', 'coin');
+  String get couldNotOpenLink => _p('couldNotOpenLink', 'Açmaq alınmadı');
+  String get nfcAlreadyCounted => _p('nfcAlreadyCounted', 'Bu oxutma artıq qeydə alınıb');
+  String get favoriteSemantic => _p('favoriteSemantic', 'Sevimli');
 }
 
 const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
@@ -165,6 +189,23 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'birthDateRequired': 'Pick your date of birth',
     'socialSignInFailed': 'Sign-in failed. Please try again.',
     'orContinueWith': 'or',
+    'onb1a': '',
+    'onb1b': 'Earn',
+    'onb1c': ' at the places you love',
+    'onb2a': 'Scan your card with ',
+    'onb2b': 'NFC',
+    'onb2c': '',
+    'onb3a': 'Collect and use your rewards',
+    'onb3b': '',
+    'onb3c': '',
+    'onbBody1': 'Shop at cafés, restaurants, salons and more — and earn special rewards.',
+    'onbBody2': 'Hold your phone to the Qazan NFC card at the till — points land instantly.',
+    'onbBody3': 'Use your points for exclusive discounts, gifts and surprise perks.',
+    'aboutTab': 'About',
+    'brandSubtitle': 'Customer loyalty platform',
+    'loginTagline': 'Earn points, enjoy perks and never miss the offers made for you.',
+    'signInWithGoogle': 'Sign in with Google',
+    'signInWithApple': 'Sign in with Apple',
     'continueWithGoogle': 'Continue with Google',
     'continueWithApple': 'Continue with Apple',
     'completeProfileTitle': 'One last step',
@@ -278,6 +319,11 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'promoCompany': 'Business',
     'promoNoCompany': 'Not linked',
     'promoEndsAt': 'End date',
+    'cardNotLoaded': 'Card could not be loaded',
+    'coinUnit': 'coins',
+    'couldNotOpenLink': 'Could not open',
+    'nfcAlreadyCounted': 'This tap is already counted',
+    'favoriteSemantic': 'Favorite',
   },
   'ru': <String, String>{
     'networkError': 'Не удалось связаться с сервером. Проверьте интернет.',
@@ -297,6 +343,23 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'birthDateRequired': 'Выберите дату рождения',
     'socialSignInFailed': 'Не удалось войти. Попробуйте снова.',
     'orContinueWith': 'или',
+    'onb1a': '',
+    'onb1b': 'Зарабатывайте',
+    'onb1c': ' в любимых местах',
+    'onb2a': 'Сканируйте карту через ',
+    'onb2b': 'NFC',
+    'onb2c': '',
+    'onb3a': 'Собирайте и тратьте награды',
+    'onb3b': '',
+    'onb3c': '',
+    'onbBody1': 'Покупайте в кафе, ресторанах, салонах и других местах — получайте особые награды.',
+    'onbBody2': 'Поднесите телефон к NFC-карте Qazan на кассе — баллы начислятся сразу.',
+    'onbBody3': 'Тратьте баллы на скидки, подарки и приятные сюрпризы.',
+    'aboutTab': 'О месте',
+    'brandSubtitle': 'Платформа лояльности клиентов',
+    'loginTagline': 'Копите баллы, пользуйтесь привилегиями и не пропускайте персональные акции.',
+    'signInWithGoogle': 'Войти через Google',
+    'signInWithApple': 'Войти через Apple',
     'continueWithGoogle': 'Продолжить с Google',
     'continueWithApple': 'Продолжить с Apple',
     'completeProfileTitle': 'Последний шаг',
@@ -410,12 +473,17 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'promoCompany': 'Бизнес',
     'promoNoCompany': 'Не привязано',
     'promoEndsAt': 'Дата окончания',
+    'cardNotLoaded': 'Не удалось загрузить карту',
+    'coinUnit': 'коинов',
+    'couldNotOpenLink': 'Не удалось открыть',
+    'nfcAlreadyCounted': 'Это касание уже засчитано',
+    'favoriteSemantic': 'Избранное',
   },
   'tr': <String, String>{
     'networkError': 'Sunucuya ulaşılamadı. İnternetini kontrol et.',
     'phoneRequired': 'Telefon numaranı gir',
-    'regPhoneTitle': 'Telefon numaran',
-    'regPhoneSub': 'Başlamak için numaranı yaz.',
+    'regPhoneTitle': 'Telefon numaranız',
+    'regPhoneSub': 'Başlamak için numaranızı girin.',
     'phoneAlreadyRegistered': 'Bu numara zaten kayıtlı. Giriş yap.',
     'regVerifyTitle': 'Numaranı doğrula',
     'regVerifySub': 'Kodu şu numaraya gönderdik:',
@@ -429,6 +497,23 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'birthDateRequired': 'Doğum tarihini seç',
     'socialSignInFailed': 'Giriş yapılamadı. Tekrar dene.',
     'orContinueWith': 'veya',
+    'onb1a': 'Sevdiğin yerlerden ',
+    'onb1b': 'kazan',
+    'onb1c': '',
+    'onb2a': 'Kartını ',
+    'onb2b': 'NFC',
+    'onb2c': ' ile okut',
+    'onb3a': 'Ödüllerini topla ve kullan',
+    'onb3b': '',
+    'onb3c': '',
+    'onbBody1': 'Kafe, restoran, salon ve daha birçok mekânda alışveriş yap, özel ödüller kazan.',
+    'onbBody2': 'Telefonunu kasadaki Qazan NFC kartına yaklaştır, puanların anında yazılsın.',
+    'onbBody3': 'Topladığın puanlarla özel indirimler, hediyeler ve sürpriz avantajlardan yararlan.',
+    'aboutTab': 'Hakkında',
+    'brandSubtitle': 'Müşteri Sadakat Platformu',
+    'loginTagline': 'Puan kazanın, özel ödüller ve kampanyalardan yararlanın.',
+    'signInWithGoogle': 'Google ile giriş yap',
+    'signInWithApple': 'Apple ile giriş yap',
     'continueWithGoogle': 'Google ile devam et',
     'continueWithApple': 'Apple ile devam et',
     'completeProfileTitle': 'Son bir adım',
@@ -542,5 +627,10 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'promoCompany': 'İşletme',
     'promoNoCompany': 'Bağlı değil',
     'promoEndsAt': 'Bitiş tarihi',
+    'cardNotLoaded': 'Kart yüklenemedi',
+    'coinUnit': 'coin',
+    'couldNotOpenLink': 'Açılamadı',
+    'nfcAlreadyCounted': 'Bu okutma zaten kaydedildi',
+    'favoriteSemantic': 'Favori',
   },
 };

@@ -31,6 +31,8 @@ class _SpendWaitingState extends ConsumerState<SpendWaitingScreen> {
   String? _error;
   int _celebrated = 0;
   bool _initialised = false;
+  // A slow response must not stack a second request on top of it.
+  bool _inFlight = false;
 
   @override
   void initState() {
@@ -47,6 +49,8 @@ class _SpendWaitingState extends ConsumerState<SpendWaitingScreen> {
   }
 
   Future<void> _poll() async {
+    if (_inFlight) return;
+    _inFlight = true;
     try {
       final SpendStatus st = await ref
           .read(nfcRepositoryProvider)
@@ -84,7 +88,14 @@ class _SpendWaitingState extends ConsumerState<SpendWaitingScreen> {
           ..invalidate(myActiveRewardsProvider);
       }
     } on ApiException catch (e) {
+      // 4xx (gone, not yours, …) will not fix itself: stop polling.
+      final int code = e.status;
+      if (code >= 400 && code < 500) _timer?.cancel();
       if (mounted) setState(() => _error = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = ref.read(sProvider).errorTryAgain);
+    } finally {
+      _inFlight = false;
     }
   }
 

@@ -34,20 +34,20 @@ class AppRadius {
 class AppShadows {
   const AppShadows._();
 
-  /// shadow-card — resting cards: 0 8px 24px rgba(90, 60, 35, 0.08).
+  /// shadow-card — resting cards: 0 8px 24px rgba(30, 58, 36, 0.07).
   static const List<BoxShadow> sm = <BoxShadow>[
     BoxShadow(
-      color: Color(0x145A3C23),
+      color: Color(0x121E3A24),
       blurRadius: 24,
       offset: Offset(0, 8),
     ),
   ];
 
   /// shadow-elevated — raised surfaces, sheets, the floating QR button:
-  /// 0 16px 40px rgba(90, 60, 35, 0.14).
+  /// 0 16px 40px rgba(30, 58, 36, 0.11).
   static const List<BoxShadow> md = <BoxShadow>[
     BoxShadow(
-      color: Color(0x245A3C23),
+      color: Color(0x1C1E3A24),
       blurRadius: 40,
       offset: Offset(0, 16),
     ),
@@ -56,7 +56,7 @@ class AppShadows {
   /// Tinted glow under a coloured surface (primary CTA, balance card).
   static List<BoxShadow> brand(Color color) => <BoxShadow>[
         BoxShadow(
-          color: color.withValues(alpha: 0.28),
+          color: color.withValues(alpha: 0.22),
           blurRadius: 22,
           offset: const Offset(0, 10),
         ),

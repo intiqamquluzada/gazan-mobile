@@ -94,6 +94,7 @@ class AuthRemoteDataSource {
     required String provider,
     required String idToken,
     String? fullName,
+    String? authorizationCode,
   }) async {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/auth/social',
@@ -101,6 +102,8 @@ class AuthRemoteDataSource {
         'provider': provider,
         'idToken': idToken,
         if (fullName != null && fullName.isNotEmpty) 'fullName': fullName,
+        if (authorizationCode != null && authorizationCode.isNotEmpty)
+          'authorizationCode': authorizationCode,
       },
     );
     return _consume(json);

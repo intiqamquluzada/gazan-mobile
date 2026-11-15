@@ -706,7 +706,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
               const SizedBox(height: AppSpacing.xxl),
 
               PrimaryButton(
-                label: 'Yadda saxla',
+                label: s.save,
                 icon: AppIcons.check,
                 loading: _saving,
                 onPressed: _saving ? null : () => _save(company),

@@ -14,12 +14,16 @@ class EmptyState extends StatelessWidget {
     this.subtitle,
     this.icon = AppIcons.emptyBox,
     this.action,
+    this.image,
   });
 
   final String title;
   final String? subtitle;
   final IconData icon;
   final Widget? action;
+
+  /// Optional 3D illustration (asset path) shown instead of the icon disc.
+  final String? image;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +33,9 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
+            if (image != null)
+              Image.asset(image!, width: 210, filterQuality: FilterQuality.medium)
+            else
             Container(
               width: 80,
               height: 80,
@@ -39,7 +46,14 @@ class EmptyState extends StatelessWidget {
               child: Icon(icon, color: AppColors.action, size: 34),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(title, textAlign: TextAlign.center, style: AppTextStyles.h3),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: image != null
+                  ? AppTextStyles.h1.copyWith(
+                      color: context.palette.ink, fontWeight: FontWeight.w800)
+                  : AppTextStyles.h3,
+            ),
             if (subtitle != null) ...<Widget>[
               const SizedBox(height: AppSpacing.sm),
               Text(

@@ -1,6 +1,7 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show Size;
 import 'package:window_manager/window_manager.dart';
 
 /// Desktop till only: brings the app window to the front (restoring it if
@@ -15,6 +16,12 @@ class WindowAttention {
   static Future<void> init() async {
     if (!_desktop) return;
     await windowManager.ensureInitialized();
+    try {
+      // The till layout (side rail + customer window) breaks below this.
+      await windowManager.setMinimumSize(const Size(800, 600));
+    } catch (_) {
+      // Not fatal: the window just stays freely resizable.
+    }
   }
 
   static Future<void> raise() async {

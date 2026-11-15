@@ -11,7 +11,7 @@ import '../../loyalty/domain/loyalty_program.dart';
 import '../../nfc/data/nfc_admin_repository.dart';
 
 /// Decides what a physical card does when a customer's phone touches it:
-/// stamp a campaign, give coins, give a gift, or open the cashier window.
+/// stamp a campaign, give coins, or open the cashier window.
 Future<void> showNfcAssignSheet(BuildContext context, NfcCard card) {
   return showModalBottomSheet<void>(
     context: context,
@@ -101,7 +101,8 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
                 _kind == 'POINTS' ? int.parse(_points.text.trim()) : null,
             stampsValue:
                 _kind == 'STAMP' ? int.parse(_stamps.text.trim()) : null,
-            label: _label.text.trim().isEmpty ? null : _label.text.trim(),
+            // An empty string clears the name; the server stores it as-is.
+            label: _label.text.trim(),
             cooldownSec:
                 _kind == 'SPEND' ? null : int.parse(_cooldown.text.trim()),
             dailyCapPerUser:

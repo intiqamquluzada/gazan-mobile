@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/widgets/periodic_refresh.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -33,9 +34,15 @@ class BusinessDashboardScreen extends ConsumerWidget {
 
     // Customers keep earning while this screen is open.
     return PeriodicRefresh(
-      onTick: () => ref
-        ..invalidate(myBusinessStatsProvider)
-        ..invalidate(myCustomersProvider),
+      onTick: () {
+        ref
+          ..invalidate(myBusinessStatsProvider)
+          ..invalidate(myCustomersProvider);
+        // Picks up the admin's approval without a manual pull-to-refresh.
+        if (ref.read(myCompanyProvider).valueOrNull?.isApproved != true) {
+          ref.invalidate(myCompanyProvider);
+        }
+      },
       child: Scaffold(
       body: SafeArea(
         bottom: false,
@@ -55,7 +62,7 @@ class BusinessDashboardScreen extends ConsumerWidget {
                       children: <Widget>[
                         Text(s.hello, style: AppTextStyles.bodySm),
                         const SizedBox(height: 2),
-                        Text(user?.fullName ?? 'Biznes',
+                        Text(user?.fullName ?? s.pBusinessFallback,
                             style: AppTextStyles.h1),
                       ],
                     ),
@@ -82,8 +89,8 @@ class BusinessDashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: AppSpacing.xl),
               _PrimaryAction(
-                title: s.pendingRewards,
-                subtitle: s.scanTapHint,
+                title: s.cashierWindow,
+                subtitle: s.pTillCardSub,
                 onScan: () => context.go('/business/scan'),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -412,13 +419,14 @@ class _CustomerTile extends ConsumerWidget {
           ),
           child: Row(
             children: <Widget>[
-              Avatar(name: c.fullName, size: 40),
+              Avatar(name: c.nameOr(s.pCustomerFallback), size: 40),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(c.fullName, style: AppTextStyles.bodyLg),
+                    Text(c.nameOr(s.pCustomerFallback),
+                        style: AppTextStyles.bodyLg),
                     Text(
                       '${c.totalVisits} ${s.visitsWord} · ${c.rewardsClaimed} ${s.rewardWord}',
                       style: AppTextStyles.caption,

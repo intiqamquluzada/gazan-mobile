@@ -2,37 +2,47 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../companies/domain/business_category.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
 import 'admin_widgets.dart';
 
 /// One venue from the platform's side: its numbers and approve/suspend.
-class AdminCompanyDetailScreen extends ConsumerWidget {
+class AdminCompanyDetailScreen extends ConsumerStatefulWidget {
   const AdminCompanyDetailScreen({super.key, required this.companyId});
 
   final String companyId;
 
-  Future<void> _setStatus(
-    BuildContext context,
-    WidgetRef ref,
-    String status, {
-    bool askReason = false,
-  }) async {
-    final S s = ref.read(sProvider);
-    String? reason;
-    if (askReason) {
-      final TextEditingController c = TextEditingController();
+  @override
+  ConsumerState<AdminCompanyDetailScreen> createState() =>
+      _AdminCompanyDetailScreenState();
+}
+
+class _AdminCompanyDetailScreenState
+    extends ConsumerState<AdminCompanyDetailScreen> {
+  /// Blocks double taps while a status change is in flight.
+  bool _busy = false;
+
+  String get companyId => widget.companyId;
+
+  Future<String?> _askReason(S s) async {
+    final TextEditingController c = TextEditingController();
+    try {
       final bool? ok = await showDialog<bool>(
         context: context,
         builder: (BuildContext ctx) => AlertDialog(
           title: Text(s.companySuspend),
           content: TextField(
             controller: c,
+            maxLength: 300,
+            maxLines: 3,
+            minLines: 1,
             decoration: InputDecoration(labelText: s.reasonLabel),
           ),
           actions: <Widget>[
@@ -48,28 +58,61 @@ class AdminCompanyDetailScreen extends ConsumerWidget {
           ],
         ),
       );
-      reason = c.text.trim();
-      c.dispose();
-      if (ok != true) return;
-    }
-    if (!context.mounted) return;
-    final ProviderContainer container =
-        ProviderScope.containerOf(context, listen: false);
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    try {
-      await container
-          .read(adminRepositoryProvider)
-          .setCompanyStatus(companyId, status, reason: reason);
-      container
-        ..invalidate(adminCompanyDetailProvider(companyId))
-        ..invalidate(adminStatsProvider);
-    } on ApiException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      return ok == true ? c.text.trim() : null;
+    } finally {
+      // The dialog's exit animation still reads the controller; dispose it
+      // only after that finishes.
+      Future<void>.delayed(const Duration(milliseconds: 400), c.dispose);
     }
   }
 
+  Future<void> _setStatus(String status, {bool askReason = false}) async {
+    if (_busy) return;
+    final S s = ref.read(sProvider);
+    String? reason;
+    if (askReason) {
+      reason = await _askReason(s);
+      if (reason == null) return;
+    }
+    if (!mounted) return;
+    setState(() => _busy = true);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(adminRepositoryProvider)
+          .setCompanyStatus(companyId, status, reason: reason);
+      ref
+        ..invalidate(adminCompanyDetailProvider(companyId))
+        ..invalidate(adminStatsProvider)
+        ..invalidate(adminCompanyOptionsProvider);
+      messenger.showSnackBar(SnackBar(
+        content: Text(status == 'APPROVED'
+            ? s.pCompanyApprovedDone
+            : s.pCompanySuspendedDone),
+      ));
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('${s.failed}: $e')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _info(IconData icon, String text) => Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Icon(icon, size: 16, color: AppColors.textSecondary),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(child: Text(text, style: AppTextStyles.bodySm)),
+          ],
+        ),
+      );
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
     final AsyncValue<AdminCompanyDetail> data =
         ref.watch(adminCompanyDetailProvider(companyId));
@@ -87,9 +130,29 @@ class AdminCompanyDetailScreen extends ConsumerWidget {
                 CompanyStatusBadge(status: c.status),
               ],
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(c.ownerEmail ?? '—', style: AppTextStyles.bodySm),
-            if (c.address != null) Text(c.address!, style: AppTextStyles.bodySm),
+            if (c.tagline != null && c.tagline!.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppSpacing.xs),
+              Text(c.tagline!,
+                  style: AppTextStyles.body
+                      .copyWith(color: AppColors.textSecondary)),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+            if (c.category != null)
+              _info(Icons.category_outlined,
+                  BusinessCategory.fromJson(c.category!).labelOf(s)),
+            _info(
+                Icons.person_outline_rounded,
+                <String>[
+                  if (c.ownerName != null && c.ownerName!.isNotEmpty)
+                    c.ownerName!,
+                  c.ownerEmail ?? '—',
+                ].join(' · ')),
+            if (c.phone != null && c.phone!.isNotEmpty)
+              _info(Icons.phone_outlined, c.phone!),
+            if (c.address != null && c.address!.isNotEmpty)
+              _info(Icons.place_outlined, c.address!),
+            if (c.createdAt != null)
+              _info(Icons.event_outlined, _day(c.createdAt!)),
             const SizedBox(height: AppSpacing.xl),
             Wrap(
               spacing: AppSpacing.md,
@@ -104,8 +167,13 @@ class AdminCompanyDetailScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xxl),
             if (c.status != 'APPROVED')
               FilledButton.icon(
-                onPressed: () => _setStatus(context, ref, 'APPROVED'),
-                icon: const Icon(Icons.check_rounded),
+                onPressed: _busy ? null : () => _setStatus('APPROVED'),
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.check_rounded),
                 label: Text(s.companyApprove),
               ),
             if (c.status != 'SUSPENDED') ...<Widget>[
@@ -113,8 +181,9 @@ class AdminCompanyDetailScreen extends ConsumerWidget {
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.dangerText),
-                onPressed: () => _setStatus(context, ref, 'SUSPENDED',
-                    askReason: true),
+                onPressed: _busy
+                    ? null
+                    : () => _setStatus('SUSPENDED', askReason: true),
                 icon: const Icon(Icons.block_rounded),
                 label: Text(s.companySuspend),
               ),
@@ -124,6 +193,11 @@ class AdminCompanyDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _day(DateTime d) {
+  String two(int v) => v.toString().padLeft(2, '0');
+  return '${two(d.day)}.${two(d.month)}.${d.year}';
 }
 
 class _Metric extends StatelessWidget {

@@ -12,7 +12,7 @@ import '../../../core/utils/phone_util.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/phone_field.dart';
 import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/qazan_logo.dart';
+import '../../../core/widgets/brand_header.dart';
 import '../application/auth_controller.dart';
 import '../domain/user_role.dart';
 import 'social_buttons.dart';
@@ -91,97 +91,144 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final S s = ref.watch(sProvider);
     final AuthState auth = ref.watch(authControllerProvider);
 
+    final AppPalette p = context.palette;
+    final bool canPop = GoRouter.of(context).canPop();
+
     return Scaffold(
-      appBar: AppBar(),
+      appBar: canPop
+          ? AppBar(leadingWidth: 72, leading: const CircleBackButton())
+          : null,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl,
-            AppSpacing.lg,
-            AppSpacing.xl,
-            AppSpacing.xl,
-          ),
-          child: Form(
-            key: _form,
-            child: ListView(
-              children: <Widget>[
-                const Center(child: QazanLogo(size: 76)),
-                const SizedBox(height: AppSpacing.xl),
-                Text(s.welcome, style: AppTextStyles.display),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  s.loginSub,
-                  style: AppTextStyles.body.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxxl),
-                AppTextField(
-                  label: s.phoneOrEmail,
-                  hint: s.phoneOrEmailHint,
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  prefixIcon: Icons.person_outline_rounded,
-                  textInputAction: TextInputAction.next,
-                  validator: (String? v) {
-                    final String val = (v ?? '').trim();
-                    final bool ok =
-                        val.contains('@') || PhoneUtil.isValid(val);
-                    return ok ? null : s.phoneOrEmailInvalid;
-                  },
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  label: s.password,
-                  hint: '••••••••',
-                  controller: _password,
-                  obscure: _obscure,
-                  prefixIcon: Icons.lock_outline_rounded,
-                  textInputAction: TextInputAction.done,
-                  suffix: IconButton(
-                    icon: Icon(_obscure
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined),
-                    onPressed: () => setState(() => _obscure = !_obscure),
-                  ),
-                  validator: (String? v) =>
-                      (v == null || v.length < 4) ? s.passwordShort : null,
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => _forgotPassword(context),
-                    child: Text(s.forgotPassword),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                PrimaryButton(
-                  label: s.login,
-                  loading: auth.isLoading,
-                  onPressed: _submit,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                const SocialButtons(),
-                const SizedBox(height: AppSpacing.xl),
-                if (!AppVariant.isBusinessApp)
-                Center(
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: <Widget>[
-                      Text(s.noAccount, style: AppTextStyles.bodySm),
-                      TextButton(
-                        onPressed: () => context.push(
-                          '/register',
-                        ),
-                        child: Text(s.register),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                const LegalFooterLinks(),
-              ],
+        child: Form(
+          key: _form,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xxl,
+              AppSpacing.lg,
+              AppSpacing.xxl,
+              AppSpacing.xl,
             ),
+            children: <Widget>[
+              // ── Brand ─────────────────────────────────────────────
+              const Center(child: BrandMark(size: 26)),
+              const SizedBox(height: AppSpacing.xl),
+              Center(
+                child: Container(
+                  width: 214,
+                  height: 160,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: <Color>[Color(0xFFE2F1DA), Color(0x00E2F1DA)],
+                      stops: <double>[0.55, 1],
+                    ),
+                  ),
+                  child: Image.asset(
+                    'assets/illustrations/login_card.png',
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // ── Welcome ───────────────────────────────────────────
+              Text(
+                s.welcome,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.h1.copyWith(
+                  color: context.palette.ink,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                s.loginTagline,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySm.copyWith(
+                  fontSize: 14,
+                  color: p.textSecondary,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // ── Form ──────────────────────────────────────────────
+              AppTextField(
+                label: s.phoneOrEmail,
+                showLabel: false,
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                prefixIcon: Icons.person_outline_rounded,
+                textInputAction: TextInputAction.next,
+                autofillHints: const <String>[AutofillHints.username],
+                validator: (String? v) {
+                  final String val = (v ?? '').trim();
+                  final bool ok = val.contains('@') || PhoneUtil.isValid(val);
+                  return ok ? null : s.phoneOrEmailInvalid;
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(
+                label: s.password,
+                showLabel: false,
+                controller: _password,
+                obscure: _obscure,
+                prefixIcon: Icons.lock_outline_rounded,
+                textInputAction: TextInputAction.done,
+                autofillHints: const <String>[AutofillHints.password],
+                suffix: IconButton(
+                  icon: Icon(_obscure
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+                validator: (String? v) =>
+                    (v == null || v.length < 4) ? s.passwordShort : null,
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => _forgotPassword(context),
+                  child: Text(
+                    s.forgotPassword,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              PrimaryButton(
+                label: s.login,
+                trailingIcon: Icons.arrow_forward_rounded,
+                loading: auth.isLoading,
+                onPressed: _submit,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              const SocialButtons(),
+              const SizedBox(height: AppSpacing.md),
+              if (!AppVariant.isBusinessApp)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text(
+                      s.noAccount,
+                      style: AppTextStyles.bodySm
+                          .copyWith(fontSize: 14, color: p.textSecondary),
+                    ),
+                    TextButton(
+                      onPressed: () => context.push('/register'),
+                      child: Text(
+                        s.register,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: AppSpacing.xs),
+              const LegalFooterLinks(),
+            ],
           ),
         ),
       ),

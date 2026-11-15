@@ -223,7 +223,7 @@ class _StatGrid extends ConsumerWidget {
           icon: AppIcons.token,
           tint: AppColors.reward,
           value: '${c.coinBalance}',
-          label: 'coin',
+          label: s.coinLabel,
         ),
       ],
     );

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -45,6 +48,59 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
   String? _error;
   final List<String> _used = <String>[];
 
+  /// Re-reads the open sessions so the window follows what happens elsewhere
+  /// (another till served the customer, or the session timed out).
+  Timer? _poll;
+  bool _polling = false;
+
+  /// Set once the session left the open list; the window closes shortly after.
+  bool _gone = false;
+  bool _popped = false;
+
+  /// Pops the window exactly once, whichever path gets here first.
+  void _dismiss() {
+    if (_popped || !mounted) return;
+    _popped = true;
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _poll = Timer.periodic(const Duration(seconds: 3), (_) => _refresh());
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    if (_polling || _closing || _gone || _busyId != null) return;
+    _polling = true;
+    try {
+      final List<SpendSession> open =
+          await ref.read(panelRepositoryProvider).openSpendSessions();
+      if (!mounted || _closing || _gone || _busyId != null) return;
+      final SpendSession? fresh = open
+          .where((SpendSession x) => x.id == _session.id)
+          .firstOrNull;
+      if (fresh != null) {
+        setState(() => _session = fresh);
+        return;
+      }
+      _poll?.cancel();
+      setState(() => _gone = true);
+      await Future<void>.delayed(const Duration(milliseconds: 1800));
+      _dismiss();
+    } catch (_) {
+      // A missed poll is harmless; the next tick tries again.
+    } finally {
+      _polling = false;
+    }
+  }
+
   Future<void> _use(SpendReward r) async {
     setState(() {
       _busyId = r.id;
@@ -67,13 +123,20 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
   }
 
   Future<void> _close() async {
+    if (_closing) return;
+    _poll?.cancel();
+    if (_gone) {
+      _dismiss();
+      return;
+    }
     setState(() => _closing = true);
     try {
       await ref.read(panelRepositoryProvider).closeSession(_session.id);
-    } on ApiException {
-      // An expired session has nothing left to close.
+    } catch (_) {
+      // An expired session has nothing left to close; a network failure
+      // must not trap the cashier in the window either.
     }
-    if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    _dismiss();
   }
 
   @override
@@ -81,7 +144,14 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
     final S s = ref.watch(sProvider);
     final AppPalette p = context.palette;
     final SpendSession c = _session;
-    return Padding(
+    // Android back goes through the same path as the Close button, so the
+    // session is closed on the server rather than left hanging.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? _) {
+        if (!didPop) _close();
+      },
+      child: Padding(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -176,8 +246,9 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
                         else
                           FilledButton(
                             style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
-                            onPressed:
-                                _busyId == null ? () => _use(r) : null,
+                            onPressed: _busyId == null && !_gone
+                                ? () => _use(r)
+                                : null,
                             child: Text(s.markUsed),
                           ),
                       ],
@@ -200,6 +271,13 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
               ],
             ),
           ),
+          if (_gone) ...<Widget>[
+            const SizedBox(height: AppSpacing.sm),
+            Text(s.pSpendSessionGone,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySm
+                    .copyWith(fontWeight: FontWeight.w700)),
+          ],
           if (_error != null) ...<Widget>[
             const SizedBox(height: AppSpacing.sm),
             Text(_error!,
@@ -212,6 +290,7 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
             child: Text(s.close),
           ),
         ],
+      ),
       ),
     );
   }

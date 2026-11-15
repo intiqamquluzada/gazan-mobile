@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/phone_util.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../../../core/widgets/brand_header.dart';
 import '../../../core/widgets/phone_field.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../application/auth_controller.dart';
@@ -185,7 +186,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          leading: BackButton(onPressed: _back),
+          leadingWidth: 72,
+          leading: CircleBackButton(onPressed: _back),
           title: !_isBusiness && _step != _Step.phone
               ? Text(s.stepOf(_visibleStep, 3))
               : null,
@@ -212,30 +214,42 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _Step.password => 3,
       };
 
-  Widget _roleSwitch(S s) => SegmentedButton<UserRole>(
-        segments: <ButtonSegment<UserRole>>[
-          ButtonSegment<UserRole>(
-            value: UserRole.customer,
-            icon: const Icon(Icons.person_outline_rounded, size: 18),
-            label: Text(s.roleCustomer),
-          ),
-          ButtonSegment<UserRole>(
-            value: UserRole.business,
-            icon: const Icon(Icons.storefront_outlined, size: 18),
-            label: Text(s.roleBusiness),
+  /// Brand block + customer / business switch shown on the first page.
+  Widget _roleSwitch(S s) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const BrandHeader(logoSize: 42, subtitle: false),
+          const SizedBox(height: AppSpacing.xl),
+          PillToggle<UserRole>(
+            options: <({UserRole value, IconData icon, String label})>[
+              (
+                value: UserRole.customer,
+                icon: Icons.person_outline_rounded,
+                label: s.roleCustomer,
+              ),
+              (
+                value: UserRole.business,
+                icon: Icons.storefront_outlined,
+                label: s.roleBusiness,
+              ),
+            ],
+            value: _role,
+            onChanged: (UserRole v) => setState(() {
+              _role = v;
+              _step = _Step.phone;
+            }),
           ),
         ],
-        selected: <UserRole>{_role},
-        onSelectionChanged: (Set<UserRole> v) => setState(() {
-          _role = v.first;
-          _step = _Step.phone;
-        }),
       );
 
   Widget _heading(String title, String sub) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title, style: AppTextStyles.display),
+          Text(title,
+              style: AppTextStyles.h1.copyWith(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2)),
           const SizedBox(height: AppSpacing.sm),
           Text(sub,
               style:
@@ -244,17 +258,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ],
       );
 
-  Widget _haveAccount(S s) => Center(
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            Text(s.haveAccount, style: AppTextStyles.bodySm),
-            TextButton(
-              onPressed: () => context.go('/login'),
-              child: Text(s.login),
+  Widget _haveAccount(S s) => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Flexible(
+            child: Text(
+              s.haveAccount,
+              style: AppTextStyles.bodySm.copyWith(
+                  fontSize: 14, color: context.palette.textSecondary),
             ),
-          ],
-        ),
+          ),
+          TextButton(
+            onPressed: () => context.go('/login'),
+            child: Text(
+              s.login,
+              style: const TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       );
 
   List<Widget> _customerStep(S s) {
@@ -262,7 +284,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       case _Step.phone:
         return <Widget>[
           _roleSwitch(s),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: AppSpacing.xxl),
           _heading(s.regPhoneTitle, s.regPhoneSub),
           PhoneField(
             controller: _phone,
@@ -273,6 +295,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           const SizedBox(height: AppSpacing.xxl),
           PrimaryButton(
             label: s.continueAction,
+            trailingIcon: Icons.arrow_forward_rounded,
             loading: _busy,
             onPressed: _submitPhone,
           ),

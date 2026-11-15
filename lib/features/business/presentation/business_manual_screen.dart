@@ -13,6 +13,7 @@ import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
 import '../../auth/domain/user_role.dart';
 import '../../companies/application/companies_providers.dart';
+import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
 import '../application/business_providers.dart';
@@ -115,6 +116,9 @@ class _ManualState extends ConsumerState<BusinessManualScreen> {
         setState(() {
           _customer = null;
           _phone.clear();
+          // The next customer starts from a clean form.
+          _stamps = 1;
+          _program = null;
         });
       }
     } on ApiException catch (e) {
@@ -129,9 +133,10 @@ class _ManualState extends ConsumerState<BusinessManualScreen> {
     final S s = ref.watch(sProvider);
     final AppUser? user = ref.watch(currentUserProvider);
     final bool cashier = user?.role == UserRole.cashier;
-    final String? companyId = cashier
-        ? user?.staffCompanyId
-        : ref.watch(myCompanyProvider).valueOrNull?.id;
+    final AsyncValue<Company?>? companyAsync =
+        cashier ? null : ref.watch(myCompanyProvider);
+    final String? companyId =
+        cashier ? user?.staffCompanyId : companyAsync?.valueOrNull?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -170,7 +175,26 @@ class _ManualState extends ConsumerState<BusinessManualScreen> {
                 icon: Icons.person_off_outlined,
               ),
             if (_customer != null && companyId != null)
-              _customerPanel(s, _customer!, companyId),
+              _customerPanel(s, _customer!, companyId)
+            else if (_customer != null &&
+                (companyAsync?.isLoading ?? false))
+              const Padding(
+                padding: EdgeInsets.all(AppSpacing.xl),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_customer != null)
+              EmptyState(
+                title: companyAsync?.hasError ?? false
+                    ? s.notLoaded
+                    : s.noBusinessProfile,
+                icon: Icons.storefront_outlined,
+                action: companyAsync == null
+                    ? null
+                    : OutlinedButton(
+                        onPressed: () => ref.invalidate(myCompanyProvider),
+                        child: Text(s.retry),
+                      ),
+              ),
           ],
         ),
       ),

@@ -6,14 +6,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
-import '../../companies/application/companies_providers.dart';
-import '../../companies/domain/company.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../application/admin_providers.dart';
 import '../data/admin_promotions_repository.dart';
+import '../domain/admin_models.dart';
 import '../../media/data/media_repository.dart';
 
 /// Admin CRUD for the Discover promotion banners ("reklamlar"): create,
@@ -99,8 +100,9 @@ class AdminPromotionsScreen extends ConsumerWidget {
             child: Text(s.cancel),
           ),
           FilledButton(
-            style:
-                FilledButton.styleFrom(backgroundColor: AppColors.dangerText),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.dangerText,
+                minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.delete),
           ),
@@ -314,7 +316,8 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
     _title = TextEditingController(text: p?.title ?? '');
     _subtitle = TextEditingController(text: p?.subtitle ?? '');
     _emoji = TextEditingController(text: p?.emoji ?? '🎁');
-    _cta = TextEditingController(text: p?.cta ?? 'Bax');
+    _cta = TextEditingController(
+        text: p?.cta ?? ref.read(sProvider).pPromoCtaDefault);
     _image = TextEditingController(text: p?.imageUrl ?? '');
     _companyId = p?.companyId;
     _endsAt = p?.endsAt;
@@ -414,8 +417,10 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
-    final List<Company> companies =
-        ref.watch(companiesProvider).valueOrNull ?? const <Company>[];
+    // Admin list (every status), not the public approved-only one.
+    final List<AdminCompany> companies =
+        ref.watch(adminCompanyOptionsProvider).valueOrNull ??
+            const <AdminCompany>[];
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
       padding: bottom,
@@ -500,14 +505,19 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
             ),
             const SizedBox(height: AppSpacing.lg),
             DropdownButtonFormField<String?>(
-              initialValue: companies.any((Company c) => c.id == _companyId)
+              // Rebuilt once the venue list arrives so an existing link shows.
+              key: ValueKey<int>(companies.length),
+              initialValue: companies.any((AdminCompany c) => c.id == _companyId)
                   ? _companyId
                   : null,
+              isExpanded: true,
               decoration: InputDecoration(labelText: s.promoCompany),
               items: <DropdownMenuItem<String?>>[
                 DropdownMenuItem<String?>(child: Text(s.promoNoCompany)),
-                for (final Company c in companies)
-                  DropdownMenuItem<String?>(value: c.id, child: Text(c.name)),
+                for (final AdminCompany c in companies)
+                  DropdownMenuItem<String?>(
+                      value: c.id,
+                      child: Text(c.name, overflow: TextOverflow.ellipsis)),
               ],
               onChanged: (String? v) => setState(() => _companyId = v),
             ),

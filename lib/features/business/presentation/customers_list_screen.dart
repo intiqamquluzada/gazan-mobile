@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/widgets/periodic_refresh.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -118,13 +119,14 @@ class _Row extends ConsumerWidget {
         ),
         child: Row(
           children: <Widget>[
-            Avatar(name: c.fullName, size: 44),
+            Avatar(name: c.nameOr(s.pCustomerFallback), size: 44),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(c.fullName, style: AppTextStyles.bodyLg),
+                  Text(c.nameOr(s.pCustomerFallback),
+                      style: AppTextStyles.bodyLg),
                   Text(
                     '${c.totalVisits} ${s.visitsWord} · ${s.lastVisit} ${AppFormat.dateTime(c.lastVisitAt)}',
                     style: AppTextStyles.caption,
@@ -151,7 +153,7 @@ class _Row extends ConsumerWidget {
                   const SizedBox(height: 4),
                   _Pill(
                       value: '${c.coinBalance}',
-                      label: 'coin',
+                      label: s.coinLabel,
                       tint: AppColors.reward),
                 ],
               ],

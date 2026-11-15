@@ -106,9 +106,17 @@ class _StampDotState extends State<_StampDot>
   @override
   Widget build(BuildContext context) {
     final double size = widget.size;
+    final AppPalette p = context.palette;
     final Color emptyFill = widget.onDark
         ? AppColors.onDark.withValues(alpha: 0.14)
-        : context.palette.stampEmpty;
+        : p.stampEmpty;
+    // On light cards a filled stamp is brand green; the reward slot is a
+    // mint disc with a green ring until it is earned (then gold).
+    final Color filledFill = widget.onDark || widget.isRewardSlot
+        ? AppColors.reward
+        : AppColors.caramel;
+    final Color slotColor =
+        widget.onDark ? AppColors.reward : AppColors.caramel;
     final bool reduceMotion =
         MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
@@ -120,12 +128,16 @@ class _StampDotState extends State<_StampDot>
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: widget.filled ? AppColors.reward : emptyFill,
+        color: widget.filled
+            ? filledFill
+            : widget.isRewardSlot && !widget.onDark
+                ? p.surfaceAccent
+                : emptyFill,
         shape: BoxShape.circle,
         border: widget.isRewardSlot && !widget.filled
             ? Border.all(
-                color: AppColors.reward.withValues(alpha: 0.8),
-                width: 1.6,
+                color: slotColor.withValues(alpha: 0.85),
+                width: 1.8,
                 strokeAlign: BorderSide.strokeAlignInside,
               )
             : null,
@@ -134,10 +146,12 @@ class _StampDotState extends State<_StampDot>
           ? Icon(
               widget.isRewardSlot ? AppIcons.gift : AppIcons.check,
               size: size * 0.55,
-              color: AppColors.onReward,
+              color: widget.onDark || widget.isRewardSlot
+                  ? AppColors.onReward
+                  : AppColors.onDark,
             )
           : widget.isRewardSlot
-              ? Icon(AppIcons.gift, size: size * 0.55, color: AppColors.reward)
+              ? Icon(AppIcons.gift, size: size * 0.55, color: slotColor)
               : null,
     );
 

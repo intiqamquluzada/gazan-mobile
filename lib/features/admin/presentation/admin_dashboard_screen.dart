@@ -175,7 +175,8 @@ class _Dashboard extends ConsumerWidget {
                   avatar: const Icon(AppIcons.store, size: 18),
                   label: Text(
                       '${s.pendingCompaniesLabel}: ${stats.pendingCompanies}'),
-                  onPressed: () => context.go('/admin/businesses'),
+                  onPressed: () =>
+                      context.go('/admin/businesses?status=PENDING'),
                 ),
               if (stats.pendingNotifications > 0)
                 ActionChip(

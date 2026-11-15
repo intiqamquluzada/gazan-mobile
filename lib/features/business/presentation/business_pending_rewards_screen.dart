@@ -16,6 +16,8 @@ import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/user_role.dart';
+import '../../companies/application/companies_providers.dart';
+import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../application/business_providers.dart';
 import '../application/panel_providers.dart';
@@ -56,7 +58,7 @@ class PendingReward {
         coinCost: (j['coinCost'] as num?)?.toInt() ?? 0,
         createdAt: j['createdAt'] == null
             ? null
-            : DateTime.tryParse(j['createdAt'] as String),
+            : DateTime.tryParse(j['createdAt'] as String)?.toLocal(),
       );
 }
 
@@ -144,7 +146,9 @@ class _PendingRewardsState extends ConsumerState<BusinessPendingRewardsScreen>
       });
       if (hasNew) ref.invalidate(pendingRewardsProvider);
       _openNext();
-    } on ApiException {
+    } catch (_) {
+      // Any failure (offline, timeout, bad payload) shows the banner; the
+      // next tick tries again.
       if (mounted) setState(() => _pollFailed = true);
     } finally {
       _polling = false;
@@ -221,6 +225,25 @@ class _PendingRewardsState extends ConsumerState<BusinessPendingRewardsScreen>
     final AsyncValue<List<PendingReward>> async =
         ref.watch(pendingRewardsProvider);
     final bool cashier = ref.watch(currentUserProvider)?.role == UserRole.cashier;
+
+    // An owner who has not set up the venue yet has no till: point them at
+    // creating it rather than showing a misleading network error.
+    final AsyncValue<Company?> companyAsync =
+        cashier ? const AsyncData<Company?>(null) : ref.watch(myCompanyProvider);
+    if (!cashier && companyAsync.hasValue && companyAsync.value == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(s.cashierWindow)),
+        body: EmptyState(
+          title: s.createYourBusiness,
+          subtitle: s.createBusinessHint,
+          icon: Icons.storefront_rounded,
+          action: FilledButton(
+            onPressed: () => context.go('/business/profile'),
+            child: Text(s.createBusiness),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

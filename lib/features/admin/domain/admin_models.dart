@@ -186,11 +186,21 @@ class AdminCompanyDetail {
     required this.coinsSpent,
     this.ownerEmail,
     this.address,
+    this.tagline,
+    this.category,
+    this.phone,
+    this.ownerName,
+    this.createdAt,
   });
 
   final String id;
   final String name;
   final String status;
+  final String? tagline;
+  final String? category;
+  final String? phone;
+  final String? ownerName;
+  final DateTime? createdAt;
   final int customers;
   final int tags;
   final int coinsEarned;
@@ -215,6 +225,11 @@ class AdminCompanyDetail {
       coinsSpent: count('coinsSpent'),
       ownerEmail: j['ownerEmail'] as String?,
       address: j['address'] as String?,
+      tagline: j['tagline'] as String?,
+      category: j['category'] as String?,
+      phone: j['phone'] as String?,
+      ownerName: j['ownerName'] as String?,
+      createdAt: _date(j['createdAt']),
     );
   }
 }

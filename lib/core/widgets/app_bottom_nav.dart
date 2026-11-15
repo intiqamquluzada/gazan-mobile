@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
+import 'app_icons.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
@@ -339,8 +340,11 @@ class _DiscState extends State<_Disc> with SingleTickerProviderStateMixin {
                         border: Border.all(color: p.surface, width: 3),
                         boxShadow: AppShadows.brand(AppColors.surfaceDark),
                       ),
-                      child: Icon(widget.item.activeIcon,
-                          color: AppColors.onDark, size: 26),
+                      child: widget.item.activeIcon == AppIcons.nfc
+                          ? const NfcWavesIcon(
+                              size: 28, color: AppColors.onDark)
+                          : Icon(widget.item.activeIcon,
+                              color: AppColors.onDark, size: 26),
                     ),
                   ),
                 ],

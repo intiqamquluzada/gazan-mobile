@@ -13,15 +13,15 @@ class AppIcons {
   const AppIcons._();
 
   // ── Navigation ─────────────────────────────────────────────────────
-  static const IconData home = Icons.explore_outlined;
-  static const IconData homeActive = Icons.explore_rounded;
-  static const IconData cards = Icons.style_outlined;
-  static const IconData cardsActive = Icons.style_rounded;
+  static const IconData home = Icons.home_outlined;
+  static const IconData homeActive = Icons.home_rounded;
+  static const IconData cards = Icons.credit_card_outlined;
+  static const IconData cardsActive = Icons.credit_card_rounded;
   /// Kept for the (hidden) legacy QR screens.
   static const IconData qr = Icons.qr_code_scanner_rounded;
 
   /// The tap action that replaced QR everywhere in the UI.
-  static const IconData nfc = Icons.nfc_rounded;
+  static const IconData nfc = Icons.contactless_outlined;
   static const IconData profile = Icons.person_outline_rounded;
   static const IconData profileActive = Icons.person_rounded;
   static const IconData dashboard = Icons.grid_view_outlined;
@@ -87,4 +87,19 @@ class AppIcons {
   static const IconData bakery = Icons.bakery_dining_rounded;
   static const IconData barber = Icons.content_cut_rounded;
   static const IconData store = Icons.storefront_rounded;
+}
+
+/// The NFC "))))" mark from the design: signal waves pointing right, no
+/// circle around them (a Wi-Fi glyph turned a quarter).
+class NfcWavesIcon extends StatelessWidget {
+  const NfcWavesIcon({super.key, this.size = 26, this.color});
+
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => RotatedBox(
+        quarterTurns: 1,
+        child: Icon(Icons.wifi_rounded, size: size, color: color),
+      );
 }
