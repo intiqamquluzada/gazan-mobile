@@ -24,6 +24,16 @@ abstract class WalletRepository {
     required int coinCost,
   });
 
+  /// Owner changes a coin reward; [active] false takes it off sale while
+  /// keeping vouchers already bought.
+  Future<CoinReward> updateReward(
+    String rewardId, {
+    String? title,
+    String? description,
+    int? coinCost,
+    bool? active,
+  });
+
   /// Owner removes a coin reward.
   Future<void> deleteReward(String rewardId);
 
@@ -54,8 +64,7 @@ class RemoteWalletRepository implements WalletRepository {
     String? companyId,
     String? note,
   }) async {
-    final Map<String, dynamic> json =
-        await _api.post<Map<String, dynamic>>(
+    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/coins/me/spend',
       body: <String, dynamic>{
         'amount': amount,
@@ -68,8 +77,11 @@ class RemoteWalletRepository implements WalletRepository {
 
   @override
   Future<List<CoinReward>> rewardsForCompany(String companyId) async {
+    // activeOnly=false: the venue's owner also gets paused items (so they
+    // can switch them back on); the server returns active items only to
+    // everyone else, and customer screens filter on `active` as well.
     final List<dynamic> raw = await _api.get<List<dynamic>>(
-      '/api/v1/companies/$companyId/coin-rewards',
+      '/api/v1/companies/$companyId/coin-rewards?activeOnly=false',
     );
     return raw
         .cast<Map<String, dynamic>>()
@@ -100,6 +112,26 @@ class RemoteWalletRepository implements WalletRepository {
         'title': title,
         if (description != null) 'description': description,
         'coinCost': coinCost,
+      },
+    );
+    return CoinReward.fromJson(json);
+  }
+
+  @override
+  Future<CoinReward> updateReward(
+    String rewardId, {
+    String? title,
+    String? description,
+    int? coinCost,
+    bool? active,
+  }) async {
+    final Map<String, dynamic> json = await _api.put<Map<String, dynamic>>(
+      '/api/v1/coin-rewards/$rewardId',
+      body: <String, dynamic>{
+        if (title != null) 'title': title,
+        if (description != null) 'description': description,
+        if (coinCost != null) 'coinCost': coinCost,
+        if (active != null) 'active': active,
       },
     );
     return CoinReward.fromJson(json);

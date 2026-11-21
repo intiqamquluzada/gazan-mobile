@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
+import 'admin_user_detail_screen.dart';
 import 'admin_widgets.dart';
 
 class AdminUsersScreen extends ConsumerStatefulWidget {
@@ -85,17 +91,53 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   Future<void> _openActions(AdminUser u) async {
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       showDragHandle: true,
       builder: (BuildContext ctx) => _UserActionsSheet(
         user: u,
         onChangeRole: (String role) => _changeRole(u, role),
         onToggleActive: () => _toggleActive(u),
+        onDetail: () {
+          Navigator.of(ctx).pop();
+          context.go('/admin/users/${u.id}');
+        },
+        onResetPassword: () async {
+          Navigator.of(ctx).pop();
+          final bool? done = await showAdminResetPassword(context, u.id);
+          if (done == true) {
+            _snack(ref.read(sProvider).passwordResetDone);
+          }
+        },
       ),
     );
   }
 
   Future<void> _changeRole(AdminUser u, String role) async {
     Navigator.of(context).pop();
+    final S s = ref.read(sProvider);
+    final String who = u.fullName.isEmpty ? u.email : u.fullName;
+    final bool toAdmin = role == 'ADMIN';
+    final bool demotingOwner =
+        u.role == 'BUSINESS_OWNER' && role != 'BUSINESS_OWNER';
+    final String body = toAdmin
+        ? s.pRoleToAdminBody(who)
+        : demotingOwner
+            ? s.pRoleDemoteOwnerBody(who)
+            : s.pRoleChangeBody(who, roleLabel(s, role));
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.pRoleChangeTitle,
+      body: body,
+      confirmLabel: roleLabel(s, role),
+      cancelLabel: s.cancel,
+      icon: toAdmin
+          ? Icons.admin_panel_settings_rounded
+          : Icons.manage_accounts_rounded,
+      // Granting admin or stripping an owner of their venue is dangerous;
+      // a plain role swap gets the neutral accent.
+      danger: toAdmin || demotingOwner ? AppColors.danger : AppColors.caramel,
+    );
+    if (!ok || !mounted) return;
     try {
       await ref.read(adminRepositoryProvider).setUserRole(u.id, role);
       _snack('${u.email} → ${roleLabel(ref.read(sProvider), role)}');
@@ -109,6 +151,17 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   Future<void> _toggleActive(AdminUser u) async {
     Navigator.of(context).pop();
     final S s = ref.read(sProvider);
+    final String who = u.fullName.isEmpty ? u.email : u.fullName;
+    final bool ok = await showConfirmSheet(
+      context,
+      title: u.active ? s.blockUser : s.activateUser,
+      body: u.active ? s.pBlockUserBody(who) : s.pUnblockUserBody(who),
+      confirmLabel: u.active ? s.blockUser : s.activateUser,
+      cancelLabel: s.cancel,
+      icon: u.active ? Icons.block_rounded : AppIcons.check,
+      danger: u.active ? AppColors.danger : AppColors.success,
+    );
+    if (!ok || !mounted) return;
     try {
       await ref.read(adminRepositoryProvider).setUserActive(u.id, !u.active);
       _snack(u.active
@@ -120,11 +173,25 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     }
   }
 
+  Future<void> _openCreate() async {
+    final bool? created = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const _CreateUserSheet(),
+    );
+    if (created == true) {
+      await _load(reset: true);
+      ref.invalidate(adminStatsProvider);
+    }
+  }
+
   void _snack(String msg, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: error ? AppColors.error : null,
+      backgroundColor: error ? AppColors.danger : null,
     ));
   }
 
@@ -132,23 +199,26 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreate,
+        icon: const Icon(Icons.person_add_alt_rounded),
+        label: Text(s.createUserAction),
+      ),
       body: SafeArea(
         bottom: false,
         child: Column(
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl,
-                  AppSpacing.xl, AppSpacing.md),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Row(
                     children: <Widget>[
                       Expanded(
-                          child: Text(s.usersTitle,
-                              style: AppTextStyles.h1)),
-                      Text('$_total',
-                          style: AppTextStyles.bodySm),
+                          child: Text(s.usersTitle, style: AppTextStyles.h1)),
+                      Text('$_total', style: AppTextStyles.bodySm),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -175,6 +245,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                       _filterChip(s.all, null),
                       _filterChip(s.roleCustomer, 'CUSTOMER'),
                       _filterChip(s.roleBusiness, 'BUSINESS_OWNER'),
+                      _filterChip(s.roleCashier, 'CASHIER'),
                       _filterChip(s.roleAdmin, 'ADMIN'),
                     ],
                   ),
@@ -269,9 +340,8 @@ class _UserTile extends ConsumerWidget {
                 Stack(
                   children: <Widget>[
                     Avatar(
-                        name: user.fullName.isEmpty
-                            ? user.email
-                            : user.fullName,
+                        name:
+                            user.fullName.isEmpty ? user.email : user.fullName,
                         size: 44),
                     if (!user.active)
                       Positioned(
@@ -281,12 +351,10 @@ class _UserTile extends ConsumerWidget {
                           width: 14,
                           height: 14,
                           decoration: BoxDecoration(
-                            color: AppColors.error,
+                            color: AppColors.danger,
                             shape: BoxShape.circle,
                             border: Border.all(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surface,
+                                color: Theme.of(context).colorScheme.surface,
                                 width: 2),
                           ),
                         ),
@@ -322,16 +390,148 @@ class _UserTile extends ConsumerWidget {
   }
 }
 
+class _CreateUserSheet extends ConsumerStatefulWidget {
+  const _CreateUserSheet();
+
+  @override
+  ConsumerState<_CreateUserSheet> createState() => _CreateUserSheetState();
+}
+
+class _CreateUserSheetState extends ConsumerState<_CreateUserSheet> {
+  final GlobalKey<FormState> _form = GlobalKey<FormState>();
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _phone = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  String _role = 'BUSINESS_OWNER';
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ref.read(adminRepositoryProvider).createUser(
+            email: _email.text.trim(),
+            password: _password.text,
+            fullName: _name.text.trim(),
+            phone: _phone.text.trim(),
+            role: _role,
+          );
+      if (mounted) Navigator.of(context).pop(true);
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = e.message;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl,
+          AppSpacing.xl + MediaQuery.viewInsetsOf(context).bottom),
+      child: Form(
+        key: _form,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Text(s.createUserAction, style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _name,
+                decoration: InputDecoration(labelText: s.fullName),
+                validator: (String? v) => (v == null || v.trim().length < 2)
+                    ? s.enterNameShort
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: s.email),
+                validator: (String? v) =>
+                    (v == null || !v.contains('@')) ? s.invalidEmail : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _phone,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                    labelText: s.phone, hintText: '+994501234567'),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: _password,
+                obscureText: true,
+                decoration: InputDecoration(labelText: s.password),
+                validator: (String? v) =>
+                    (v == null || v.length < 8) ? s.pwErrMin8 : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Wrap(
+                spacing: AppSpacing.sm,
+                children: <Widget>[
+                  for (final String r in const <String>[
+                    'CUSTOMER',
+                    'BUSINESS_OWNER',
+                    'ADMIN',
+                  ])
+                    ChoiceChip(
+                      label: Text(roleLabel(s, r)),
+                      selected: _role == r,
+                      onSelected: (_) => setState(() => _role = r),
+                    ),
+                ],
+              ),
+              if (_error != null) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                Text(_error!, style: AppTextStyles.bodySm),
+              ],
+              const SizedBox(height: AppSpacing.xl),
+              FilledButton(
+                onPressed: _saving ? null : _save,
+                child: Text(s.saveShort),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _UserActionsSheet extends ConsumerWidget {
   const _UserActionsSheet({
     required this.user,
     required this.onChangeRole,
     required this.onToggleActive,
+    required this.onDetail,
+    required this.onResetPassword,
   });
 
   final AdminUser user;
   final ValueChanged<String> onChangeRole;
   final VoidCallback onToggleActive;
+  final VoidCallback onDetail;
+  final VoidCallback onResetPassword;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -347,6 +547,24 @@ class _UserActionsSheet extends ConsumerWidget {
             Text(user.fullName.isEmpty ? user.email : user.fullName,
                 style: AppTextStyles.h3),
             Text(user.email, style: AppTextStyles.caption),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDetail,
+                    child: Text(s.userDetailTitle),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onResetPassword,
+                    child: Text(s.resetPasswordAction),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppSpacing.lg),
             Text(s.assignRole, style: AppTextStyles.overline),
             const SizedBox(height: AppSpacing.sm),
@@ -361,8 +579,7 @@ class _UserActionsSheet extends ConsumerWidget {
                   ChoiceChip(
                     label: Text(roleLabel(s, r)),
                     selected: user.role == r,
-                    onSelected:
-                        user.role == r ? null : (_) => onChangeRole(r),
+                    onSelected: user.role == r ? null : (_) => onChangeRole(r),
                   ),
               ],
             ),
@@ -374,8 +591,9 @@ class _UserActionsSheet extends ConsumerWidget {
                 icon: Icon(user.active ? Icons.block_rounded : AppIcons.check),
                 label: Text(user.active ? s.blockUser : s.activateUser),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor:
-                      user.active ? AppColors.error : AppColors.success,
+                  foregroundColor: user.active
+                      ? AppColors.dangerText
+                      : AppColors.successText,
                 ),
               ),
             ),

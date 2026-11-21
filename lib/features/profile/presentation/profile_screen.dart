@@ -1,3 +1,4 @@
+import '../../../core/legal/legal_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,12 +73,11 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      Text(user?.fullName ?? s.guest,
-                          style: AppTextStyles.h3),
+                      Text(user?.fullName ?? s.guest, style: AppTextStyles.h3),
                       const SizedBox(height: 2),
-                      Text(user?.email ?? '',
-                          style: AppTextStyles.bodySm),
-                      if (user?.phone != null && user!.phone!.isNotEmpty) ...<Widget>[
+                      Text(user?.email ?? '', style: AppTextStyles.bodySm),
+                      if (user?.phone != null &&
+                          user!.phone!.isNotEmpty) ...<Widget>[
                         const SizedBox(height: 2),
                         Text(user.phone!, style: AppTextStyles.bodySm),
                       ],
@@ -104,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.card_giftcard_rounded,
                   value: '$activeCards',
                   label: s.activeCard,
-                  tint: AppColors.primary,
+                  tint: AppColors.action,
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -128,6 +128,11 @@ class ProfileScreen extends ConsumerWidget {
             label: s.editProfile,
             trailing: s.nameAndPhone,
             onTap: () => _showSheet(context, const EditProfileSheet()),
+          ),
+          _MenuTile(
+            icon: Icons.card_giftcard_rounded,
+            label: s.tabRewards,
+            onTap: () => context.push('/rewards'),
           ),
           _MenuTile(
             icon: Icons.favorite_border_rounded,
@@ -174,6 +179,16 @@ class ProfileScreen extends ConsumerWidget {
             onTap: () => _showContactSheet(context, s),
           ),
           _MenuTile(
+            icon: Icons.privacy_tip_outlined,
+            label: s.privacyPolicy,
+            onTap: () => openLegalPage(s.lang, LegalPage.privacy),
+          ),
+          _MenuTile(
+            icon: Icons.description_outlined,
+            label: s.termsOfUse,
+            onTap: () => openLegalPage(s.lang, LegalPage.terms),
+          ),
+          _MenuTile(
             icon: Icons.info_outline_rounded,
             label: s.aboutApp,
             trailing: 'v 1.0.0',
@@ -189,9 +204,9 @@ class ProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.md),
           TextButton.icon(
             icon: const Icon(Icons.delete_forever_rounded,
-                color: AppColors.error),
+                color: AppColors.danger),
             label: Text(s.deleteAccount,
-                style: const TextStyle(color: AppColors.error)),
+                style: const TextStyle(color: AppColors.dangerText)),
             onPressed: () => _confirmDeleteAccount(context, ref),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -205,7 +220,10 @@ class ProfileScreen extends ConsumerWidget {
   String _notifTrailing(WidgetRef ref) {
     final NotificationPrefs p = ref.watch(notificationPrefsProvider);
     final int active = <bool>[
-      p.newRewards, p.nearbyOffers, p.weeklyRecap, p.marketing,
+      p.newRewards,
+      p.nearbyOffers,
+      p.weeklyRecap,
+      p.marketing,
     ].where((bool e) => e).length;
     return '$active / 4 ${ref.read(sProvider).notifActiveSuffix}';
   }
@@ -226,6 +244,7 @@ class ProfileScreen extends ConsumerWidget {
   Future<void> _showSheet(BuildContext context, Widget child) {
     return showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -268,7 +287,11 @@ class ProfileScreen extends ConsumerWidget {
             child: Text(s.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            // Content-sized: the theme's full-width minimum cannot be laid
+            // out inside the dialog's action row.
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.dangerText,
+                minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.deleteAccount),
           ),
@@ -307,19 +330,19 @@ class ProfileScreen extends ConsumerWidget {
               leading: const Icon(Icons.alternate_email_rounded),
               title: Text(s.email),
               subtitle: const Text('hello@qazan.az'),
-              onTap: () => _launch('mailto:hello@qazan.az'),
+              onTap: () => _launch(context, 'mailto:hello@qazan.az', s),
             ),
             ListTile(
               leading: const Icon(Icons.phone_rounded),
               title: Text(s.phoneWord),
               subtitle: const Text('+994 12 555 00 00'),
-              onTap: () => _launch('tel:+994125550000'),
+              onTap: () => _launch(context, 'tel:+994125550000', s),
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline_rounded),
               title: const Text('WhatsApp'),
               subtitle: Text(s.whatsappSub),
-              onTap: () => _launch('https://wa.me/994125550000'),
+              onTap: () => _launch(context, 'https://wa.me/994125550000', s),
             ),
             const SizedBox(height: AppSpacing.lg),
             PrimaryButton(
@@ -332,10 +355,19 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _launch(String uri) async {
-    final Uri u = Uri.parse(uri);
-    if (await canLaunchUrl(u)) {
-      await launchUrl(u, mode: LaunchMode.externalApplication);
+  // canLaunchUrl is unreliable under Android 11+ package visibility, so
+  // just try and tell the user when nothing could handle the link.
+  Future<void> _launch(BuildContext context, String uri, S s) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    bool ok = false;
+    try {
+      ok = await launchUrl(Uri.parse(uri),
+          mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok) {
+      messenger.showSnackBar(SnackBar(content: Text(s.couldNotOpenLink)));
     }
   }
 
@@ -433,7 +465,7 @@ class _MenuTile extends StatelessWidget {
         height: 40,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: AppColors.surfaceAlt,
+          color: AppColors.surfaceMuted,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, size: 20, color: AppColors.textPrimary),
@@ -442,8 +474,7 @@ class _MenuTile extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          if (trailing != null)
-            Text(trailing!, style: AppTextStyles.bodySm),
+          if (trailing != null) Text(trailing!, style: AppTextStyles.bodySm),
           const SizedBox(width: AppSpacing.xs),
           const Icon(Icons.arrow_forward_ios_rounded,
               size: 14, color: AppColors.textTertiary),

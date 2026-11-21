@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
+import '../../../core/widgets/periodic_refresh.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -30,13 +32,19 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
     final AsyncValue<List<CustomerSummary>> customers =
         ref.watch(myCustomersProvider);
 
-    return Scaffold(
+    // Customers keep earning while this screen is open.
+    return PeriodicRefresh(
+      onTick: () => ref.invalidate(myCustomersProvider),
+      child: Scaffold(
       appBar: AppBar(title: Text(s.tabCustomers)),
       body: Column(
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.lg,
+              AppSpacing.xl,
+              AppSpacing.sm,
+              AppSpacing.xl,
+              AppSpacing.lg,
             ),
             child: TextField(
               onChanged: (String v) => setState(() => _query = v),
@@ -50,7 +58,8 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
             child: customers.when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (Object e, _) => EmptyState(
-                title: s.error, subtitle: e.toString(),
+                title: s.error,
+                subtitle: e.toString(),
                 icon: AppIcons.error,
               ),
               data: (List<CustomerSummary> all) {
@@ -69,19 +78,22 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
                 }
                 return ListView.separated(
                   padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.huge,
+                    AppSpacing.xl,
+                    0,
+                    AppSpacing.xl,
+                    AppSpacing.huge,
                   ),
                   itemCount: filtered.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (BuildContext _, int i) =>
-                      _Row(c: filtered[i]),
+                  itemBuilder: (BuildContext _, int i) => _Row(c: filtered[i]),
                 );
               },
             ),
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -107,13 +119,14 @@ class _Row extends ConsumerWidget {
         ),
         child: Row(
           children: <Widget>[
-            Avatar(name: c.fullName, size: 44),
+            Avatar(name: c.nameOr(s.pCustomerFallback), size: 44),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(c.fullName, style: AppTextStyles.bodyLg),
+                  Text(c.nameOr(s.pCustomerFallback),
+                      style: AppTextStyles.bodyLg),
                   Text(
                     '${c.totalVisits} ${s.visitsWord} · ${s.lastVisit} ${AppFormat.dateTime(c.lastVisitAt)}',
                     style: AppTextStyles.caption,
@@ -127,9 +140,22 @@ class _Row extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
-                _Pill(value: '${c.totalStamps}', label: s.stampWord, tint: AppColors.primary),
+                _Pill(
+                    value: '${c.totalStamps}',
+                    label: s.stampWord,
+                    tint: AppColors.action),
                 const SizedBox(height: 4),
-                _Pill(value: '${c.rewardsClaimed}', label: s.rewardWord, tint: AppColors.success),
+                _Pill(
+                    value: '${c.rewardsClaimed}',
+                    label: s.rewardWord,
+                    tint: AppColors.success),
+                if (c.coinBalance > 0) ...<Widget>[
+                  const SizedBox(height: 4),
+                  _Pill(
+                      value: '${c.coinBalance}',
+                      label: s.coinLabel,
+                      tint: AppColors.reward),
+                ],
               ],
             ),
             const SizedBox(width: 4),
@@ -166,8 +192,7 @@ class _Pill extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               )),
           const SizedBox(width: 4),
-          Text(label,
-              style: AppTextStyles.caption.copyWith(color: tint)),
+          Text(label, style: AppTextStyles.caption.copyWith(color: tint)),
         ],
       ),
     );

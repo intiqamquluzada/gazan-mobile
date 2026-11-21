@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/i18n/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/maps_launcher.dart';
 
 /// A static OpenStreetMap preview of a business location. Tapping it (or the
 /// "Yol göstər" button) opens the device's maps app for directions. No API
@@ -24,45 +24,52 @@ class LocationMap extends ConsumerWidget {
   final double longitude;
   final String companyName;
 
-  Future<void> _openDirections() async {
-    final Uri uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude',
-    );
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
+  Future<void> _openDirections() => openDirections(
+        latitude: latitude,
+        longitude: longitude,
+        label: companyName,
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final LatLng point = LatLng(latitude, longitude);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.sm, AppSpacing.lg),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: AppShadows.md,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Text(s.address, style: AppTextStyles.h3),
+              const Icon(Icons.place_outlined,
+                  size: 20, color: AppColors.caramel),
+              const SizedBox(width: AppSpacing.sm),
+              Text(s.address,
+                  style: AppTextStyles.h3.copyWith(
+                      color: context.palette.ink, fontWeight: FontWeight.w700)),
               const Spacer(),
               TextButton.icon(
                 onPressed: _openDirections,
                 icon: const Icon(Icons.directions_rounded, size: 18),
-                label: Text(s.directions),
+                label: Text(s.directions,
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w600)),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          ClipRRect(
+          const SizedBox(height: AppSpacing.xs),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.lg),
             child: SizedBox(
-              height: 170,
+              height: 150,
               child: Stack(
                 children: <Widget>[
                   FlutterMap(
@@ -88,17 +95,25 @@ class LocationMap extends ConsumerWidget {
                             height: 44,
                             child: const Icon(
                               Icons.location_on_rounded,
-                              color: AppColors.primary,
+                              color: AppColors.action,
                               size: 40,
                             ),
                           ),
                         ],
+                      ),
+                      // Required by the OpenStreetMap tile usage policy.
+                      DefaultTextStyle.merge(
+                        style: const TextStyle(fontSize: 9),
+                        child: const SimpleAttributionWidget(
+                          source: Text('OpenStreetMap contributors'),
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
+          ),
           ),
         ],
       ),

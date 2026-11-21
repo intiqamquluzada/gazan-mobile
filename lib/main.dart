@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'core/push/push_service.dart';
+import './core/theme/app_colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,10 +21,21 @@ Future<void> main() async {
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
+      statusBarColor: AppColors.transparent,
     ),
   );
-  await initializeDateFormatting('az');
+  // The app serves Azerbaijan and Türkiye (plus ru/en UI), so load the
+  // date symbols for all of them, not just Azerbaijani.
+  await initializeDateFormatting();
 
-  runApp(const ProviderScope(child: QazanApp()));
+  // One container shared by start-up code and the widget tree, so the
+  // push service set up here is the same instance the app uses later.
+  final ProviderContainer container = ProviderContainer();
+  // Phone notifications: a quiet no-op until Firebase is configured.
+  await container.read(pushServiceProvider).init();
+
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const QazanApp(),
+  ));
 }

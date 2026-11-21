@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/pill_tab_bar.dart';
 
 import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -43,12 +44,7 @@ class MyRewardsBody extends ConsumerWidget {
       length: 2,
       child: Column(
         children: <Widget>[
-          TabBar(
-            tabs: <Widget>[
-              Tab(text: s.rewardsActiveTab),
-              Tab(text: s.rewardsUsedTab),
-            ],
-          ),
+          PillTabBar(tabs: <String>[s.rewardsActiveTab, s.rewardsUsedTab]),
           Expanded(
             child: TabBarView(
               children: <Widget>[
@@ -96,30 +92,39 @@ class _RewardsList extends ConsumerWidget {
       },
       child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: ref.read(sProvider).notLoaded,
-          subtitle: e.toString(),
-          icon: AppIcons.error,
+        // Scrollable so pull-to-refresh works on these states too.
+        error: (Object e, _) => ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: <Widget>[
+            const SizedBox(height: 24),
+            EmptyState(
+              title: ref.read(sProvider).notLoaded,
+              subtitle: e.toString(),
+              icon: AppIcons.error,
+            ),
+          ],
         ),
         data: (List<AppRewardClaim> list) {
           if (list.isEmpty) {
             return ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               children: <Widget>[
-                const SizedBox(height: 80),
+                const SizedBox(height: 24),
                 EmptyState(
                   title: emptyTitle,
                   subtitle: emptySubtitle,
                   icon: AppIcons.gift,
+                  image: 'assets/illustrations/onb_gift.png',
                 ),
               ],
             );
           }
           return ListView.separated(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge),
             itemCount: list.length,
-            separatorBuilder: (_, __) =>
-                const SizedBox(height: AppSpacing.sm),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
             itemBuilder: (BuildContext _, int i) => _RewardTile(
               claim: list[i],
               activeMode: activeMode,
@@ -161,7 +166,7 @@ class _RewardTile extends ConsumerWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(
-              color: dark ? AppColors.borderDark : AppColors.border,
+              color: dark ? AppColorsDark.border : AppColors.border,
             ),
             boxShadow: dark ? null : AppShadows.sm,
           ),
@@ -169,7 +174,7 @@ class _RewardTile extends ConsumerWidget {
             children: <Widget>[
               CompanyLogo(
                 name: claim.companyName,
-                brandColor: AppColors.primary,
+                brandColor: AppColors.action,
                 imageUrl: claim.companyLogoUrl,
                 size: 52,
               ),
@@ -195,17 +200,16 @@ class _RewardTile extends ConsumerWidget {
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: claim.isCoin
-                                ? AppColors.primarySoft
+                                ? AppColors.caramelSoft
                                 : AppColors.success.withValues(alpha: 0.12),
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.full),
+                            borderRadius: BorderRadius.circular(AppRadius.full),
                           ),
                           child: Text(
                             claim.isCoin ? s.coinLabel : s.stampLabel,
                             style: AppTextStyles.caption.copyWith(
                               color: claim.isCoin
-                                  ? AppColors.primary
-                                  : AppColors.success,
+                                  ? AppColors.action
+                                  : AppColors.successText,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -233,11 +237,11 @@ class _RewardTile extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         const Icon(AppIcons.token,
-                            size: 14, color: AppColors.primary),
+                            size: 14, color: AppColors.action),
                         const SizedBox(width: 2),
                         Text('${claim.coinCost}',
                             style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.primary,
+                              color: AppColors.action,
                               fontWeight: FontWeight.w800,
                             )),
                       ],

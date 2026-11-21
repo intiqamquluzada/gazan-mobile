@@ -1,3 +1,5 @@
+import 'dart:io' show File;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,8 +8,11 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/location/device_location.dart';
 import '../../menu/data/menu_repository.dart';
+import '../../menu/presentation/menu_preview.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -16,6 +21,7 @@ import '../../../core/widgets/company_logo.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../favorites/application/favorites_providers.dart';
 import '../../loyalty/application/loyalty_providers.dart';
+import '../../reviews/application/reviews_providers.dart';
 import '../../reviews/presentation/reviews_section.dart';
 import 'widgets/location_map.dart';
 import '../../loyalty/domain/loyalty_card.dart';
@@ -27,6 +33,9 @@ import '../../wallet/domain/coin_reward.dart';
 import '../../wallet/domain/coin_summary.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
+import '../../../core/utils/maps_launcher.dart';
+import '../../../core/utils/money.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class CompanyDetailScreen extends ConsumerWidget {
   const CompanyDetailScreen({super.key, required this.companyId});
@@ -40,36 +49,53 @@ class CompanyDetailScreen extends ConsumerWidget {
         ref.watch(companyByIdProvider(companyId));
     final AsyncValue<List<LoyaltyProgram>> programsAsync =
         ref.watch(programsForCompanyProvider(companyId));
-    final AsyncValue<List<LoyaltyCard>> cardsAsync =
-        ref.watch(myCardsProvider);
+    final AsyncValue<List<LoyaltyCard>> cardsAsync = ref.watch(myCardsProvider);
 
-    return Scaffold(
-      body: companyAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: s.error,
-          subtitle: e.toString(),
-          icon: AppIcons.error,
-        ),
-        data: (Company? company) {
-          if (company == null) {
-            return EmptyState(
-              title: s.notFound,
-              icon: AppIcons.searchOff,
-            );
-          }
-          return _Body(
+    // Every non-content state keeps a way back and a way to try again.
+    Widget bare(Widget body) => Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+              onPressed: () =>
+                  context.canPop() ? context.pop() : context.go('/home'),
+            ),
+          ),
+          body: body,
+        );
+    void retry() => ref.invalidate(companyByIdProvider(companyId));
+
+    return companyAsync.when(
+      // A failed pull-to-refresh keeps the page that is already shown.
+      skipError: true,
+      loading: () => bare(const Center(child: CircularProgressIndicator())),
+      error: (Object e, _) => bare(EmptyState(
+        title: s.error,
+        subtitle: e is ApiException ? e.message : s.errorTryAgain,
+        icon: AppIcons.error,
+        action: TextButton(onPressed: retry, child: Text(s.retry)),
+      )),
+      data: (Company? company) {
+        if (company == null) {
+          return bare(EmptyState(
+            title: s.notFound,
+            icon: AppIcons.searchOff,
+            action: TextButton(onPressed: retry, child: Text(s.retry)),
+          ));
+        }
+        return Scaffold(
+          body: _Body(
             company: company,
             programsAsync: programsAsync,
             cardsAsync: cardsAsync,
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-class _Body extends ConsumerWidget {
+class _Body extends ConsumerStatefulWidget {
   const _Body({
     required this.company,
     required this.programsAsync,
@@ -80,7 +106,20 @@ class _Body extends ConsumerWidget {
   final AsyncValue<List<LoyaltyProgram>> programsAsync;
   final AsyncValue<List<LoyaltyCard>> cardsAsync;
 
-  LoyaltyCard? _cardFor(String programId) => cardsAsync.maybeWhen(
+  @override
+  ConsumerState<_Body> createState() => _BodyState();
+}
+
+class _BodyState extends ConsumerState<_Body> {
+  // Anchors for the Campaigns / Menu / About tabs.
+  final GlobalKey _campaignsKey = GlobalKey();
+  final GlobalKey _menuKey = GlobalKey();
+  final GlobalKey _aboutKey = GlobalKey();
+
+  Company get company => widget.company;
+  AsyncValue<List<LoyaltyProgram>> get programsAsync => widget.programsAsync;
+
+  LoyaltyCard? _cardFor(String programId) => widget.cardsAsync.maybeWhen(
         data: (List<LoyaltyCard> cards) {
           for (final LoyaltyCard c in cards) {
             if (c.programId == programId) return c;
@@ -91,21 +130,33 @@ class _Body extends ConsumerWidget {
       );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
     final Color brand = Color(company.coverColorHex);
     final double topInset = MediaQuery.paddingOf(context).top;
-    final bool hasCoinRewards = ref
-        .watch(coinRewardsProvider(company.id))
-        .maybeWhen(
-          data: (List<CoinReward> r) => r.isNotEmpty,
-          orElse: () => false,
-        );
+    final bool hasCoinRewards =
+        ref.watch(coinRewardsProvider(company.id)).maybeWhen(
+              data: (List<CoinReward> r) => r.any((CoinReward x) => x.active),
+              orElse: () => false,
+            );
 
     return Stack(
       children: <Widget>[
-        ListView(
+        RefreshIndicator(
+          // Programs, gifts and the customer's own progress can change
+          // while the page is open (owner edits, a tap at the till).
+          onRefresh: () async {
+            ref
+              ..invalidate(programsForCompanyProvider(company.id))
+              ..invalidate(coinRewardsProvider(company.id))
+              ..invalidate(companyByIdProvider(company.id))
+              ..invalidate(companyReviewsProvider(company.id))
+              ..invalidate(myCardsProvider)
+              ..invalidate(coinSummaryProvider);
+          },
+          child: ListView(
           padding: EdgeInsets.zero,
+          physics: const AlwaysScrollableScrollPhysics(),
           children: <Widget>[
             _PhotoHeader(company: company, brand: brand),
             Transform.translate(
@@ -119,29 +170,65 @@ class _Body extends ConsumerWidget {
                 ),
                 child: Column(
                   children: <Widget>[
-                    _InfoCard(company: company),
-                    const SizedBox(height: AppSpacing.lg),
+                    _InfoCard(
+                      company: company,
+                      actions: _ActionButtons(
+                        company: company,
+                        onShowQr: () => context.go('/nfc'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    _SectionTabs(
+                      labels: <String>[s.campaigns, s.menuWord, s.aboutTab],
+                      anchors: <GlobalKey>[_campaignsKey, _menuKey, _aboutKey],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
                     _OffersCard(
+                      key: _campaignsKey,
                       company: company,
                       programsAsync: programsAsync,
                       hasCoinRewards: hasCoinRewards,
                       cardFor: _cardFor,
                       onJoin: (LoyaltyProgram p) async {
-                        await ref
-                            .read(loyaltyActionsProvider)
-                            .joinProgram(p.id);
+                        try {
+                          await ref
+                              .read(loyaltyActionsProvider)
+                              .joinProgram(p.id);
+                        } on ApiException catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.message)));
+                          }
+                          return;
+                        }
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                                '${company.name} ${s.cardAddedSuffix}'),
+                            content:
+                                Text('${company.name} ${s.cardAddedSuffix}'),
                           ),
                         );
                       },
-                      onShowQr: () => context.push('/qr/show'),
+                      onShowQr: () => context.go('/nfc'),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    MenuPreview(
+                      key: _menuKey,
+                      companyId: company.id,
+                      currency: company.currency,
+                      onOpenFull: (List<MenuItem> items) =>
+                          showModalBottomSheet<void>(
+                        context: context,
+                        useRootNavigator: true,
+                        isScrollControlled: true,
+                        showDragHandle: false,
+                        builder: (BuildContext _) =>
+                            _MenuSheet(items: items, currency: company.currency),
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     _CoinRewardsSection(company: company),
+                    SizedBox(key: _aboutKey, height: 0),
                     if (company.latitude != null &&
                         company.longitude != null) ...<Widget>[
                       const SizedBox(height: AppSpacing.lg),
@@ -162,6 +249,7 @@ class _Body extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
         // Floating back / actions over the photo.
         Padding(
@@ -187,10 +275,9 @@ class _Body extends ConsumerWidget {
                     icon: fav
                         ? Icons.favorite_rounded
                         : Icons.favorite_border_rounded,
-                    iconColor: fav ? AppColors.error : null,
-                    onTap: () => ref
-                        .read(favoritesProvider.notifier)
-                        .toggle(company.id),
+                    iconColor: fav ? AppColors.danger : null,
+                    onTap: () =>
+                        ref.read(favoritesProvider.notifier).toggle(company.id),
                   );
                 },
               ),
@@ -220,24 +307,58 @@ class _PhotoHeader extends StatefulWidget {
   State<_PhotoHeader> createState() => _PhotoHeaderState();
 }
 
-/// Shares a rich, useful message instead of a raw API URL (which used to
-/// open backend JSON in the browser). Includes the name, tagline, address,
-/// and — when coordinates exist — a Google Maps link to the exact location.
+/// Shares the venue the way a place should be shared: the cover photo as
+/// an image plus a caption with name, category · rating, tagline, address,
+/// hours, a Google Maps link and an invite line.
+///
+/// No `subject` — several targets (Telegram, some messengers, mail) used
+/// only the subject, which is why the old share showed just the name.
 Future<void> _shareCompany(Company company, S s) async {
-  final StringBuffer msg = StringBuffer(company.name);
+  final StringBuffer msg = StringBuffer();
+  msg.writeln(company.name);
+  final List<String> meta = <String>[
+    company.category.labelOf(s),
+    if (company.rating > 0) '⭐ ${company.rating.toStringAsFixed(1)}',
+  ];
+  msg.writeln(meta.join(' · '));
   if (company.tagline.trim().isNotEmpty) {
-    msg.write('\n${company.tagline.trim()}');
+    msg.writeln(company.tagline.trim());
   }
+  msg.writeln();
   if (company.address.trim().isNotEmpty) {
-    msg.write('\n📍 ${company.address.trim()}');
+    msg.writeln('📍 ${company.address.trim()}');
+  }
+  if ((company.workingHours ?? '').trim().isNotEmpty) {
+    msg.writeln('🕒 ${company.workingHours!.trim()}');
+  }
+  if ((company.phone ?? '').trim().isNotEmpty) {
+    msg.writeln('📞 ${company.phone!.trim()}');
   }
   if (company.latitude != null && company.longitude != null) {
-    final String maps =
-        'https://www.google.com/maps/search/?api=1&query=${company.latitude},${company.longitude}';
-    msg.write('\n\n${s.shareOnMap}: $maps');
+    msg.writeln(
+        '🗺 ${s.shareOnMap}: ${googleMapsLink(company.latitude!, company.longitude!)}');
   }
-  msg.write('\n\n${s.shareDiscover} 🎁');
-  await Share.share(msg.toString(), subject: company.name);
+  msg.writeln();
+  msg.write('🎁 ${s.shareDiscover}');
+  final String text = msg.toString();
+
+  // Attach the cover photo when we can get it (usually already cached
+  // from the header); otherwise share the text alone.
+  if (company.photoUrls.isNotEmpty) {
+    try {
+      final File file = await DefaultCacheManager()
+          .getSingleFile(company.photoUrls.first)
+          .timeout(const Duration(seconds: 6));
+      await Share.shareXFiles(
+        <XFile>[XFile(file.path, mimeType: 'image/jpeg')],
+        text: text,
+      );
+      return;
+    } catch (_) {
+      // fall through to text-only
+    }
+  }
+  await Share.share(text);
 }
 
 class _PhotoHeaderState extends State<_PhotoHeader> {
@@ -274,7 +395,7 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
           child: Center(
             child: CompanyLogo(
               name: widget.company.name,
-              brandColor: Colors.white,
+              brandColor: AppColors.onDark,
               imageUrl: widget.company.logoUrl,
               size: 96,
               radius: 28,
@@ -302,24 +423,26 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
             },
           ),
           Positioned(
-            left: 0,
-            right: 0,
+            right: AppSpacing.lg,
             bottom: 44,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List<Widget>.generate(count, (int d) {
-                final bool on = d == _i;
-                return AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: on ? 22 : 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: on ? 1 : 0.5),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                );
-              }),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.media.withValues(alpha: 0.45),
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(Icons.photo_library_outlined,
+                      size: 13, color: AppColors.onDark),
+                  const SizedBox(width: 4),
+                  Text('${_i + 1} / $count',
+                      style: AppTextStyles.caption.copyWith(
+                          color: AppColors.onDark,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
             ),
           ),
         ],
@@ -329,9 +452,7 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
 
   Color _shift(Color c, double amount) {
     final HSLColor h = HSLColor.fromColor(c);
-    return h
-        .withLightness((h.lightness + amount).clamp(0.0, 1.0))
-        .toColor();
+    return h.withLightness((h.lightness + amount).clamp(0.0, 1.0)).toColor();
   }
 }
 
@@ -345,7 +466,7 @@ class _GlassCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.onDark,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -353,7 +474,8 @@ class _GlassCircle extends StatelessWidget {
         child: SizedBox(
           width: 42,
           height: 42,
-          child: Icon(icon, size: 19, color: iconColor ?? AppColors.textPrimary),
+          child:
+              Icon(icon, size: 19, color: iconColor ?? AppColors.textPrimary),
         ),
       ),
     );
@@ -361,9 +483,12 @@ class _GlassCircle extends StatelessWidget {
 }
 
 class _InfoCard extends ConsumerWidget {
-  const _InfoCard({required this.company});
+  const _InfoCard({required this.company, required this.actions});
 
   final Company company;
+
+  /// Menu / Kartı okut buttons, shown at the bottom of the card.
+  final Widget actions;
 
   static const List<_Amenity> _amenities = <_Amenity>[
     _Amenity('WIFI', Icons.wifi_rounded),
@@ -378,6 +503,7 @@ class _InfoCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
+    final AppPalette p = context.palette;
     final ({double lat, double lng})? device =
         ref.watch(deviceLocationProvider).value;
     final double? distanceKm = distanceKmBetween(
@@ -386,10 +512,24 @@ class _InfoCard extends ConsumerWidget {
           targetLng: company.longitude,
         ) ??
         company.distanceKm;
+    final bool hasMap = company.latitude != null && company.longitude != null;
+    final String hours = (company.workingHours ?? '').trim();
+    final String phone = (company.phone ?? '').trim();
+    final String subtitle = <String>[
+      company.category.labelOf(s),
+      if (distanceKm != null)
+        distanceKm < 1
+            ? '${(distanceKm * 1000).round()} m'
+            : '${distanceKm.toStringAsFixed(1)} km',
+    ].join(' · ');
+
+    Widget hairline() => Divider(height: AppSpacing.xl, color: p.divider);
+
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: p.surface,
         borderRadius: BorderRadius.circular(AppRadius.xxl),
         boxShadow: AppShadows.md,
       ),
@@ -397,95 +537,184 @@ class _InfoCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
+              CompanyLogo(
+                name: company.name,
+                brandColor: Color(company.coverColorHex),
+                imageUrl: company.logoUrl,
+                size: 58,
+                radius: 16,
+              ),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(company.name, style: AppTextStyles.h1),
-                    const SizedBox(height: 4),
-                    Text(
-                      <String>[
-                        if (company.address.isNotEmpty) company.address,
-                        company.category.labelOf(s),
-                      ].join(' • '),
-                      style: AppTextStyles.bodySm,
-                    ),
-                    if (distanceKm != null) ...<Widget>[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: <Widget>[
-                          const Icon(AppIcons.location,
-                              size: 14, color: AppColors.primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            distanceKm < 1
-                                ? '${(distanceKm * 1000).round()} m uzaqda'
-                                : '${distanceKm.toStringAsFixed(1)} km uzaqda',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                    Row(
+                      children: <Widget>[
+                        Flexible(
+                          child: Text(
+                            company.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyles.h2.copyWith(
+                              color: context.palette.ink,
+                              fontSize: 21,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                        ),
+                        if (company.isApproved) ...<Widget>[
+                          const SizedBox(width: 6),
+                          Icon(Icons.verified_rounded,
+                              size: 19, color: p.caramel),
                         ],
-                      ),
-                    ],
-                    if ((company.workingHours ?? '').isNotEmpty ||
-                        (company.phone ?? '').isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 6),
-                      Row(
-                        children: <Widget>[
-                          if ((company.workingHours ?? '').isNotEmpty) ...<Widget>[
-                            const Icon(AppIcons.clock,
-                                size: 14, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text(company.workingHours!,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                )),
-                          ],
-                          if ((company.workingHours ?? '').isNotEmpty &&
-                              (company.phone ?? '').isNotEmpty)
-                            Text('  ·  ', style: AppTextStyles.caption),
-                          if ((company.phone ?? '').isNotEmpty)
-                            Text(company.phone!,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: AppColors.textSecondary,
-                                )),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: AppTextStyles.bodySm
+                            .copyWith(color: p.textSecondary)),
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              _RoundAction(icon: AppIcons.clock),
-              const SizedBox(width: 6),
-              _RoundAction(icon: AppIcons.star, label: company.rating
-                  .toStringAsFixed(1)),
-              const SizedBox(width: 6),
-              _RoundAction(icon: AppIcons.location),
+              if (company.rating > 0) ...<Widget>[
+                const SizedBox(width: AppSpacing.sm),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: p.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Column(
+                    children: <Widget>[
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          const Icon(Icons.star_rounded,
+                              size: 17, color: AppColors.reward),
+                          const SizedBox(width: 3),
+                          Text(company.rating.toStringAsFixed(1),
+                              style: AppTextStyles.body.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: p.textPrimary)),
+                        ],
+                      ),
+                      if (company.reviewCount > 0)
+                        Text('(${company.reviewCount})',
+                            style: AppTextStyles.caption
+                                .copyWith(color: p.textSecondary)),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
-          // Amenities only render if the owner enabled at least one.
-          if (_activeAmenities.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.lg),
-            const Divider(height: 1),
-            const SizedBox(height: AppSpacing.lg),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+          if (company.address.trim().isNotEmpty) ...<Widget>[
+            hairline(),
+            InkWell(
+              onTap: !hasMap
+                  ? null
+                  : () => openDirections(
+                        latitude: company.latitude!,
+                        longitude: company.longitude!,
+                        label: company.name,
+                      ),
               child: Row(
                 children: <Widget>[
-                  for (final _Amenity a in _activeAmenities) ...<Widget>[
-                    _AmenityChip(amenity: a, active: true),
-                    const SizedBox(width: AppSpacing.lg),
-                  ],
+                  Icon(Icons.place_outlined, size: 19, color: p.caramel),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(company.address.trim(),
+                        style: AppTextStyles.bodySm.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: p.textPrimary)),
+                  ),
+                  if (hasMap)
+                    Icon(Icons.chevron_right_rounded,
+                        size: 20, color: p.textSecondary),
                 ],
               ),
             ),
           ],
+          if (hours.isNotEmpty || phone.isNotEmpty) ...<Widget>[
+            hairline(),
+            Row(
+              children: <Widget>[
+                if (hours.isNotEmpty) ...<Widget>[
+                  Icon(Icons.schedule_rounded, size: 18, color: p.caramel),
+                  const SizedBox(width: 6),
+                  Text(hours,
+                      style: AppTextStyles.bodySm.copyWith(
+                          fontSize: 14,
+                          color: p.caramelText,
+                          fontWeight: FontWeight.w700)),
+                ],
+                if (hours.isNotEmpty && phone.isNotEmpty)
+                  Container(
+                    width: 1,
+                    height: 18,
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md),
+                    color: p.divider,
+                  ),
+                if (phone.isNotEmpty)
+                  Flexible(
+                    child: InkWell(
+                      onTap: () => launchUrl(Uri(scheme: 'tel', path: phone)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(Icons.call_outlined,
+                              size: 17, color: p.caramel),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(phone,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTextStyles.bodySm.copyWith(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: p.textPrimary)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+          // Amenities only render if the owner enabled at least one.
+          if (_activeAmenities.isNotEmpty) ...<Widget>[
+            hairline(),
+            // Up to five fit evenly across the card; more scroll sideways.
+            if (_activeAmenities.length <= 5)
+              Row(
+                children: <Widget>[
+                  for (final _Amenity a in _activeAmenities)
+                    Expanded(child: _AmenityChip(amenity: a, active: true)),
+                  for (int i = _activeAmenities.length; i < 5; i++)
+                    const Spacer(),
+                ],
+              )
+            else
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: <Widget>[
+                    for (final _Amenity a in _activeAmenities) ...<Widget>[
+                      SizedBox(
+                          width: 64,
+                          child: _AmenityChip(amenity: a, active: true)),
+                      const SizedBox(width: AppSpacing.sm),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          actions,
         ],
       ),
     );
@@ -496,37 +725,75 @@ class _InfoCard extends ConsumerWidget {
       .toList(growable: false);
 }
 
-class _RoundAction extends StatelessWidget {
-  const _RoundAction({required this.icon, this.label});
+/// Segmented tabs that scroll the page to Campaigns / Menu / About.
+class _SectionTabs extends StatefulWidget {
+  const _SectionTabs({required this.labels, required this.anchors});
 
-  final IconData icon;
-  final String? label;
+  final List<String> labels;
+  final List<GlobalKey> anchors;
+
+  @override
+  State<_SectionTabs> createState() => _SectionTabsState();
+}
+
+class _SectionTabsState extends State<_SectionTabs> {
+  int _i = 0;
+
+  void _go(int i) {
+    setState(() => _i = i);
+    final BuildContext? target = widget.anchors[i].currentContext;
+    if (target == null) return;
+    Scrollable.ensureVisible(
+      target,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+      alignment: 0.04,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final AppPalette p = context.palette;
     return Container(
-      height: 40,
-      padding: EdgeInsets.symmetric(horizontal: label == null ? 0 : 12),
-      width: label == null ? 40 : null,
-      alignment: Alignment.center,
+      height: 46,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.primarySoft,
-        shape: label == null ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius:
-            label == null ? null : BorderRadius.circular(AppRadius.full),
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        boxShadow: AppShadows.sm,
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Icon(icon, size: 18, color: AppColors.primary),
-          if (label != null) ...<Widget>[
-            const SizedBox(width: 4),
-            Text(label!,
-                style: AppTextStyles.bodySm.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                )),
-          ],
+          for (int i = 0; i < widget.labels.length; i++)
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _go(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    gradient: i == _i
+                        ? const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: AppColors.actionGradient,
+                          )
+                        : null,
+                  ),
+                  child: Text(
+                    widget.labels[i],
+                    style: AppTextStyles.bodySm.copyWith(
+                      fontSize: 14,
+                      fontWeight: i == _i ? FontWeight.w700 : FontWeight.w500,
+                      color: i == _i ? AppColors.onDark : p.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -569,65 +836,52 @@ class _AmenityChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
-    final bool on = active;
-    return Column(
-      children: <Widget>[
-        Container(
-          width: 48,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: on ? AppColors.primarySoft : AppColors.surfaceAlt,
-            shape: BoxShape.circle,
+    final AppPalette p = context.palette;
+    return SizedBox(
+      child: Column(
+        children: <Widget>[
+          Container(
+            width: 48,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? p.surfaceAccent : p.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(
+              amenity.icon,
+              size: 22,
+              color: active ? p.caramelText : p.textTertiary,
+            ),
           ),
-          child: Icon(
-            amenity.icon,
-            size: 22,
-            color: on ? AppColors.primary : AppColors.textTertiary,
+          const SizedBox(height: 6),
+          Text(
+            amenity.label(s),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTextStyles.caption.copyWith(
+              color: p.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          amenity.label(s),
-          style: AppTextStyles.caption.copyWith(
-            color: on ? AppColors.primary : AppColors.textTertiary,
-            fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-class _OffersCard extends ConsumerWidget {
-  const _OffersCard({
-    required this.company,
-    required this.programsAsync,
-    required this.hasCoinRewards,
-    required this.cardFor,
-    required this.onJoin,
-    required this.onShowQr,
-  });
+/// Menu + "Kartı okut" — the two main actions at the foot of the info card.
+class _ActionButtons extends ConsumerWidget {
+  const _ActionButtons({required this.company, required this.onShowQr});
 
   final Company company;
-  final AsyncValue<List<LoyaltyProgram>> programsAsync;
-
-  /// True when this business runs the coin/gift system. When it does and
-  /// there are no stamp campaigns, the campaign block is hidden entirely
-  /// (no "no campaigns yet" text) — the two systems are mutually exclusive.
-  final bool hasCoinRewards;
-
-  final LoyaltyCard? Function(String programId) cardFor;
-  final Future<void> Function(LoyaltyProgram program) onJoin;
   final VoidCallback onShowQr;
 
-  /// Opens the menu. If the business built a structured menu, shows it
-  /// grouped by category in a sheet; otherwise falls back to opening the
-  /// menu link in the in-app browser.
   Future<void> _openMenu(BuildContext context, List<MenuItem> items) async {
     if (items.isNotEmpty) {
       await showModalBottomSheet<void>(
         context: context,
+        useRootNavigator: true,
         isScrollControlled: true,
         useSafeArea: true,
         backgroundColor: Theme.of(context).colorScheme.surface,
@@ -635,7 +889,8 @@ class _OffersCard extends ConsumerWidget {
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
         ),
-        builder: (BuildContext _) => _MenuSheet(items: items),
+        builder: (BuildContext _) =>
+            _MenuSheet(items: items, currency: company.currency),
       );
       return;
     }
@@ -656,101 +911,106 @@ class _OffersCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
-    // Structured menu items (may be empty — then the link fallback is used).
     final List<MenuItem> menuItems =
         ref.watch(companyMenuProvider(company.id)).value ?? const <MenuItem>[];
     final bool showMenuButton = company.hasMenu || menuItems.isNotEmpty;
+    return Row(
+      children: <Widget>[
+        if (showMenuButton) ...<Widget>[
+          Expanded(
+            flex: 10,
+            child: _BigButton(
+              label: s.menuWord,
+              icon: Icons.restaurant_menu_rounded,
+              filled: false,
+              onTap: () => _openMenu(context, menuItems),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+        ],
+        Expanded(
+          flex: showMenuButton ? 13 : 1,
+          child: _BigButton(
+            label: s.nfcTapShort,
+            icon: AppIcons.nfc,
+            filled: true,
+            onTap: onShowQr,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: AppShadows.md,
+class _OffersCard extends ConsumerWidget {
+  const _OffersCard({
+    super.key,
+    required this.company,
+    required this.programsAsync,
+    required this.hasCoinRewards,
+    required this.cardFor,
+    required this.onJoin,
+    required this.onShowQr,
+  });
+
+  final Company company;
+  final AsyncValue<List<LoyaltyProgram>> programsAsync;
+
+  /// True when this business runs the coin/gift system. When it does and
+  /// there are no stamp campaigns, the campaign block is hidden entirely
+  /// (no "no campaigns yet" text) — the two systems are mutually exclusive.
+  final bool hasCoinRewards;
+
+  final LoyaltyCard? Function(String programId) cardFor;
+  final Future<void> Function(LoyaltyProgram program) onJoin;
+  final VoidCallback onShowQr;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    return programsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(AppSpacing.xxl),
+        child: Center(child: CircularProgressIndicator()),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              // Menu shows if the owner added a link or built a menu.
-              if (showMenuButton) ...<Widget>[
-                Expanded(
-                  child: _BigButton(
-                    label: s.menuWord,
-                    icon: Icons.restaurant_menu_rounded,
-                    filled: false,
-                    onTap: () => _openMenu(context, menuItems),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-              ],
-              Expanded(
-                child: _BigButton(
-                  label: s.showQr,
-                  icon: AppIcons.qr,
-                  filled: true,
-                  onTap: onShowQr,
-                ),
+      error: (Object e, _) => Text(e.toString()),
+      data: (List<LoyaltyProgram> all) {
+        // A paused or expired campaign is not on offer to customers.
+        final DateTime now = DateTime.now();
+        final List<LoyaltyProgram> programs = all
+            .where((LoyaltyProgram p) =>
+                p.isActive &&
+                (p.expiresAt == null || p.expiresAt!.isAfter(now)))
+            .toList(growable: false);
+        if (programs.isEmpty && hasCoinRewards) return const SizedBox.shrink();
+        if (programs.isEmpty) {
+          return Container(
+            decoration: BoxDecoration(
+              color: context.palette.surface,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              boxShadow: AppShadows.sm,
+            ),
+            child: EmptyState(
+              title: s.noCampaignYet,
+              subtitle: s.campaignComingSoon,
+              icon: AppIcons.gift,
+            ),
+          );
+        }
+        return Column(
+          children: <Widget>[
+            for (int i = 0; i < programs.length; i++) ...<Widget>[
+              if (i > 0) const SizedBox(height: AppSpacing.md),
+              _CampaignRow(
+                program: programs[i],
+                card: cardFor(programs[i].id),
+                onJoin: () => onJoin(programs[i]),
+                currency: company.currency,
               ),
             ],
-          ),
-          programsAsync.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(AppSpacing.xxl),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (Object e, _) => Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.lg),
-              child: Text(e.toString()),
-            ),
-            data: (List<LoyaltyProgram> programs) {
-              final bool hasPrograms = programs.isNotEmpty;
-              // Coin-only business: hide the campaign block completely.
-              if (!hasPrograms && hasCoinRewards) {
-                return const SizedBox.shrink();
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  const SizedBox(height: AppSpacing.lg),
-                  const Divider(height: 1),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(s.campaigns, style: AppTextStyles.h2),
-                  const SizedBox(height: AppSpacing.md),
-                  if (!hasPrograms)
-                    EmptyState(
-                      title: s.noCampaignYet,
-                      subtitle: s.campaignComingSoon,
-                      icon: AppIcons.gift,
-                    )
-                  else
-                    Column(
-                      children: <Widget>[
-                        for (int i = 0; i < programs.length; i++) ...<Widget>[
-                          _CampaignRow(
-                            program: programs[i],
-                            card: cardFor(programs[i].id),
-                            accent: i.isEven
-                                ? AppColors.primary
-                                : AppColors.accent,
-                            onJoin: () => onJoin(programs[i]),
-                            onShowQr: onShowQr,
-                          ),
-                          if (i != programs.length - 1) ...<Widget>[
-                            const SizedBox(height: AppSpacing.lg),
-                            const Divider(height: 1),
-                            const SizedBox(height: AppSpacing.lg),
-                          ],
-                        ],
-                      ],
-                    ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+          ],
+        );
+      },
     );
   }
 }
@@ -770,23 +1030,42 @@ class _BigButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color fg = filled ? Colors.white : AppColors.primary;
-    return Material(
-      color: filled ? AppColors.primary : AppColors.primarySoft,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(icon, size: 20, color: fg),
-              const SizedBox(width: AppSpacing.sm),
-              Text(label,
-                  style: AppTextStyles.button.copyWith(color: fg)),
-            ],
+    final AppPalette p = context.palette;
+    final Color fg = filled ? AppColors.onDark : p.caramelText;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        color: filled ? null : p.caramelSoft,
+        gradient: filled
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.actionGradient,
+              )
+            : null,
+        boxShadow: filled ? AppShadows.brand(AppColors.action) : null,
+      ),
+      child: Material(
+        color: AppColors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          child: SizedBox(
+            height: 48,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                if (icon == AppIcons.nfc)
+                  NfcWavesIcon(size: 20, color: fg)
+                else
+                  Icon(icon, size: 19, color: fg),
+                const SizedBox(width: AppSpacing.sm),
+                Text(label,
+                    style: AppTextStyles.button.copyWith(
+                        color: fg, fontWeight: FontWeight.w600)),
+              ],
+            ),
           ),
         ),
       ),
@@ -798,112 +1077,152 @@ class _CampaignRow extends ConsumerWidget {
   const _CampaignRow({
     required this.program,
     required this.card,
-    required this.accent,
     required this.onJoin,
-    required this.onShowQr,
+    required this.currency,
   });
 
   final LoyaltyProgram program;
   final LoyaltyCard? card;
-  final Color accent;
   final VoidCallback onJoin;
-  final VoidCallback onShowQr;
+  final String currency;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
-    final int total = program.stampsRequired;
+    final AppPalette p = context.palette;
+    final int total = program.stampsToFill(card);
     final int done = card?.stamps ?? 0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(program.rewardType.icon, color: accent, size: 22),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(program.title, style: AppTextStyles.h3),
-                  const SizedBox(height: 2),
-                  Text(program.rewardLabelOf(s), style: AppTextStyles.bodySm),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Image.asset('assets/illustrations/campaign_gift.png',
+              width: 58, filterQuality: FilterQuality.medium),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(program.title,
+                              style: AppTextStyles.h3.copyWith(
+                                  color: context.palette.ink,
+                                  fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 2),
+                          Text(program.rewardLabelOf(s, currency: currency),
+                              style: AppTextStyles.bodySm
+                                  .copyWith(color: p.textSecondary)),
+                        ],
+                      ),
+                    ),
+                    Text('$done / $total',
+                        style: AppTextStyles.h3.copyWith(
+                          color: p.caramelText,
+                          fontWeight: FontWeight.w800,
+                        )),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                LayoutBuilder(
+                  builder: (BuildContext context, BoxConstraints c) {
+                    const double gap = 6;
+                    final double d =
+                        ((c.maxWidth - gap * total) / (total + 1))
+                            .clamp(18.0, 30.0)
+                            .toDouble();
+                    return Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
+                      children: <Widget>[
+                        for (int i = 0; i < total; i++)
+                          _Dot(size: d, done: i < done, icon: program.rewardType.icon),
+                        _Dot(size: d, done: false, reward: true),
+                      ],
+                    );
+                  },
+                ),
+                if (card == null) ...<Widget>[
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    height: 38,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 38),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      onPressed: onJoin,
+                      child: Text(s.joinCampaign),
+                    ),
+                  ),
                 ],
-              ),
+              ],
             ),
-            Text('$done / $total',
-                style: AppTextStyles.bodySm.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w800,
-                )),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Row(
-          children: <Widget>[
-            for (int s = 0; s < total; s++) ...<Widget>[
-              Expanded(
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: s < done
-                          ? accent
-                          : accent.withValues(alpha: 0.10),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      s < done ? AppIcons.check : program.rewardType.icon,
-                      size: 14,
-                      color: s < done ? Colors.white : accent,
-                    ),
-                  ),
-                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One stamp on a campaign card: white with a faint green outline, filled
+/// green with a tick once earned, and a mint ring with a gift for the
+/// reward slot.
+class _Dot extends StatelessWidget {
+  const _Dot({
+    required this.size,
+    required this.done,
+    this.icon = AppIcons.gift,
+    this.reward = false,
+  });
+
+  final double size;
+  final bool done;
+  final IconData icon;
+  final bool reward;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette p = context.palette;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: done
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.actionGradient,
+              )
+            : null,
+        color: done ? null : (reward ? p.surfaceAccent : p.surface),
+        border: done
+            ? null
+            : Border.all(
+                color: reward
+                    ? p.caramel
+                    : p.caramel.withValues(alpha: 0.25),
+                width: reward ? 1.6 : 1,
               ),
-              const SizedBox(width: 6),
-            ],
-            // Reward slot.
-            Expanded(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.06),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: accent.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  child: Icon(AppIcons.gift, size: 14, color: accent),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: card == null
-              ? OutlinedButton(
-                  onPressed: onJoin,
-                  child: Text(s.joinCampaign),
-                )
-              : OutlinedButton.icon(
-                  onPressed: onShowQr,
-                  icon: const Icon(AppIcons.qr, size: 18),
-                  label: Text(s.showQr),
-                ),
-        ),
-      ],
+      ),
+      child: Icon(
+        done ? AppIcons.check : (reward ? AppIcons.gift : icon),
+        size: size * 0.5,
+        color: done ? AppColors.onDark : p.caramelText,
+      ),
     );
   }
 }
@@ -918,25 +1237,41 @@ class _CoinRewardsSection extends ConsumerWidget {
   final Company company;
 
   Future<void> _buy(
-      BuildContext context, WidgetRef ref, CoinReward r) async {
+      BuildContext context, WidgetRef ref, CoinReward r, int balance) async {
     final S s = ref.read(sProvider);
+    // Coins leave at once, so the customer confirms what they buy here.
+    final bool ok = await showConfirmSheet(
+      context,
+      title: s.buyConfirmTitle,
+      body: s.buyConfirmBody(r.title, r.coinCost, balance - r.coinCost),
+      confirmLabel: s.buyAction,
+      cancelLabel: s.cancel,
+      icon: Icons.card_giftcard_rounded,
+      danger: AppColors.action,
+    );
+    if (!ok || !context.mounted) return;
+    final ProviderContainer container =
+        ProviderScope.containerOf(context, listen: false);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final GoRouter router = GoRouter.of(context);
     try {
-      await ref.read(rewardsRepositoryProvider).purchase(r.id);
+      await container.read(rewardsRepositoryProvider).purchase(r.id);
       // Refresh affected state.
-      ref.invalidate(coinSummaryProvider);
-      ref.invalidate(myActiveRewardsProvider);
-      ref.invalidate(myUsedRewardsProvider);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${r.title} ${s.purchasedSeeGifts}')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${s.failed}: $e')),
-        );
-      }
+      container
+        ..invalidate(coinSummaryProvider)
+        ..invalidate(myActiveRewardsProvider)
+        ..invalidate(myUsedRewardsProvider);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${r.title} ${s.purchasedSeeGifts}'),
+          action: SnackBarAction(
+            label: s.viewMyRewards,
+            onPressed: () => router.push('/rewards'),
+          ),
+        ),
+      );
+    } on ApiException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     }
   }
 
@@ -945,51 +1280,77 @@ class _CoinRewardsSection extends ConsumerWidget {
     final S s = ref.watch(sProvider);
     final AsyncValue<List<CoinReward>> rewardsAsync =
         ref.watch(coinRewardsProvider(company.id));
-    final AsyncValue<CoinSummary> summaryAsync =
-        ref.watch(coinSummaryProvider);
+    final AsyncValue<CoinSummary> summaryAsync = ref.watch(coinSummaryProvider);
 
-    final int balance = summaryAsync.maybeWhen(
-      data: (CoinSummary sum) => sum.companies
-          .where((CompanyBalance b) => b.companyId == company.id)
-          .fold<int>(0, (int acc, CompanyBalance b) => acc + b.balance),
-      orElse: () => 0,
-    );
+    // Unknown until the summary loads: never treat that as a zero balance.
+    final int? known = summaryAsync.valueOrNull?.companies
+        .where((CompanyBalance b) => b.companyId == company.id)
+        .fold<int>(0, (int acc, CompanyBalance b) => acc + b.balance);
+    final bool balanceFailed = known == null && summaryAsync.hasError;
+    final int balance = known ?? 0;
 
     return rewardsAsync.maybeWhen(
-      data: (List<CoinReward> rewards) {
+      data: (List<CoinReward> all) {
+        // Owners also get their off-sale items; customers only see on-sale.
+        final List<CoinReward> rewards =
+            all.where((CoinReward r) => r.active).toList(growable: false);
         if (rewards.isEmpty) return const SizedBox.shrink();
         return Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(AppRadius.xxl),
-            boxShadow: AppShadows.md,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: AppShadows.sm,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Row(
                 children: <Widget>[
+                  Image.asset('assets/illustrations/coins.png',
+                      width: 44, filterQuality: FilterQuality.medium),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
-                      child: Text(s.buyWithCoin, style: AppTextStyles.h2)),
+                      child: Text(s.buyWithCoin,
+                          style: AppTextStyles.h3.copyWith(
+                              color: context.palette.ink,
+                              fontWeight: FontWeight.w700))),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
+                      color: AppColors.caramelSoft,
                       borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         const Icon(AppIcons.token,
-                            size: 16, color: AppColors.primary),
+                            size: 16, color: AppColors.action),
                         const SizedBox(width: 4),
-                        Text('$balance',
-                            style: AppTextStyles.bodySm.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w800,
-                            )),
+                        if (known != null)
+                          Text('$balance',
+                              style: AppTextStyles.bodySm.copyWith(
+                                color: AppColors.action,
+                                fontWeight: FontWeight.w800,
+                              ))
+                        else if (balanceFailed)
+                          InkWell(
+                            onTap: () => ref.invalidate(coinSummaryProvider),
+                            child: Tooltip(
+                              message: s.retry,
+                              child: const Icon(Icons.refresh_rounded,
+                                  size: 18, color: AppColors.action),
+                            ),
+                          )
+                        else
+                          const SizedBox.square(
+                            dimension: 14,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.action,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -1006,13 +1367,12 @@ class _CoinRewardsSection extends ConsumerWidget {
               for (final CoinReward r in rewards) ...<Widget>[
                 _RewardTile(
                   reward: r,
-                  affordable: balance >= r.coinCost,
-                  onBuy: balance >= r.coinCost
-                      ? () => _buy(context, ref, r)
+                  affordable: known == null || balance >= r.coinCost,
+                  onBuy: known != null && balance >= r.coinCost
+                      ? () => _buy(context, ref, r, balance)
                       : null,
                 ),
-                if (r != rewards.last)
-                  const SizedBox(height: AppSpacing.sm),
+                if (r != rewards.last) const SizedBox(height: AppSpacing.sm),
               ],
             ],
           ),
@@ -1038,11 +1398,11 @@ class _RewardTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final Color bgColor =
-        affordable ? AppColors.primary : AppColors.borderStrong;
+        affordable ? AppColors.action : AppColors.borderStrong;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: affordable ? AppColors.primarySoft : AppColors.surfaceAlt,
+        color: affordable ? AppColors.caramelSoft : AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Row(
@@ -1056,7 +1416,7 @@ class _RewardTile extends ConsumerWidget {
               gradient: kHeroGradient,
               shape: BoxShape.circle,
             ),
-            child: const Icon(AppIcons.gift, color: Colors.white, size: 20),
+            child: const Icon(AppIcons.gift, color: AppColors.onDark, size: 20),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -1087,14 +1447,14 @@ class _RewardTile extends ConsumerWidget {
                     Icon(AppIcons.token,
                         size: 14,
                         color: affordable
-                            ? AppColors.primary
+                            ? AppColors.action
                             : AppColors.textTertiary),
                     const SizedBox(width: 2),
                     Text('${reward.coinCost}',
                         style: AppTextStyles.bodySm.copyWith(
                           fontWeight: FontWeight.w800,
                           color: affordable
-                              ? AppColors.primary
+                              ? AppColors.action
                               : AppColors.textTertiary,
                         )),
                   ],
@@ -1115,7 +1475,7 @@ class _RewardTile extends ConsumerWidget {
                 child: Text(
                   affordable ? s.buyAction : s.insufficientWord,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.onDark,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
@@ -1131,9 +1491,10 @@ class _RewardTile extends ConsumerWidget {
 
 /// Read-only structured menu shown to customers, grouped by category.
 class _MenuSheet extends StatelessWidget {
-  const _MenuSheet({required this.items});
+  const _MenuSheet({required this.items, this.currency = 'AZN'});
 
   final List<MenuItem> items;
+  final String currency;
 
   @override
   Widget build(BuildContext context) {
@@ -1163,49 +1524,53 @@ class _MenuSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text('Menyu', style: AppTextStyles.h2),
+            Consumer(
+              builder: (BuildContext _, WidgetRef ref, Widget? __) => Text(
+                  ref.watch(sProvider).menuWord,
+                  style: AppTextStyles.h2),
+            ),
             const SizedBox(height: AppSpacing.md),
-            for (final MapEntry<String, List<MenuItem>> e in byCat.entries)
-              ...<Widget>[
+            for (final MapEntry<String, List<MenuItem>> e
+                in byCat.entries) ...<Widget>[
+              Padding(
+                padding: const EdgeInsets.only(
+                    top: AppSpacing.lg, bottom: AppSpacing.sm),
+                child: Text(e.key,
+                    style: AppTextStyles.overline
+                        .copyWith(color: AppColors.action)),
+              ),
+              for (final MenuItem m in e.value)
                 Padding(
-                  padding: const EdgeInsets.only(
-                      top: AppSpacing.lg, bottom: AppSpacing.sm),
-                  child: Text(e.key,
-                      style: AppTextStyles.overline
-                          .copyWith(color: AppColors.primary)),
-                ),
-                for (final MenuItem m in e.value)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(m.name,
-                                  style: AppTextStyles.bodyLg
-                                      .copyWith(fontWeight: FontWeight.w600)),
-                              if ((m.description ?? '').isNotEmpty)
-                                Text(m.description!,
-                                    style: AppTextStyles.bodySm.copyWith(
-                                        color: AppColors.textSecondary)),
-                            ],
-                          ),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(m.name,
+                                style: AppTextStyles.bodyLg
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            if ((m.description ?? '').isNotEmpty)
+                              Text(m.description!,
+                                  style: AppTextStyles.bodySm.copyWith(
+                                      color: AppColors.textSecondary)),
+                          ],
                         ),
-                        if (m.price != null) ...<Widget>[
-                          const SizedBox(width: AppSpacing.md),
-                          Text('${m.price!.toStringAsFixed(2)} ₼',
-                              style: AppTextStyles.bodyLg.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              )),
-                        ],
+                      ),
+                      if (m.price != null) ...<Widget>[
+                        const SizedBox(width: AppSpacing.md),
+                        Text(Money.format(m.price!, currency),
+                            style: AppTextStyles.bodyLg.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.action,
+                            )),
                       ],
-                    ),
+                    ],
                   ),
-              ],
+                ),
+            ],
           ],
         );
       },

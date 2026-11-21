@@ -20,6 +20,7 @@ class AppTextField extends StatelessWidget {
     this.textInputAction,
     this.onChanged,
     this.autofillHints,
+    this.showLabel = true,
   });
 
   final String label;
@@ -35,16 +36,23 @@ class AppTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final Iterable<String>? autofillHints;
 
+  /// `false` hides the label above the field; the hint (or the label) is
+  /// then shown inside it — used on the compact sign-in form.
+  final bool showLabel;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(label, style: AppTextStyles.bodySm.copyWith(
-          fontWeight: FontWeight.w600,
-          color: Theme.of(context).colorScheme.onSurface,
-        )),
+        if (showLabel) ...<Widget>[
+        Text(label,
+            style: AppTextStyles.bodySm.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            )),
         const SizedBox(height: AppSpacing.sm),
+        ],
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
@@ -56,7 +64,7 @@ class AppTextField extends StatelessWidget {
           onChanged: onChanged,
           autofillHints: autofillHints,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: showLabel ? hint : label,
             prefixIcon: prefixIcon == null ? null : Icon(prefixIcon, size: 20),
             suffixIcon: suffix,
           ),

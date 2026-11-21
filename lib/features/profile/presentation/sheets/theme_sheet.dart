@@ -18,14 +18,17 @@ class ThemeSheet extends ConsumerWidget {
     final List<_ThemeOption> options = <_ThemeOption>[
       _ThemeOption(ThemeMode.light, s.themeLight, Icons.light_mode_rounded,
           s.themeLightSub),
-      _ThemeOption(ThemeMode.dark, s.themeDark, Icons.dark_mode_rounded,
-          s.themeDarkSub),
+      _ThemeOption(
+          ThemeMode.dark, s.themeDark, Icons.dark_mode_rounded, s.themeDarkSub),
       _ThemeOption(ThemeMode.system, s.themeSystem,
           Icons.brightness_auto_rounded, s.themeSystemSub),
     ];
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -47,12 +50,12 @@ class ThemeSheet extends ConsumerWidget {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
                     color: o.mode == current
-                        ? AppColors.primarySoft
+                        ? AppColors.caramelSoft
                         : Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(AppRadius.md),
                     border: Border.all(
                       color: o.mode == current
-                          ? AppColors.primary
+                          ? AppColors.action
                           : AppColors.border,
                     ),
                   ),
@@ -63,10 +66,10 @@ class ThemeSheet extends ConsumerWidget {
                         height: 40,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.12),
+                          color: AppColors.action.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(o.icon, color: AppColors.primary),
+                        child: Icon(o.icon, color: AppColors.action),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
@@ -74,14 +77,13 @@ class ThemeSheet extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Text(o.label, style: AppTextStyles.bodyLg),
-                            Text(o.description,
-                                style: AppTextStyles.bodySm),
+                            Text(o.description, style: AppTextStyles.bodySm),
                           ],
                         ),
                       ),
                       if (o.mode == current)
                         const Icon(Icons.check_circle_rounded,
-                            color: AppColors.primary),
+                            color: AppColors.action),
                     ],
                   ),
                 ),

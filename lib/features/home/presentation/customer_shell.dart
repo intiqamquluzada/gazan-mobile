@@ -6,8 +6,8 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
 import '../../../core/widgets/app_icons.dart';
 
-/// 5-tab customer shell. QR sits dead-centre as the raised brand action:
-/// Discover · Places · QR · Cards · Profile.
+/// 5-tab customer shell. NFC sits dead-centre as the raised brand action:
+/// Discover · Places · NFC · Cards · Profile.
 class CustomerShell extends ConsumerWidget {
   const CustomerShell({super.key, required this.child});
 
@@ -16,7 +16,7 @@ class CustomerShell extends ConsumerWidget {
   static const List<String> _routes = <String>[
     '/home',
     '/companies',
-    '/qr',
+    '/nfc',
     '/cards',
     '/profile',
   ];
@@ -45,12 +45,12 @@ class CustomerShell extends ConsumerWidget {
           activeIcon: AppIcons.homeActive),
       AppNavItem(
           label: s.tabCompanies,
-          icon: AppIcons.store,
+          icon: Icons.storefront_outlined,
           activeIcon: AppIcons.store),
       const AppNavItem(
           label: '',
-          icon: AppIcons.qr,
-          activeIcon: AppIcons.qr,
+          icon: AppIcons.nfc,
+          activeIcon: AppIcons.nfc,
           prominent: true),
       AppNavItem(
           label: s.tabCards,

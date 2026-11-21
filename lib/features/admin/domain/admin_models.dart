@@ -16,7 +16,20 @@ class AdminStats {
     required this.coinTransactions,
     required this.recentUsers,
     required this.recentCompanies,
+    this.newUsers7d = 0,
+    this.newCompanies7d = 0,
+    this.pendingCompanies = 0,
+    this.pendingNotifications = 0,
+    this.activeUsers30d = 0,
+    this.signups = const <SignupPoint>[],
   });
+
+  final int newUsers7d;
+  final int newCompanies7d;
+  final int pendingCompanies;
+  final int pendingNotifications;
+  final int activeUsers30d;
+  final List<SignupPoint> signups;
 
   final int totalUsers;
   final int customers;
@@ -47,6 +60,15 @@ class AdminStats {
       coinsEarned: _i(j['coinsEarned']),
       coinsSpent: _i(j['coinsSpent']),
       coinTransactions: _i(j['coinTransactions']),
+      newUsers7d: _i(j['newUsers7d']),
+      newCompanies7d: _i(j['newCompanies7d']),
+      pendingCompanies: _i(j['pendingCompanies']),
+      pendingNotifications: _i(j['pendingNotifications']),
+      activeUsers30d: _i(j['activeUsers30d']),
+      signups: ((j['signups'] as List<dynamic>?) ?? <dynamic>[])
+          .cast<Map<String, dynamic>>()
+          .map(SignupPoint.fromJson)
+          .toList(growable: false),
       recentUsers: ((j['recentUsers'] as List<dynamic>?) ?? <dynamic>[])
           .cast<Map<String, dynamic>>()
           .map(AdminUser.fromJson)
@@ -106,7 +128,11 @@ class AdminCompany {
     this.ownerName,
     this.ownerEmail,
     this.createdAt,
+    this.status = 'APPROVED',
   });
+
+  /// PENDING | APPROVED | SUSPENDED
+  final String status;
 
   final String id;
   final String name;
@@ -131,6 +157,185 @@ class AdminCompany {
       ownerName: j['ownerName'] as String?,
       ownerEmail: j['ownerEmail'] as String?,
       createdAt: _date(j['createdAt']),
+      status: (j['status'] as String?) ?? 'APPROVED',
+    );
+  }
+}
+
+class SignupPoint {
+  const SignupPoint({required this.date, required this.count});
+
+  final String date;
+  final int count;
+
+  factory SignupPoint.fromJson(Map<String, dynamic> j) => SignupPoint(
+        date: '${j['date'] ?? ''}',
+        count: ((j['count'] as num?) ?? 0).toInt(),
+      );
+}
+
+/// A venue with the numbers an admin needs to review it.
+class AdminCompanyDetail {
+  const AdminCompanyDetail({
+    required this.id,
+    required this.name,
+    required this.status,
+    required this.customers,
+    required this.tags,
+    required this.coinsEarned,
+    required this.coinsSpent,
+    this.ownerEmail,
+    this.address,
+    this.tagline,
+    this.category,
+    this.phone,
+    this.ownerName,
+    this.createdAt,
+  });
+
+  final String id;
+  final String name;
+  final String status;
+  final String? tagline;
+  final String? category;
+  final String? phone;
+  final String? ownerName;
+  final DateTime? createdAt;
+  final int customers;
+  final int tags;
+  final int coinsEarned;
+  final int coinsSpent;
+  final String? ownerEmail;
+  final String? address;
+
+  factory AdminCompanyDetail.fromJson(Map<String, dynamic> j) {
+    int count(String k) {
+      final Object? v = j[k];
+      if (v is List) return v.length;
+      return ((v as num?) ?? 0).toInt();
+    }
+
+    return AdminCompanyDetail(
+      id: j['id'] as String,
+      name: (j['name'] as String?) ?? '',
+      status: (j['status'] as String?) ?? 'APPROVED',
+      customers: count('customers'),
+      tags: count('tags'),
+      coinsEarned: count('coinsEarned'),
+      coinsSpent: count('coinsSpent'),
+      ownerEmail: j['ownerEmail'] as String?,
+      address: j['address'] as String?,
+      tagline: j['tagline'] as String?,
+      category: j['category'] as String?,
+      phone: j['phone'] as String?,
+      ownerName: j['ownerName'] as String?,
+      createdAt: _date(j['createdAt']),
+    );
+  }
+}
+
+class AdminCoinLine {
+  const AdminCoinLine({
+    required this.amount,
+    this.companyName,
+    this.note,
+    this.createdAt,
+  });
+
+  final int amount;
+  final String? companyName;
+  final String? note;
+  final DateTime? createdAt;
+
+  factory AdminCoinLine.fromJson(Map<String, dynamic> j) => AdminCoinLine(
+        amount: ((j['amount'] as num?) ?? 0).toInt(),
+        companyName: j['companyName'] as String?,
+        note: j['note'] as String?,
+        createdAt: _date(j['createdAt']),
+      );
+}
+
+class AdminUserDetail {
+  const AdminUserDetail({
+    required this.user,
+    required this.cardCount,
+    required this.coinBalance,
+    required this.recentCoins,
+  });
+
+  final AdminUser user;
+  final int cardCount;
+  final int coinBalance;
+  final List<AdminCoinLine> recentCoins;
+
+  factory AdminUserDetail.fromJson(Map<String, dynamic> j) {
+    final Object? cards = j['cards'];
+    return AdminUserDetail(
+      user: AdminUser.fromJson(j),
+      cardCount:
+          cards is List ? cards.length : ((cards as num?) ?? 0).toInt(),
+      coinBalance: ((j['coinBalance'] as num?) ?? 0).toInt(),
+      recentCoins: ((j['recentCoins'] as List<dynamic>?) ?? <dynamic>[])
+          .cast<Map<String, dynamic>>()
+          .map(AdminCoinLine.fromJson)
+          .toList(growable: false),
+    );
+  }
+}
+
+class AuditEntry {
+  const AuditEntry({
+    required this.id,
+    required this.action,
+    this.actorEmail,
+    this.targetType,
+    this.targetId,
+    this.detail,
+    this.createdAt,
+  });
+
+  final String id;
+  final String action;
+  final String? actorEmail;
+  final String? targetType;
+  final String? targetId;
+  final String? detail;
+  final DateTime? createdAt;
+
+  factory AuditEntry.fromJson(Map<String, dynamic> j) => AuditEntry(
+        id: '${j['id']}',
+        action: (j['action'] as String?) ?? '',
+        actorEmail: j['actorEmail'] as String?,
+        targetType: j['targetType'] as String?,
+        targetId: j['targetId'] as String?,
+        detail: j['detail'] as String?,
+        createdAt: _date(j['createdAt']),
+      );
+}
+
+class CompanyCoinRow {
+  const CompanyCoinRow({
+    required this.companyId,
+    required this.name,
+    required this.earned,
+    required this.spent,
+    required this.grants,
+  });
+
+  final String companyId;
+  final String name;
+  final int earned;
+  final int spent;
+  final int grants;
+
+  factory CompanyCoinRow.fromJson(Map<String, dynamic> j) {
+    int g(String k) => ((j[k] as num?) ?? 0).toInt();
+    return CompanyCoinRow(
+      companyId: '${j['companyId'] ?? ''}',
+      name: (j['name'] as String?) ?? '',
+      earned: g('earned'),
+      spent: g('spent'),
+      grants: g('grants'),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/periodic_refresh.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -27,7 +28,10 @@ class CustomerDetailScreen extends ConsumerWidget {
     final AsyncValue<CustomerDetail> async =
         ref.watch(customerDetailProvider(userId));
 
-    return Scaffold(
+    // Customers keep earning while this screen is open.
+    return PeriodicRefresh(
+      onTick: () => ref.invalidate(customerDetailProvider(userId)),
+      child: Scaffold(
       appBar: AppBar(title: Text(s.customerTitle)),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -37,8 +41,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           icon: AppIcons.error,
         ),
         data: (CustomerDetail c) => RefreshIndicator(
-          onRefresh: () async =>
-              ref.invalidate(customerDetailProvider(userId)),
+          onRefresh: () async => ref.invalidate(customerDetailProvider(userId)),
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.xl),
             children: <Widget>[
@@ -72,6 +75,7 @@ class CustomerDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -137,14 +141,12 @@ class _Header extends ConsumerWidget {
                       label: Text(s.callAction),
                     ),
                   ),
-                if (hasPhone && hasEmail)
-                  const SizedBox(width: AppSpacing.sm),
+                if (hasPhone && hasEmail) const SizedBox(width: AppSpacing.sm),
                 if (hasEmail)
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => _mail(c.email!),
-                      icon: const Icon(Icons.alternate_email_rounded,
-                          size: 18),
+                      icon: const Icon(Icons.alternate_email_rounded, size: 18),
                       label: Text(s.email),
                     ),
                   ),
@@ -178,7 +180,7 @@ class _StatGrid extends ConsumerWidget {
             Expanded(
               child: _StatTile(
                 icon: Icons.bookmark_added_rounded,
-                tint: AppColors.info,
+                tint: AppColors.catTeal,
                 value: '${c.totalStamps}',
                 label: s.totalStampsLabel,
               ),
@@ -200,7 +202,7 @@ class _StatGrid extends ConsumerWidget {
             Expanded(
               child: _StatTile(
                 icon: Icons.card_giftcard_rounded,
-                tint: AppColors.primary,
+                tint: AppColors.action,
                 value: '${c.rewardsAvailable}',
                 label: s.readyReward,
               ),
@@ -209,12 +211,19 @@ class _StatGrid extends ConsumerWidget {
             Expanded(
               child: _StatTile(
                 icon: Icons.replay_rounded,
-                tint: AppColors.warning,
+                tint: AppColors.catCoffee,
                 value: '${c.totalVisits}',
                 label: s.visitWord,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _StatTile(
+          icon: AppIcons.token,
+          tint: AppColors.reward,
+          value: '${c.coinBalance}',
+          label: s.coinLabel,
         ),
       ],
     );
@@ -302,7 +311,7 @@ class _CardTile extends ConsumerWidget {
                   ),
                   child: Text('${card.rewardsAvailable} ${s.readyWord}',
                       style: AppTextStyles.caption.copyWith(
-                        color: AppColors.success,
+                        color: AppColors.successText,
                         fontWeight: FontWeight.w700,
                       )),
                 ),
@@ -314,12 +323,13 @@ class _CardTile extends ConsumerWidget {
             child: LinearProgressIndicator(
               value: card.progress,
               minHeight: 8,
-              backgroundColor: AppColors.surfaceAlt,
-              color: AppColors.primary,
+              backgroundColor: AppColors.surfaceMuted,
+              color: AppColors.action,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text('${card.stamps} / ${card.stampsRequired} ${s.stampWord} · '
+          Text(
+              '${card.stamps} / ${card.stampsRequired} ${s.stampWord} · '
               '${card.totalRewardsClaimed} ${s.rewardWord}',
               style: AppTextStyles.caption
                   .copyWith(color: AppColors.textSecondary)),
@@ -338,7 +348,7 @@ class _ActivityTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final bool isReward = a.isReward;
-    final Color tint = isReward ? AppColors.success : AppColors.info;
+    final Color tint = isReward ? AppColors.success : AppColors.catTeal;
     final IconData icon =
         isReward ? AppIcons.gift : Icons.bookmark_added_rounded;
     final String title = isReward

@@ -13,6 +13,8 @@ String roleLabel(S s, String role) {
       return s.roleAdmin;
     case 'BUSINESS_OWNER':
       return s.roleBusiness;
+    case 'CASHIER':
+      return s.roleCashier;
     case 'CUSTOMER':
     default:
       return s.roleCustomer;
@@ -22,12 +24,40 @@ String roleLabel(S s, String role) {
 Color roleColor(String role) {
   switch (role) {
     case 'ADMIN':
-      return AppColors.accent;
+      return AppColors.caramel;
     case 'BUSINESS_OWNER':
-      return AppColors.info;
+    case 'CASHIER':
+      return AppColors.catTeal;
     case 'CUSTOMER':
     default:
       return AppColors.success;
+  }
+}
+
+/// Coloured label for a venue's approval state.
+class CompanyStatusBadge extends ConsumerWidget {
+  const CompanyStatusBadge({super.key, required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    final (String label, Color color) = switch (status) {
+      'PENDING' => (s.statusPending, AppColors.catCoffee),
+      'SUSPENDED' => (s.statusSuspended, AppColors.dangerText),
+      _ => (s.statusApproved, AppColors.successText),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Text(label,
+          style: AppTextStyles.caption
+              .copyWith(color: color, fontWeight: FontWeight.w700)),
+    );
   }
 }
 

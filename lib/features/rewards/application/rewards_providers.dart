@@ -21,9 +21,10 @@ final FutureProvider<List<AppRewardClaim>> myUsedRewardsProvider =
 });
 
 /// Business scan flow — vouchers usable at this company for one customer.
-final FutureProviderFamily<List<AppRewardClaim>, ({String customerId, String companyId})>
-    activeRewardsAtCompanyProvider =
-    FutureProvider.family<List<AppRewardClaim>, ({String customerId, String companyId})>(
+final FutureProviderFamily<List<AppRewardClaim>,
+        ({String customerId, String companyId})>
+    activeRewardsAtCompanyProvider = FutureProvider.family<List<AppRewardClaim>,
+        ({String customerId, String companyId})>(
   (Ref ref, ({String customerId, String companyId}) k) =>
       ref.read(rewardsRepositoryProvider).activeAtCompany(
             customerId: k.customerId,

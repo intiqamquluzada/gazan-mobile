@@ -17,8 +17,11 @@ final FutureProvider<CoinSummary> coinSummaryProvider =
   return ref.read(walletRepositoryProvider).fetchSummary();
 });
 
-final FutureProviderFamily<List<CoinReward>, String> coinRewardsProvider =
-    FutureProvider.family<List<CoinReward>, String>(
+// autoDispose: a venue's catalog is fetched again each time its page opens,
+// so owners' changes reach customers without restarting the app.
+final AutoDisposeFutureProviderFamily<List<CoinReward>, String>
+    coinRewardsProvider =
+    FutureProvider.autoDispose.family<List<CoinReward>, String>(
         (Ref ref, String companyId) {
   ref.watch(languageProvider);
   return ref.read(walletRepositoryProvider).rewardsForCompany(companyId);

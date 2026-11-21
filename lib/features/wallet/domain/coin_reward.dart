@@ -1,3 +1,5 @@
+import 'package:qazan/core/config/app_config.dart';
+
 /// A reward the business lets customers claim with coins
 /// (e.g. "100 coin → 1 portion San Sebastian"). Mirrors backend
 /// `CoinRewardResponse`.
@@ -54,7 +56,8 @@ class CoinRewardCatalogItem {
         id: (json['id'] as String?) ?? '',
         companyId: (json['companyId'] as String?) ?? '',
         companyName: (json['companyName'] as String?) ?? '',
-        companyLogoUrl: json['companyLogoUrl'] as String?,
+        companyLogoUrl:
+            AppConfig.mediaUrlOrNull(json['companyLogoUrl'] as String?),
         title: (json['title'] as String?) ?? '',
         description: json['description'] as String?,
         coinCost: ((json['coinCost'] as num?) ?? 0).toInt(),

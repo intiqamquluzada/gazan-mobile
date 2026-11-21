@@ -35,7 +35,10 @@ class CompaniesScreen extends ConsumerWidget {
           children: <Widget>[
             const Padding(
               padding: EdgeInsets.fromLTRB(
-                AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.sm,
+                AppSpacing.xl,
+                AppSpacing.md,
+                AppSpacing.xl,
+                AppSpacing.sm,
               ),
               child: _CompanySearchField(),
             ),
@@ -43,24 +46,37 @@ class CompaniesScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             Expanded(
               child: companies.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (Object e, _) => EmptyState(
-                  title: s.errorOccurred,
-                  subtitle: e.toString(),
-                  icon: AppIcons.error,
+                loading: () => const Center(child: CircularProgressIndicator()),
+                // Scrollable so pull-to-refresh works on these states too.
+                error: (Object e, _) => ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  children: <Widget>[
+                    EmptyState(
+                      title: s.errorOccurred,
+                      subtitle: e.toString(),
+                      icon: AppIcons.error,
+                    ),
+                  ],
                 ),
                 data: (List<Company> list) {
                   if (list.isEmpty) {
-                    return EmptyState(
-                      title: s.nothingFound,
-                      subtitle: s.nothingFoundHint,
-                      icon: AppIcons.searchOff,
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      children: <Widget>[
+                        EmptyState(
+                          title: s.nothingFound,
+                          subtitle: s.nothingFoundHint,
+                          icon: AppIcons.searchOff,
+                        ),
+                      ],
                     );
                   }
                   return ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.xl, AppSpacing.sm, AppSpacing.xl,
+                      AppSpacing.xl,
+                      AppSpacing.sm,
+                      AppSpacing.xl,
                       AppSpacing.huge,
                     ),
                     itemCount: list.length,
@@ -142,9 +158,8 @@ class _CompanySearchFieldState extends ConsumerState<_CompanySearchField> {
           },
         ),
         filled: true,
-        fillColor: AppColors.surfaceAlt,
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        fillColor: AppColors.surfaceMuted,
+        contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
           borderSide: BorderSide.none,

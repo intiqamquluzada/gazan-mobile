@@ -20,7 +20,10 @@ class NotificationsSheet extends ConsumerWidget {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +46,7 @@ class NotificationsSheet extends ConsumerWidget {
             title: s.notifNearby,
             subtitle: s.notifNearbySub,
             icon: Icons.location_on_outlined,
-            tint: AppColors.info,
+            tint: AppColors.catTeal,
             value: prefs.nearbyOffers,
             onChanged: ctrl.toggleNearbyOffers,
           ),
@@ -51,7 +54,7 @@ class NotificationsSheet extends ConsumerWidget {
             title: s.notifWeekly,
             subtitle: s.notifWeeklySub,
             icon: Icons.calendar_today_outlined,
-            tint: AppColors.warning,
+            tint: AppColors.catCoffee,
             value: prefs.weeklyRecap,
             onChanged: ctrl.toggleWeeklyRecap,
           ),
@@ -59,7 +62,7 @@ class NotificationsSheet extends ConsumerWidget {
             title: s.notifMarketing,
             subtitle: s.notifMarketingSub,
             icon: Icons.campaign_outlined,
-            tint: AppColors.primary,
+            tint: AppColors.action,
             value: prefs.marketing,
             onChanged: ctrl.toggleMarketing,
           ),

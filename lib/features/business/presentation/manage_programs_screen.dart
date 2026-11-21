@@ -8,6 +8,9 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/utils/money.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../loyalty/application/loyalty_providers.dart';
@@ -26,7 +29,17 @@ class ManageProgramsScreen extends ConsumerWidget {
       return Scaffold(
         body: companyAsync.isLoading
             ? const Center(child: CircularProgressIndicator())
-            : EmptyState(title: s.noBusinessProfile),
+            : companyAsync.hasError
+                ? EmptyState(
+                    title: s.notLoaded,
+                    subtitle: '${companyAsync.error}',
+                    icon: Icons.error_outline_rounded,
+                    action: OutlinedButton(
+                      onPressed: () => ref.invalidate(myCompanyProvider),
+                      child: Text(s.retry),
+                    ),
+                  )
+                : EmptyState(title: s.noBusinessProfile),
       );
     }
     final String businessId = company.id;
@@ -50,7 +63,10 @@ class ManageProgramsScreen extends ConsumerWidget {
                 ref.invalidate(programsForCompanyProvider(businessId)),
             child: ListView(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.huge,
+                AppSpacing.xl,
+                AppSpacing.lg,
+                AppSpacing.xl,
+                AppSpacing.huge,
               ),
               children: <Widget>[
                 // ── Stamp / loyalty programs ──
@@ -65,8 +81,8 @@ class ManageProgramsScreen extends ConsumerWidget {
                       label: s.newProgram,
                       icon: Icons.add_rounded,
                       expanded: false,
-                      onPressed: () =>
-                          _openProgramSheet(context, ref, companyId: businessId),
+                      onPressed: () => _openProgramSheet(context, ref,
+                          companyId: businessId),
                     ),
                   )
                 else
@@ -74,7 +90,8 @@ class ManageProgramsScreen extends ConsumerWidget {
                     _ProgramTile(
                       program: p,
                       onEdit: () => _openProgramSheet(
-                        context, ref,
+                        context,
+                        ref,
                         companyId: businessId,
                         existing: p,
                       ),
@@ -109,6 +126,7 @@ class ManageProgramsScreen extends ConsumerWidget {
   }) {
     return showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -144,7 +162,10 @@ class _ProgramTile extends ConsumerWidget {
         children: <Widget>[
           ListTile(
             contentPadding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.xs,
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.sm,
+              AppSpacing.xs,
             ),
             leading: Container(
               width: 44,
@@ -160,21 +181,31 @@ class _ProgramTile extends ConsumerWidget {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Text(
-                '${program.stampsRequired} ${s.stampWord} → ${program.rewardLabelOf(s)}',
+                '${program.stampsRequired} ${s.stampWord} → ${program.rewardLabelOf(s, currency: ref.watch(myCompanyProvider).valueOrNull?.currency)}',
                 style: AppTextStyles.bodySm,
               ),
             ),
             trailing: Switch.adaptive(
               value: program.isActive,
-              onChanged: (_) => ref
-                  .read(loyaltyActionsProvider)
-                  .toggleActive(program),
+              onChanged: (_) async {
+                try {
+                  await ref.read(loyaltyActionsProvider).toggleActive(program);
+                } on ApiException catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(e.message)));
+                  }
+                }
+              },
             ),
           ),
           if (program.description.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm,
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.sm,
               ),
               child: Text(program.description, style: AppTextStyles.bodySm),
             ),
@@ -196,7 +227,8 @@ class _ProgramTile extends ConsumerWidget {
               Expanded(
                 child: TextButton.icon(
                   onPressed: () => _confirmDelete(context, ref, program),
-                  style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                  style: TextButton.styleFrom(
+                      foregroundColor: AppColors.dangerText),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
                   label: Text(s.delete),
                 ),
@@ -216,31 +248,41 @@ class _ProgramTile extends ConsumerWidget {
     final S s = ref.read(sProvider);
     final bool? ok = await showDialog<bool>(
       context: context,
-      builder: (BuildContext _) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         title: Text(s.deleteProgramTitle),
         content: Text('"${p.title}" ${s.willBeDeletedSuffix}'),
         actions: <Widget>[
+          // Pop the dialog's own route, not the page underneath it.
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(s.cancel),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: AppColors.dangerText,
+                minimumSize: const Size(0, 44)),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(s.delete),
           ),
         ],
       ),
     );
-    if (ok == true) {
+    if (ok != true) return;
+    try {
       await ref.read(loyaltyActionsProvider).deleteProgram(p);
+    } on ApiException catch (e) {
+      // e.g. customers still have gifts from this campaign to collect.
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     }
   }
 
   Color _tintFor(LoyaltyRewardType type) => switch (type) {
-        LoyaltyRewardType.freeItem => AppColors.primary,
-        LoyaltyRewardType.percentageDiscount => AppColors.info,
-        LoyaltyRewardType.fixedDiscount => AppColors.warning,
+        LoyaltyRewardType.freeItem => AppColors.action,
+        LoyaltyRewardType.percentageDiscount => AppColors.catTeal,
+        LoyaltyRewardType.fixedDiscount => AppColors.catCoffee,
         LoyaltyRewardType.cashback => AppColors.success,
       };
 }
@@ -271,6 +313,7 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
   late int _stamps;
   late LoyaltyRewardType _rewardType;
   bool _saving = false;
+  DateTime? _expiresAt;
 
   @override
   void initState() {
@@ -278,11 +321,13 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
     final LoyaltyProgram? p = widget.existing;
     _title = TextEditingController(text: p?.title ?? '');
     _description = TextEditingController(text: p?.description ?? '');
-    _rewardItem = TextEditingController(text: p?.rewardItem ?? 'qəhvə');
+    _rewardItem = TextEditingController(
+        text: p?.rewardItem ?? ref.read(sProvider).pDefaultRewardItem);
     _rewardValue =
         TextEditingController(text: p?.rewardValue?.toString() ?? '');
     _stamps = p?.stampsRequired ?? 5;
     _rewardType = p?.rewardType ?? LoyaltyRewardType.freeItem;
+    _expiresAt = p?.expiresAt;
   }
 
   @override
@@ -294,10 +339,8 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
     super.dispose();
   }
 
-  bool get _needsValue =>
-      _rewardType != LoyaltyRewardType.freeItem;
-  bool get _needsItem =>
-      _rewardType != LoyaltyRewardType.cashback;
+  bool get _needsValue => _rewardType != LoyaltyRewardType.freeItem;
+  bool get _needsItem => _rewardType != LoyaltyRewardType.cashback;
 
   String _previewLabelOf(S s) {
     final num value = num.tryParse(_rewardValue.text) ?? 0;
@@ -310,10 +353,49 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
       case LoyaltyRewardType.percentageDiscount:
         return '$item ${s.onWord} ${_fmt(value)}% ${s.discountWord}';
       case LoyaltyRewardType.fixedDiscount:
-        return '$item ${s.onWord} ${_fmt(value)} ₼ ${s.discountWord}';
+        return '$item ${s.onWord} ${Money.format(value, _currency)} ${s.discountWord}';
       case LoyaltyRewardType.cashback:
-        return '${_fmt(value)} ₼ cashback';
+        return '${Money.format(value, _currency)} ${s.pCashbackWord}';
     }
+  }
+
+  String? get _currency => ref.read(myCompanyProvider).valueOrNull?.currency;
+
+  Future<void> _pickExpiry() async {
+    final S s = ref.read(sProvider);
+    final DateTime now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _expiresAt ?? now.add(const Duration(days: 30)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 3650)),
+      cancelText: s.cancel,
+      confirmText: s.selectAction,
+    );
+    if (picked != null) {
+      setState(() => _expiresAt =
+          DateTime(picked.year, picked.month, picked.day, 23, 59, 59));
+    }
+  }
+
+  Widget _expiryTile(S s) {
+    final DateTime? d = _expiresAt;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.event_outlined),
+      title: Text(s.programExpiry),
+      subtitle: Text(d == null
+          ? s.programNoExpiry
+          : '${d.day.toString().padLeft(2, '0')}.'
+              '${d.month.toString().padLeft(2, '0')}.${d.year}'),
+      trailing: d == null
+          ? null
+          : IconButton(
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () => setState(() => _expiresAt = null),
+            ),
+      onTap: _pickExpiry,
+    );
   }
 
   String _fmt(num v) =>
@@ -323,9 +405,8 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
     if (!_form.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      final num? value = _needsValue
-          ? num.tryParse(_rewardValue.text.trim())
-          : null;
+      final num? value =
+          _needsValue ? num.tryParse(_rewardValue.text.trim()) : null;
       final String item = _needsItem
           ? _rewardItem.text.trim()
           : ref.read(sProvider).productFallback;
@@ -339,6 +420,7 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
               rewardType: _rewardType,
               rewardValue: value,
               rewardItem: item,
+              expiresAt: _expiresAt,
             );
       } else {
         await ref.read(loyaltyRepositoryProvider).updateProgram(
@@ -349,6 +431,8 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
                 rewardType: _rewardType,
                 rewardValue: value,
                 rewardItem: item,
+                expiresAt: _expiresAt,
+                clearExpiry: _expiresAt == null,
               ),
             );
         ref.invalidate(programsForCompanyProvider(widget.companyId));
@@ -362,6 +446,11 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
               : ref.read(sProvider).programUpdated),
         ),
       );
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -378,7 +467,10 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
         key: _form,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
-            AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+            AppSpacing.xl,
+            AppSpacing.md,
+            AppSpacing.xl,
+            AppSpacing.xl,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -395,9 +487,7 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
-                widget.existing == null
-                    ? s.newLoyaltyProgram
-                    : s.editProgram,
+                widget.existing == null ? s.newLoyaltyProgram : s.editProgram,
                 style: AppTextStyles.h2,
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -409,6 +499,8 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
 
               // Live preview — always on top so the owner sees exactly
               // what the customer's card will say as they build it.
+              _expiryTile(s),
+              const SizedBox(height: AppSpacing.md),
               _PreviewCard(
                 title: _title.text.trim().isEmpty
                     ? s.newProgramPlaceholder
@@ -446,17 +538,16 @@ class _ProgramFormSheetState extends ConsumerState<ProgramFormSheet> {
                   controller: _rewardValue,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
-                  prefixIcon: _rewardType ==
-                          LoyaltyRewardType.percentageDiscount
-                      ? Icons.percent_rounded
-                      : Icons.payments_outlined,
+                  prefixIcon:
+                      _rewardType == LoyaltyRewardType.percentageDiscount
+                          ? Icons.percent_rounded
+                          : Icons.payments_outlined,
                   textInputAction: TextInputAction.next,
                   onChanged: (_) => setState(() {}),
                   validator: (String? v) {
                     final num? n = num.tryParse((v ?? '').trim());
                     if (n == null || n <= 0) return s.validNumber;
-                    if (_rewardType ==
-                            LoyaltyRewardType.percentageDiscount &&
+                    if (_rewardType == LoyaltyRewardType.percentageDiscount &&
                         n > 100) {
                       return s.range0to100;
                     }
@@ -542,12 +633,12 @@ class _StepHeader extends StatelessWidget {
           height: 24,
           alignment: Alignment.center,
           decoration: const BoxDecoration(
-            color: AppColors.primary,
+            color: AppColors.action,
             shape: BoxShape.circle,
           ),
           child: Text('$n',
               style: AppTextStyles.caption.copyWith(
-                color: Colors.white,
+                color: AppColors.onDark,
                 fontWeight: FontWeight.w800,
               )),
         ),
@@ -574,8 +665,8 @@ class _RewardTypeChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final Color bg =
-        selected ? AppColors.primary : Theme.of(context).colorScheme.surface;
-    final Color fg = selected ? Colors.white : AppColors.textPrimary;
+        selected ? AppColors.action : Theme.of(context).colorScheme.surface;
+    final Color fg = selected ? AppColors.onDark : AppColors.textPrimary;
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.full),
       onTap: onTap,
@@ -586,7 +677,7 @@ class _RewardTypeChip extends ConsumerWidget {
           color: bg,
           borderRadius: BorderRadius.circular(AppRadius.full),
           border: Border.all(
-            color: selected ? AppColors.primary : AppColors.border,
+            color: selected ? AppColors.action : AppColors.border,
           ),
         ),
         child: Row(
@@ -617,10 +708,11 @@ class _StampStepper extends ConsumerWidget {
     final S s = ref.watch(sProvider);
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md, vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
@@ -633,7 +725,8 @@ class _StampStepper extends ConsumerWidget {
             child: Center(
               child: Column(
                 children: <Widget>[
-                  Text('$value', style: AppTextStyles.display.copyWith(fontSize: 28)),
+                  Text('$value',
+                      style: AppTextStyles.display.copyWith(fontSize: 28)),
                   Text(s.stampWord, style: AppTextStyles.caption),
                 ],
               ),
@@ -671,7 +764,7 @@ class _PreviewCard extends ConsumerWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[AppColors.primary, AppColors.primaryDark],
+          colors: <Color>[AppColors.action, AppColors.actionPressed],
         ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
@@ -685,24 +778,25 @@ class _PreviewCard extends ConsumerWidget {
                 height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: AppColors.onDark.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(rewardType.icon, color: Colors.white, size: 20),
+                child: Icon(rewardType.icon, color: AppColors.onDark, size: 20),
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(s.previewWord,
                   style: AppTextStyles.caption.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: AppColors.onDark.withValues(alpha: 0.9),
                   )),
             ],
           ),
           const SizedBox(height: AppSpacing.md),
-          Text(title, style: AppTextStyles.h3.copyWith(color: Colors.white)),
+          Text(title,
+              style: AppTextStyles.h3.copyWith(color: AppColors.onDark)),
           const SizedBox(height: 4),
           Text('$stamps ${s.stampWord} → $rewardLabel',
               style: AppTextStyles.bodySm.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
+                color: AppColors.onDark.withValues(alpha: 0.9),
               )),
         ],
       ),

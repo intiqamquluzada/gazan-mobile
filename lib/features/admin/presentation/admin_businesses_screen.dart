@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
@@ -9,6 +10,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
+import 'admin_widgets.dart';
 
 class AdminBusinessesScreen extends ConsumerStatefulWidget {
   const AdminBusinessesScreen({super.key});
@@ -18,8 +20,7 @@ class AdminBusinessesScreen extends ConsumerStatefulWidget {
       _AdminBusinessesScreenState();
 }
 
-class _AdminBusinessesScreenState
-    extends ConsumerState<AdminBusinessesScreen> {
+class _AdminBusinessesScreenState extends ConsumerState<AdminBusinessesScreen> {
   final TextEditingController _search = TextEditingController();
   bool _loading = true;
   String? _error;
@@ -28,11 +29,36 @@ class _AdminBusinessesScreenState
   int _totalPages = 1;
   int _total = 0;
   final Set<String> _busy = <String>{};
+  String? _status; // null = all
+
+  /// Bumped per request so a slow, outdated response (e.g. from before the
+  /// filter changed) is dropped instead of mixed into the list.
+  int _seq = 0;
+
+  /// Last `?status=` seen in the URL; the dashboard links here with
+  /// `?status=PENDING`.
+  String? _queryStatus;
+  bool _queryRead = false;
 
   @override
-  void initState() {
-    super.initState();
-    _load(reset: true);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final String? q =
+        GoRouterState.of(context).uri.queryParameters['status'];
+    if (_queryRead && q == _queryStatus) return;
+    final bool first = !_queryRead;
+    _queryRead = true;
+    _queryStatus = q;
+    const List<String> known = <String>['PENDING', 'APPROVED', 'SUSPENDED'];
+    if (q != null && known.contains(q)) {
+      _status = q;
+    } else if (!first) {
+      _status = null;
+    }
+    // Out of the build phase before the load's setState runs.
+    Future<void>.microtask(() {
+      if (mounted) _load(reset: true);
+    });
   }
 
   @override
@@ -42,37 +68,46 @@ class _AdminBusinessesScreenState
   }
 
   Future<void> _load({bool reset = false}) async {
-    if (reset) {
-      setState(() {
-        _loading = true;
-        _error = null;
-        _page = 0;
-      });
-    }
+    final int seq = ++_seq;
+    final int page = reset ? 0 : _page + 1;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final AdminPage<AdminCompany> p =
           await ref.read(adminRepositoryProvider).companies(
                 q: _search.text.trim(),
-                page: _page,
+                status: _status,
+                page: page,
               );
+      if (!mounted || seq != _seq) return;
       setState(() {
         if (reset) _items.clear();
         _items.addAll(p.content);
+        // The page only advances once it actually arrived.
+        _page = page;
         _totalPages = p.totalPages;
         _total = p.totalElements;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted || seq != _seq) return;
       setState(() {
         _loading = false;
         _error = e.toString();
       });
+      if (_items.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('${ref.read(sProvider).failed}: $e'),
+          backgroundColor: AppColors.danger,
+        ));
+      }
     }
   }
 
   Future<void> _loadMore() async {
-    if (_page + 1 >= _totalPages) return;
-    setState(() => _page++);
+    if (_loading || _page + 1 >= _totalPages) return;
     await _load();
   }
 
@@ -89,7 +124,7 @@ class _AdminBusinessesScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('${ref.read(sProvider).failed}: $e'),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppColors.danger,
         ));
       }
     } finally {
@@ -106,8 +141,8 @@ class _AdminBusinessesScreenState
         child: Column(
           children: <Widget>[
             Padding(
-              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl,
-                  AppSpacing.xl, AppSpacing.md),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
@@ -136,6 +171,16 @@ class _AdminBusinessesScreenState
                       ),
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    children: <Widget>[
+                      _statusChip(s.all, null),
+                      _statusChip(s.statusPending, 'PENDING'),
+                      _statusChip(s.statusApproved, 'APPROVED'),
+                      _statusChip(s.statusSuspended, 'SUSPENDED'),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -145,6 +190,15 @@ class _AdminBusinessesScreenState
       ),
     );
   }
+
+  Widget _statusChip(String label, String? status) => ChoiceChip(
+        label: Text(label),
+        selected: _status == status,
+        onSelected: (_) {
+          setState(() => _status = status);
+          _load(reset: true);
+        },
+      );
 
   Widget _body() {
     final S s = ref.read(sProvider);
@@ -186,6 +240,10 @@ class _AdminBusinessesScreenState
             company: c,
             busy: _busy.contains(c.id),
             onFeatured: (bool v) => _toggleFeatured(c, v),
+            onOpen: () async {
+              await context.push<void>('/admin/businesses/${c.id}');
+              if (mounted) await _load(reset: true);
+            },
           );
         },
       ),
@@ -198,17 +256,22 @@ class _CompanyTile extends ConsumerWidget {
     required this.company,
     required this.busy,
     required this.onFeatured,
+    required this.onOpen,
   });
 
   final AdminCompany company;
   final bool busy;
   final ValueChanged<bool> onFeatured;
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: InkWell(
+      onTap: onOpen,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
@@ -224,11 +287,11 @@ class _CompanyTile extends ConsumerWidget {
               height: 44,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColors.primarySoft,
+                color: AppColors.caramelSoft,
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child:
-                  const Icon(AppIcons.store, color: AppColors.primary, size: 22),
+                  const Icon(AppIcons.store, color: AppColors.action, size: 22),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -239,6 +302,7 @@ class _CompanyTile extends ConsumerWidget {
                       style: AppTextStyles.bodyLg,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
+                  CompanyStatusBadge(status: company.status),
                   Text(
                     company.ownerEmail ?? company.tagline ?? company.category,
                     style: AppTextStyles.caption,
@@ -251,7 +315,7 @@ class _CompanyTile extends ConsumerWidget {
                       child: Row(
                         children: <Widget>[
                           const Icon(AppIcons.star,
-                              size: 14, color: AppColors.warning),
+                              size: 14, color: AppColors.reward),
                           const SizedBox(width: 2),
                           Text(
                             '${company.rating!.toStringAsFixed(1)} · ${company.reviewCount} ${s.reviewWord}',
@@ -274,8 +338,7 @@ class _CompanyTile extends ConsumerWidget {
                           child: SizedBox(
                             width: 16,
                             height: 16,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         ),
                       )
@@ -287,6 +350,7 @@ class _CompanyTile extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

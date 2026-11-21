@@ -37,10 +37,8 @@ class MediaRepository {
     );
 
     final String path = (json['url'] as String?) ?? '';
-    // Store the absolute URL so cached_network_image can load it directly.
-    return path.startsWith('http')
-        ? path
-        : '${AppConfig.apiBaseUrl}$path';
+    // Loadable right away; write paths convert it back to host-independent.
+    return AppConfig.mediaUrl(path);
   }
 }
 

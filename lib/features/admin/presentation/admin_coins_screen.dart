@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -39,9 +40,8 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
       });
     }
     try {
-      final AdminPage<AdminCoinTxn> p = await ref
-          .read(adminRepositoryProvider)
-          .coinTransactions(page: _page);
+      final AdminPage<AdminCoinTxn> p =
+          await ref.read(adminRepositoryProvider).coinTransactions(page: _page);
       setState(() {
         if (reset) _txns.clear();
         _txns.addAll(p.content);
@@ -63,18 +63,20 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
   }
 
   Future<void> _refreshAll() async {
-    ref.invalidate(adminCoinSummaryProvider);
+    ref
+      ..invalidate(adminCoinSummaryProvider)
+      ..invalidate(adminCoinsByCompanyProvider);
     await _load(reset: true);
   }
 
   Future<void> _openAdjust() async {
     final bool? done = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (BuildContext ctx) => Padding(
-        padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: _AdjustSheet(ref: ref),
       ),
     );
@@ -111,6 +113,39 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
                     : _SummaryCard(s: sum),
               ),
               const SizedBox(height: AppSpacing.xl),
+              Text(s.coinsByCompanyTitle, style: AppTextStyles.h3),
+              const SizedBox(height: AppSpacing.md),
+              ref.watch(adminCoinsByCompanyProvider).when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (Object e, _) =>
+                        Text('$e', style: AppTextStyles.bodySm),
+                    data: (List<CompanyCoinRow> rows) => rows.isEmpty
+                        ? Text(s.noTransactions, style: AppTextStyles.bodySm)
+                        : SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: DataTable(
+                              columns: <DataColumn>[
+                                DataColumn(label: Text(s.businessLabel)),
+                                DataColumn(
+                                    label: Text(s.earnedLabel), numeric: true),
+                                DataColumn(
+                                    label: Text(s.spentLabel), numeric: true),
+                                DataColumn(
+                                    label: Text(s.grantsLabel), numeric: true),
+                              ],
+                              rows: <DataRow>[
+                                for (final CompanyCoinRow r in rows)
+                                  DataRow(cells: <DataCell>[
+                                    DataCell(Text(r.name)),
+                                    DataCell(Text('${r.earned}')),
+                                    DataCell(Text('${r.spent}')),
+                                    DataCell(Text('${r.grants}')),
+                                  ]),
+                              ],
+                            ),
+                          ),
+                  ),
+              const SizedBox(height: AppSpacing.xl),
               Text(s.recentTransactions, style: AppTextStyles.h3),
               const SizedBox(height: AppSpacing.md),
               if (_loading && _txns.isEmpty)
@@ -120,9 +155,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
                 )
               else if (_error != null && _txns.isEmpty)
                 EmptyState(
-                    title: s.notLoaded,
-                    subtitle: _error,
-                    icon: AppIcons.error)
+                    title: s.notLoaded, subtitle: _error, icon: AppIcons.error)
               else if (_txns.isEmpty)
                 EmptyState(
                   title: s.noTransactions,
@@ -163,16 +196,16 @@ class _SummaryCard extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: kHeroGradient,
         borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: AppShadows.brand(AppColors.primary),
+        boxShadow: AppShadows.brand(AppColors.action),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(str.inCirculation,
               style: AppTextStyles.bodySm
-                  .copyWith(color: Colors.white.withValues(alpha: 0.85))),
+                  .copyWith(color: AppColors.onDark.withValues(alpha: 0.85))),
           Text('${s.circulating} coin',
-              style: AppTextStyles.display.copyWith(color: Colors.white)),
+              style: AppTextStyles.display.copyWith(color: AppColors.onDark)),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: <Widget>[
@@ -200,10 +233,10 @@ class _Metric extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(value, style: AppTextStyles.h3.copyWith(color: Colors.white)),
+        Text(value, style: AppTextStyles.h3.copyWith(color: AppColors.onDark)),
         Text(label,
             style: AppTextStyles.caption
-                .copyWith(color: Colors.white.withValues(alpha: 0.8))),
+                .copyWith(color: AppColors.onDark.withValues(alpha: 0.8))),
       ],
     );
   }
@@ -218,7 +251,7 @@ class _TxnTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S str = ref.watch(sProvider);
     final bool earn = t.amount >= 0;
-    final Color c = earn ? AppColors.success : AppColors.error;
+    final Color c = earn ? AppColors.success : AppColors.danger;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Container(
@@ -287,7 +320,7 @@ class _SummarySkeleton extends StatelessWidget {
     return Container(
       height: 130,
       decoration: BoxDecoration(
-        color: AppColors.surfaceAlt,
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.xl),
       ),
     );
@@ -310,6 +343,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
   final TextEditingController _note = TextEditingController();
   List<AdminUser> _results = <AdminUser>[];
   AdminUser? _picked;
+  String? _companyId;
   bool _searching = false;
   bool _submitting = false;
   String? _error;
@@ -346,6 +380,11 @@ class _AdjustSheetState extends State<_AdjustSheet> {
       setState(() => _error = widget.ref.read(sProvider).pickUserAndAmount);
       return;
     }
+    // Coins only exist per venue, so the adjustment must name one.
+    if (_companyId == null) {
+      setState(() => _error = widget.ref.read(sProvider).pVenueRequired);
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -353,6 +392,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
     try {
       await widget.ref.read(adminRepositoryProvider).adjustCoins(
             userId: _picked!.id,
+            companyId: _companyId,
             amount: amount,
             note: _note.text.trim(),
           );
@@ -378,8 +418,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
           children: <Widget>[
             Text(s.coinAdjustment, style: AppTextStyles.h2),
             const SizedBox(height: AppSpacing.xs),
-            Text(s.adjustPositiveNegative,
-                style: AppTextStyles.bodySm),
+            Text(s.adjustPositiveNegative, style: AppTextStyles.bodySm),
             const SizedBox(height: AppSpacing.lg),
             if (_picked == null) ...<Widget>[
               TextField(
@@ -394,8 +433,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(AppIcons.search),
                     onPressed: _searching ? null : _search,
@@ -414,8 +452,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                     for (final AdminUser u in _results)
                       ListTile(
                         dense: true,
-                        title: Text(
-                            u.fullName.isEmpty ? u.email : u.fullName),
+                        title: Text(u.fullName.isEmpty ? u.email : u.fullName),
                         subtitle: Text(u.email),
                         onTap: () => setState(() => _picked = u),
                       ),
@@ -426,7 +463,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: AppColors.caramelSoft,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Row(
@@ -440,8 +477,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                                   ? _picked!.email
                                   : _picked!.fullName,
                               style: AppTextStyles.bodyLg),
-                          Text(_picked!.email,
-                              style: AppTextStyles.caption),
+                          Text(_picked!.email, style: AppTextStyles.caption),
                         ],
                       ),
                     ),
@@ -453,10 +489,46 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
+              Consumer(
+                builder: (BuildContext context, WidgetRef ref, _) {
+                  final AsyncValue<List<AdminCompany>> companiesAsync =
+                      ref.watch(adminCompanyOptionsProvider);
+                  final List<AdminCompany> companies =
+                      companiesAsync.valueOrNull ?? const <AdminCompany>[];
+                  return DropdownButtonFormField<String>(
+                    initialValue:
+                        companies.any((AdminCompany c) => c.id == _companyId)
+                            ? _companyId
+                            : null,
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      labelText: s.pVenue,
+                      helperText: companiesAsync.hasError
+                          ? s.networkError
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                    items: <DropdownMenuItem<String>>[
+                      for (final AdminCompany c in companies)
+                        DropdownMenuItem<String>(
+                          value: c.id,
+                          child: Text(c.name, overflow: TextOverflow.ellipsis),
+                        ),
+                    ],
+                    onChanged: (String? v) => setState(() {
+                      _companyId = v;
+                      _error = null;
+                    }),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: _amount,
-                keyboardType: const TextInputType.numberWithOptions(
-                    signed: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(signed: true),
                 decoration: InputDecoration(
                   labelText: s.amountExample,
                   prefixIcon: const Icon(AppIcons.token),
@@ -488,7 +560,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
               const SizedBox(height: AppSpacing.sm),
               Text(_error!,
                   style: AppTextStyles.bodySm
-                      .copyWith(color: AppColors.error)),
+                      .copyWith(color: AppColors.dangerText)),
             ],
           ],
         ),

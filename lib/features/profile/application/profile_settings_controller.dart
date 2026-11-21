@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -103,6 +105,16 @@ class LanguageController extends StateNotifier<String> {
     final String? saved = p.getString(_kKey);
     if (saved != null && kSupportedLanguages.contains(saved)) {
       state = saved;
+      return;
+    }
+    // First launch: follow the phone. The app serves Azerbaijan and Türkiye,
+    // so a Turkish phone should not start in Azerbaijani.
+    final String device =
+        PlatformDispatcher.instance.locale.languageCode.toLowerCase();
+    if (kSupportedLanguages.contains(device)) {
+      state = device;
+    } else {
+      state = 'en';
     }
   }
 

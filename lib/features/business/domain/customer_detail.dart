@@ -11,6 +11,7 @@ class CustomerDetail {
     required this.cardCount,
     required this.cards,
     required this.recentActivity,
+    this.coinBalance = 0,
     this.email,
     this.phone,
     this.memberSince,
@@ -31,6 +32,9 @@ class CustomerDetail {
   final List<CustomerCard> cards;
   final List<CustomerActivity> recentActivity;
 
+  /// Coins this customer holds at the venue.
+  final int coinBalance;
+
   factory CustomerDetail.fromJson(Map<String, dynamic> j) {
     return CustomerDetail(
       userId: (j['userId'] as String?) ?? '',
@@ -44,6 +48,7 @@ class CustomerDetail {
       rewardsAvailable: ((j['rewardsAvailable'] as num?) ?? 0).toInt(),
       totalVisits: ((j['totalVisits'] as num?) ?? 0).toInt(),
       cardCount: ((j['cardCount'] as num?) ?? 0).toInt(),
+      coinBalance: ((j['coinBalance'] as num?) ?? 0).toInt(),
       cards: ((j['cards'] as List<dynamic>?) ?? const <dynamic>[])
           .cast<Map<String, dynamic>>()
           .map(CustomerCard.fromJson)

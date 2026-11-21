@@ -13,6 +13,10 @@ class ApiException implements Exception {
   final int status;
   final Map<String, String> fields;
 
+  /// True when the request never got an answer from our API (no network,
+  /// timeout, or a gateway error page).
+  bool get isNetwork => code == 'NETWORK';
+
   bool get isUnauthorized => status == 401;
   bool get isForbidden => status == 403;
   bool get isNotFound => status == 404;

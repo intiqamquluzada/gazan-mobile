@@ -14,6 +14,7 @@ import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../notifications/presentation/notification_bell.dart';
+import '../../promotions/application/promotions_providers.dart';
 import '../../promotions/presentation/widgets/promotions_carousel.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
@@ -27,9 +28,11 @@ class DiscoverScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
     final AsyncValue<List<Company>> companies = ref.watch(companiesProvider);
-    final String userName =
-        ref.watch(currentUserProvider)?.fullName.split(' ').first ??
-            s.friendFallback;
+    final String firstName = (ref.watch(currentUserProvider)?.fullName ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+        .first;
+    final String userName = firstName.isEmpty ? s.friendFallback : firstName;
 
     // Keep the last loaded list visible while a new query is fetching so
     // the feed never collapses into a spinner under the search field.
@@ -40,22 +43,37 @@ class DiscoverScreen extends ConsumerWidget {
         onRefresh: () async {
           ref.invalidate(companiesProvider);
           ref.invalidate(featuredCompaniesProvider);
+          ref.invalidate(promotionsProvider);
         },
         child: CustomScrollView(
           slivers: <Widget>[
             SliverToBoxAdapter(
-              child: HeroHeader(
-                title: '${s.helloName}, $userName',
-                subtitle: s.whereEarnToday,
-                actions: const <Widget>[
-                  NotificationBell(),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  HeroHeader(
+                    title: '${s.helloName}, $userName',
+                    subtitle: s.whereEarnToday,
+                    bottomInset: AppSpacing.xxl,
+                    actions: const <Widget>[
+                      NotificationBell(),
+                    ],
+                  ),
+                  // Floats half on/half off the hero band's bottom edge —
+                  // reads far lighter than a search field boxed fully
+                  // inside the colour block.
+                  const Positioned(
+                    left: AppSpacing.xl,
+                    right: AppSpacing.xl,
+                    bottom: -22,
+                    child: _SearchField(),
+                  ),
                 ],
-                bottom: const _SearchField(),
               ),
             ),
 
             // ── Promotions ──
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               sliver: SliverToBoxAdapter(
@@ -64,10 +82,6 @@ class DiscoverScreen extends ConsumerWidget {
             ),
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
             const SliverToBoxAdapter(child: PromotionsCarousel()),
-
-            // ── Categories ──
-            const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
-            const SliverToBoxAdapter(child: CategoryChips()),
 
             // ── All places ──
             const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xl)),
@@ -79,12 +93,15 @@ class DiscoverScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(s.allPlaces, style: AppTextStyles.h2),
                     ),
-                    if (companies.isLoading)
+                    if (companies.isLoading) ...<Widget>[
                       const SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
+                    ],
+                    const CategoryButton(),
                   ],
                 ),
               ),
@@ -189,27 +206,34 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
+    return Container(
+      decoration: BoxDecoration(
+        color: context.palette.surface,
+        borderRadius: BorderRadius.circular(AppRadius.full),
+        boxShadow: AppShadows.md,
+      ),
       child: TextField(
         controller: _controller,
         onChanged: _onChanged,
         textInputAction: TextInputAction.search,
-        style: AppTextStyles.body,
+        style:
+            AppTextStyles.bodySm.copyWith(color: context.palette.textPrimary),
         decoration: InputDecoration(
+          isDense: true,
           hintText: ref.watch(sProvider).search,
-          hintStyle:
-              AppTextStyles.body.copyWith(color: AppColors.textTertiary),
-          prefixIcon: const Icon(AppIcons.search,
-              size: 22, color: AppColors.textTertiary),
+          hintStyle: AppTextStyles.bodySm
+              .copyWith(color: context.palette.textTertiary),
+          prefixIcon:
+              const Icon(AppIcons.search, size: 19, color: AppColors.caramel),
+          prefixIconConstraints:
+              const BoxConstraints(minWidth: 44, minHeight: 20),
           suffixIcon: ValueListenableBuilder<TextEditingValue>(
             valueListenable: _controller,
             builder: (BuildContext _, TextEditingValue v, __) {
               if (v.text.isEmpty) return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(AppIcons.close,
-                    size: 18, color: AppColors.textTertiary),
+                    size: 16, color: AppColors.textTertiary),
                 onPressed: () {
                   _controller.clear();
                   _debounce?.cancel();
@@ -218,20 +242,22 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
               );
             },
           ),
+          suffixIconConstraints:
+              const BoxConstraints(minWidth: 36, minHeight: 20),
           filled: true,
-          fillColor: Colors.white,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          fillColor: context.palette.surface,
+          contentPadding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.md, horizontal: AppSpacing.sm),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderRadius: BorderRadius.circular(AppRadius.full),
             borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderRadius: BorderRadius.circular(AppRadius.full),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderRadius: BorderRadius.circular(AppRadius.full),
             borderSide: BorderSide.none,
           ),
         ),

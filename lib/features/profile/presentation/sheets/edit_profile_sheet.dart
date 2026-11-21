@@ -7,11 +7,14 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/i18n/strings.dart';
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/utils/phone_util.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/avatar.dart';
+import '../../../../core/widgets/phone_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/domain/app_user.dart';
+import '../../../auth/domain/user_role.dart';
 import '../../../media/data/media_repository.dart';
 import '../../data/profile_remote_data_source.dart';
 import '_sheet_handle.dart';
@@ -28,6 +31,8 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
   late final TextEditingController _email;
   late final TextEditingController _phone;
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
+  // Same contract as the sign-up / complete-profile phone input.
+  String _dialCode = '+994';
   bool _saving = false;
   bool _uploadingAvatar = false;
   String? _avatarUrl;
@@ -38,7 +43,13 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
     final AppUser? u = ref.read(currentUserProvider);
     _name = TextEditingController(text: u?.fullName ?? '');
     _email = TextEditingController(text: u?.email ?? '');
-    _phone = TextEditingController(text: u?.phone ?? '');
+    // Show a home-country number without its dial code (the picker shows
+    // it); any other number stays in its full international form.
+    final String phone = u?.phone ?? '';
+    _phone = TextEditingController(
+        text: phone.startsWith(_dialCode)
+            ? phone.substring(_dialCode.length)
+            : phone);
     _avatarUrl = u?.avatarUrl;
   }
 
@@ -88,7 +99,9 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
       final AppUser updated =
           await ref.read(profileRemoteDataSourceProvider).updateProfile(
                 fullName: _name.text.trim(),
-                phone: _phone.text.trim(),
+                phone: _phone.text.trim().isEmpty
+                    ? null
+                    : PhoneUtil.normalize(_phone.text, _dialCode),
               );
       ref.read(authControllerProvider.notifier).updateProfile(
             fullName: updated.fullName,
@@ -122,7 +135,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: AppColors.action,
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.surface, width: 2),
             ),
@@ -132,11 +145,11 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
                     height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      color: AppColors.onDark,
                     ),
                   )
                 : const Icon(Icons.camera_alt_rounded,
-                    size: 16, color: Colors.white),
+                    size: 16, color: AppColors.onDark),
           ),
         ],
       ),
@@ -152,7 +165,10 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
       padding: bottom,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+          AppSpacing.xl,
+          AppSpacing.md,
+          AppSpacing.xl,
+          AppSpacing.xl,
         ),
         child: Form(
           key: _form,
@@ -181,12 +197,14 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
                 prefixIcon: Icons.alternate_email_rounded,
               ),
               const SizedBox(height: AppSpacing.lg),
-              AppTextField(
-                label: s.phone,
+              PhoneField(
                 controller: _phone,
-                keyboardType: TextInputType.phone,
-                prefixIcon: Icons.phone_outlined,
+                onDialChanged: (String v) => _dialCode = v,
                 textInputAction: TextInputAction.done,
+                // Customers are identified by phone; business and admin
+                // accounts may leave it empty.
+                isRequired:
+                    ref.read(currentUserProvider)?.role == UserRole.customer,
               ),
               const SizedBox(height: AppSpacing.xxl),
               PrimaryButton(

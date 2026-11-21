@@ -12,9 +12,9 @@ class AppStrings {
   static const String onboardSubtitle1 =
       'Kafeləri, restoranları, salonları kəşf et — hər ziyarət sənə bonus gətirsin.';
 
-  static const String onboardTitle2 = 'QR kodla təsdiqlə';
+  static const String onboardTitle2 = 'Kartı telefona toxundur';
   static const String onboardSubtitle2 =
-      'Ödəyəndə QR kodunu göstər, sadiqlik balın avtomatik artsın.';
+      'Kassir kartı telefonuna toxundurur, möhür və xal avtomatik yazılır.';
 
   static const String onboardTitle3 = 'Mükafatları topla';
   static const String onboardSubtitle3 =
@@ -39,7 +39,7 @@ class AppStrings {
   // Customer tabs
   static const String tabHome = 'Kəşf et';
   static const String tabCards = 'Kartlarım';
-  static const String tabQr = 'QR kod';
+  static const String tabQr = 'Kartı oxut';
   static const String tabProfile = 'Profil';
 
   // Business tabs

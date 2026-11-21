@@ -50,11 +50,12 @@ class StoryGroup {
   final List<Story> stories;
   final bool viewed;
 
-  StoryGroup copyWith({bool? viewed}) =>
-      StoryGroup(companyId: companyId, stories: stories, viewed: viewed ?? this.viewed);
+  StoryGroup copyWith({bool? viewed}) => StoryGroup(
+      companyId: companyId, stories: stories, viewed: viewed ?? this.viewed);
 
   factory StoryGroup.fromJson(Map<String, dynamic> json) {
-    final List<dynamic> raw = (json['stories'] as List<dynamic>?) ?? <dynamic>[];
+    final List<dynamic> raw =
+        (json['stories'] as List<dynamic>?) ?? <dynamic>[];
     return StoryGroup(
       companyId: json['companyId'] as String,
       stories: raw

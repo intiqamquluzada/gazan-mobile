@@ -95,8 +95,8 @@ class _MapPickerScreenState extends ConsumerState<_MapPickerScreen> {
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Text(
               s.mapTapHint,
-              style: AppTextStyles.bodySm
-                  .copyWith(color: AppColors.textSecondary),
+              style:
+                  AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
             ),
           ),
           Expanded(
@@ -124,7 +124,7 @@ class _MapPickerScreenState extends ConsumerState<_MapPickerScreen> {
                           alignment: Alignment.topCenter,
                           child: const Icon(
                             Icons.location_on_rounded,
-                            color: AppColors.primary,
+                            color: AppColors.action,
                             size: 44,
                           ),
                         ),
@@ -176,8 +176,7 @@ class _MapPickerScreenState extends ConsumerState<_MapPickerScreen> {
                       icon: const Icon(Icons.check_rounded),
                       label: Text(s.confirmThisLocation),
                       style: FilledButton.styleFrom(
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),

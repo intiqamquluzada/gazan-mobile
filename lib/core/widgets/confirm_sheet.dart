@@ -20,15 +20,15 @@ Future<bool> showConfirmSheet(
   IconData icon = Icons.logout_rounded,
   Color? danger,
 }) async {
-  final Color accent = danger ?? AppColors.error;
+  final Color accent = danger ?? AppColors.danger;
   final bool? result = await showModalBottomSheet<bool>(
     context: context,
+    useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius:
-          BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
     ),
     builder: (BuildContext ctx) {
       return Padding(
@@ -93,8 +93,8 @@ Future<bool> showConfirmSheet(
                 Expanded(
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.action,
+                      foregroundColor: AppColors.onDark,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.lg),

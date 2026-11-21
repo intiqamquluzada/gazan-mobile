@@ -69,7 +69,10 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
       padding: bottom,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.md, AppSpacing.xl, AppSpacing.xl,
+          AppSpacing.xl,
+          AppSpacing.md,
+          AppSpacing.xl,
+          AppSpacing.xl,
         ),
         child: Form(
           key: _form,

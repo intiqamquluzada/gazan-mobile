@@ -1,6 +1,6 @@
 /// Whether the signed-in user is a customer collecting stamps, a business
 /// owner running loyalty programs, or a platform admin.
-enum UserRole { customer, business, admin }
+enum UserRole { customer, business, cashier, admin }
 
 extension UserRoleX on UserRole {
   /// The shell a user lands on after authenticating.
@@ -10,6 +10,8 @@ extension UserRoleX on UserRole {
         return '/admin';
       case UserRole.business:
         return '/business';
+      case UserRole.cashier:
+        return '/business/scan';
       case UserRole.customer:
         return '/home';
     }

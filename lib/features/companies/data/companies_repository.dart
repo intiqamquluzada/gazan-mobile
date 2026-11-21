@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 import '../domain/business_category.dart';
 import '../domain/company.dart';
 
@@ -50,8 +50,9 @@ class RemoteCompaniesRepository implements CompaniesRepository {
       final Map<String, dynamic> json =
           await _api.get<Map<String, dynamic>>('/api/v1/companies/$id');
       return Company.fromJson(json);
-    } catch (_) {
-      return null;
+    } on ApiException catch (e) {
+      if (e.isNotFound) return null;
+      rethrow;
     }
   }
 
@@ -71,16 +72,32 @@ class RemoteCompaniesRepository implements CompaniesRepository {
       final Map<String, dynamic> json =
           await _api.get<Map<String, dynamic>>('/api/v1/companies/me');
       return Company.fromJson(json);
-    } catch (_) {
-      return null;
+    } on ApiException catch (e) {
+      // Only "you have no business yet" means null; a network failure must
+      // not look like it and offer an owner the create-business form.
+      if (e.isNotFound) return null;
+      rethrow;
     }
+  }
+
+  /// Image references are saved host-independent.
+  Map<String, dynamic> _withStoredMedia(Map<String, dynamic> body) {
+    final Map<String, dynamic> out = Map<String, dynamic>.of(body);
+    final Object? logo = out['logoUrl'];
+    if (logo is String) out['logoUrl'] = AppConfig.storedMediaUrl(logo);
+    final Object? photos = out['photoUrls'];
+    if (photos is String) {
+      out['photoUrls'] =
+          photos.split('\n').map(AppConfig.storedMediaUrl).join('\n');
+    }
+    return out;
   }
 
   @override
   Future<Company> updateCompany(String id, Map<String, dynamic> patch) async {
     final Map<String, dynamic> json = await _api.put<Map<String, dynamic>>(
       '/api/v1/companies/$id',
-      body: patch,
+      body: _withStoredMedia(patch),
     );
     return Company.fromJson(json);
   }
@@ -89,7 +106,7 @@ class RemoteCompaniesRepository implements CompaniesRepository {
   Future<Company> createCompany(Map<String, dynamic> body) async {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/companies',
-      body: body,
+      body: _withStoredMedia(body),
     );
     return Company.fromJson(json);
   }

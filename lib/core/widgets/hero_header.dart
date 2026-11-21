@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_text_styles.dart';
 
-/// The brand "hero" surface — a warm orange gradient band with rounded
+/// The brand "hero" surface — a light latte gradient band with rounded
 /// bottom corners that anchors the top of primary screens (Discover,
 /// Cards, Rewards). It replaces the old flat white app bar and is the
 /// app's strongest piece of visual identity.
 ///
-/// [title] is rendered large and white; [subtitle] sits beneath it.
+/// [title] is rendered large and dark; [subtitle] sits beneath it.
 /// [actions] are placed top-right (e.g. notifications). [bottom] is an
 /// optional slot — pass a search field or a balance row and it will sit
 /// flush at the bottom of the band, overlapping the content below.
@@ -20,6 +21,7 @@ class HeroHeader extends StatelessWidget {
     this.actions = const <Widget>[],
     this.bottom,
     this.leading,
+    this.bottomInset = 0,
   });
 
   final String title;
@@ -28,19 +30,27 @@ class HeroHeader extends StatelessWidget {
   final Widget? bottom;
   final Widget? leading;
 
+  /// Extra empty space under the content — reserves room for a widget
+  /// the caller floats over the band's bottom edge (e.g. search pill).
+  final double bottomInset;
+
   @override
   Widget build(BuildContext context) {
     final double topInset = MediaQuery.paddingOf(context).top;
     return Container(
-      decoration: const BoxDecoration(
-        gradient: kHeroGradient,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.heroLightGradient,
+        ),
         borderRadius:
             BorderRadius.vertical(bottom: Radius.circular(AppRadius.xxl)),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: Color(0x33F5560A),
-            blurRadius: 24,
-            offset: Offset(0, 10),
+            color: AppColors.shadowTint.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -48,7 +58,7 @@ class HeroHeader extends StatelessWidget {
         AppSpacing.xl,
         topInset + AppSpacing.lg,
         AppSpacing.xl,
-        AppSpacing.xl,
+        AppSpacing.lg + bottomInset,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,14 +75,15 @@ class HeroHeader extends StatelessWidget {
                   children: <Widget>[
                     Text(
                       title,
-                      style: AppTextStyles.h1.copyWith(color: Colors.white),
+                      style: AppTextStyles.h1
+                          .copyWith(color: AppColors.textPrimary),
                     ),
                     if (subtitle != null) ...<Widget>[
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
                         style: AppTextStyles.bodySm.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
+                          color: AppColors.caramelText,
                         ),
                       ),
                     ],
@@ -106,7 +117,7 @@ class HeroIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white.withValues(alpha: 0.18),
+      color: AppColors.surface.withValues(alpha: 0.75),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -114,7 +125,8 @@ class HeroIconButton extends StatelessWidget {
         child: SizedBox(
           width: 42,
           height: 42,
-          child: Center(child: Icon(icon, color: Colors.white, size: 22)),
+          child:
+              Center(child: Icon(icon, color: AppColors.textPrimary, size: 22)),
         ),
       ),
     );

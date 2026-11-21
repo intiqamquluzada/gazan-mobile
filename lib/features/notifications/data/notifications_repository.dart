@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/network/api_client.dart';
+import '../../business/domain/panel_models.dart';
 
 class AppNotification {
   const AppNotification({
@@ -65,6 +66,20 @@ class NotificationsRepository {
       body: <String, dynamic>{'title': title, 'body': body},
     );
   }
+
+  /// Owner submissions waiting for a decision.
+  Future<List<SubmittedNotification>> adminPending() async {
+    final List<dynamic> raw =
+        await _api.get<List<dynamic>>('/api/v1/admin/notifications/pending');
+    return raw
+        .cast<Map<String, dynamic>>()
+        .map(SubmittedNotification.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<void> adminDecide(String id, {required bool approve}) =>
+      _api.post<dynamic>(
+          '/api/v1/admin/notifications/$id/${approve ? 'approve' : 'reject'}');
 
   Future<List<AppNotification>> adminSent() async {
     final List<dynamic> raw =

@@ -44,8 +44,7 @@ class FavoritesController extends StateNotifier<Set<String>> {
 }
 
 final StateNotifierProvider<FavoritesController, Set<String>>
-    favoritesProvider =
-    StateNotifierProvider<FavoritesController, Set<String>>(
+    favoritesProvider = StateNotifierProvider<FavoritesController, Set<String>>(
   (Ref ref) => FavoritesController(ref.read(favoritesRepositoryProvider)),
 );
 

@@ -1,3 +1,5 @@
+import 'package:qazan/core/config/app_config.dart';
+
 /// One reward voucher — either a coin-bought ACTIVE one, the same one
 /// after it was USED at the cashier, or a virtual entry generated from a
 /// completed stamp card. Mirrors backend `RewardClaimResponse`.
@@ -34,7 +36,7 @@ class AppRewardClaim {
         id: (j['id'] as String?) ?? '',
         companyId: (j['companyId'] as String?) ?? '',
         companyName: (j['companyName'] as String?) ?? '',
-        companyLogoUrl: j['companyLogoUrl'] as String?,
+        companyLogoUrl: AppConfig.mediaUrlOrNull(j['companyLogoUrl'] as String?),
         title: (j['title'] as String?) ?? '',
         coinCost: ((j['coinCost'] as num?) ?? 0).toInt(),
         status: (j['status'] as String?) ?? 'ACTIVE',

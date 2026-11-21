@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/adaptive_nav_scaffold.dart';
 import '../../../core/widgets/app_bottom_nav.dart';
 import '../../../core/widgets/app_icons.dart';
 
@@ -57,18 +58,18 @@ class AdminShell extends ConsumerWidget {
           label: s.tabNotify, icon: AppIcons.bell, activeIcon: AppIcons.bell),
     ];
     return PopScope(
-      canPop: currentIdx == 0,
+      // Only the first tab's own page may exit the app; sub-pages that
+      // fall back to index 0 (e.g. NFC, analytics) return to it instead.
+      canPop: GoRouterState.of(context).uri.path == _routes[0],
       onPopInvokedWithResult: (bool didPop, Object? _) {
         if (didPop) return;
         context.go(_routes[0]);
       },
-      child: Scaffold(
-        body: child,
-        bottomNavigationBar: AppBottomNav(
-          items: items,
-          currentIndex: currentIdx,
-          onSelect: (int i) => context.go(_routes[i]),
-        ),
+      child: AdaptiveNavScaffold(
+        items: items,
+        currentIndex: currentIdx,
+        onSelect: (int i) => context.go(_routes[i]),
+        child: child,
       ),
     );
   }

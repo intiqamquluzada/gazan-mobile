@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/app_user.dart';
@@ -16,6 +19,18 @@ class AuthSession {
 
 /// Talks to the backend's `/auth/*` endpoints. Persists tokens via
 /// {@link TokenStorage} but does not own session state — the controller does.
+class PhoneStartResult {
+  const PhoneStartResult({
+    required this.registered,
+    required this.verificationRequired,
+  });
+
+  final bool registered;
+
+  /// False until SMS verification is switched on.
+  final bool verificationRequired;
+}
+
 class AuthRemoteDataSource {
   AuthRemoteDataSource(this._api, this._tokens);
 
@@ -47,13 +62,49 @@ class AuthRemoteDataSource {
     return _consume(json);
   }
 
+  /// [identifier] is an email address or a normalized phone number.
   Future<AuthSession> login({
-    required String email,
+    required String identifier,
     required String password,
   }) async {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/auth/login',
-      body: <String, dynamic>{'email': email.trim(), 'password': password},
+      body: <String, dynamic>{
+        'identifier': identifier.trim(),
+        'password': password,
+      },
+    );
+    return _consume(json);
+  }
+
+  /// First step of sign-up: is this number new, and must it be verified?
+  Future<PhoneStartResult> phoneStart(String phone) async {
+    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
+      '/api/v1/auth/phone/start',
+      body: <String, dynamic>{'phone': phone},
+    );
+    return PhoneStartResult(
+      registered: (json['registered'] as bool?) ?? false,
+      verificationRequired: (json['verificationRequired'] as bool?) ?? false,
+    );
+  }
+
+  /// Exchanges a Google / Apple identity token for our own session.
+  Future<AuthSession> social({
+    required String provider,
+    required String idToken,
+    String? fullName,
+    String? authorizationCode,
+  }) async {
+    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
+      '/api/v1/auth/social',
+      body: <String, dynamic>{
+        'provider': provider,
+        'idToken': idToken,
+        if (fullName != null && fullName.isNotEmpty) 'fullName': fullName,
+        if (authorizationCode != null && authorizationCode.isNotEmpty)
+          'authorizationCode': authorizationCode,
+      },
     );
     return _consume(json);
   }
@@ -101,6 +152,7 @@ class AuthRemoteDataSource {
   Future<AppUser> me() async {
     final Map<String, dynamic> json =
         await _api.get<Map<String, dynamic>>('/api/v1/users/me');
+    await _tokens.saveUserJson(jsonEncode(json));
     return _userFromJson(json);
   }
 
@@ -114,8 +166,9 @@ class AuthRemoteDataSource {
       refreshToken: json['refreshToken'] as String,
       accessExpiresAt: expiresAt,
     );
-    final AppUser user =
-        _userFromJson(json['user'] as Map<String, dynamic>);
+    final Map<String, dynamic> userJson = json['user'] as Map<String, dynamic>;
+    await _tokens.saveUserJson(jsonEncode(userJson));
+    final AppUser user = _userFromJson(userJson);
     return AuthSession(user: user, expiresAt: expiresAt);
   }
 
@@ -131,9 +184,12 @@ class AuthRemoteDataSource {
       email: (json['email'] as String?) ?? '',
       phone: json['phone'] as String?,
       birthDate: birth == null ? null : DateTime.tryParse(birth),
-      avatarUrl: json['avatarUrl'] as String?,
+      avatarUrl: AppConfig.mediaUrlOrNull(json['avatarUrl'] as String?),
       role: RoleMapping.fromBackend((json['role'] as String?) ?? 'CUSTOMER'),
       businessId: null,
+      profileComplete: (json['profileComplete'] as bool?) ??
+          ((json['phone'] as String?)?.isNotEmpty ?? false),
+      staffCompanyId: json['staffCompanyId'] as String?,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_controller.dart';
 import '../../profile/application/profile_settings_controller.dart';
+import '../../business/domain/panel_models.dart';
 import '../data/notifications_repository.dart';
 
 final FutureProvider<List<AppNotification>> notificationInboxProvider =
@@ -17,6 +18,12 @@ final FutureProvider<int> unreadCountProvider =
   if (ref.watch(currentUserProvider) == null) return 0;
   return ref.read(notificationsRepositoryProvider).unreadCount();
 });
+
+final AutoDisposeFutureProvider<List<SubmittedNotification>>
+    adminPendingNotificationsProvider =
+    FutureProvider.autoDispose<List<SubmittedNotification>>(
+  (Ref ref) => ref.read(notificationsRepositoryProvider).adminPending(),
+);
 
 final FutureProvider<List<AppNotification>> adminSentProvider =
     FutureProvider<List<AppNotification>>((Ref ref) async {

@@ -8,22 +8,37 @@ import '../../../core/theme/app_colors.dart';
 /// Matches the backend's `BusinessCategory` enum 1:1 — JSON wire form is
 /// the upper-snake-case name (e.g. `"COFFEE"`).
 enum BusinessCategory {
-  coffee('COFFEE', 'Kafe & Qəhvəxana', Icons.coffee_outlined, Color(0xFFB45309)),
-  restaurant('RESTAURANT', 'Restoran', Icons.restaurant_outlined, Color(0xFFDC2626)),
-  beauty('BEAUTY', 'Gözəllik', Icons.spa_outlined, Color(0xFFDB2777)),
-  barber('BARBER', 'Bərbər', Icons.cut_outlined, Color(0xFF1F2937)),
-  carwash('CARWASH', 'Avtoyuma', Icons.local_car_wash_outlined, Color(0xFF0284C7)),
-  fitness('FITNESS', 'Fitness', Icons.fitness_center_outlined, Color(0xFF059669)),
-  bakery('BAKERY', 'Şirniyyat', Icons.bakery_dining_outlined, Color(0xFFD97706)),
-  other('OTHER', 'Digər', Icons.storefront_outlined, AppColors.primary);
+  // Only four categories own an accent colour (coffee amber, restaurant
+  // rose, beauty purple, fitness teal); the rest share the neutral pair so
+  // the palette never grows with the category list.
+  coffee('COFFEE', 'Kafe & Qəhvəxana', Icons.coffee_outlined,
+      AppColors.catCoffee, AppColors.catCoffeeBg),
+  restaurant('RESTAURANT', 'Restoran', Icons.restaurant_outlined,
+      AppColors.catRestaurant, AppColors.catRestaurantBg),
+  beauty('BEAUTY', 'Gözəllik', Icons.spa_outlined, AppColors.catBeauty,
+      AppColors.catBeautyBg),
+  barber('BARBER', 'Bərbər', Icons.cut_outlined, AppColors.catNeutral,
+      AppColors.catNeutralBg),
+  carwash('CARWASH', 'Avtoyuma', Icons.local_car_wash_outlined,
+      AppColors.catNeutral, AppColors.catNeutralBg),
+  fitness('FITNESS', 'Fitness', Icons.fitness_center_outlined,
+      AppColors.catTeal, AppColors.catTealBg),
+  bakery('BAKERY', 'Şirniyyat', Icons.bakery_dining_outlined,
+      AppColors.catNeutral, AppColors.catNeutralBg),
+  other('OTHER', 'Digər', Icons.storefront_outlined, AppColors.catNeutral,
+      AppColors.catNeutralBg);
 
-  const BusinessCategory(this.wire, this.label, this.icon, this.tint);
+  const BusinessCategory(
+      this.wire, this.label, this.icon, this.tint, this.tintBg);
 
   /// JSON wire form sent over the API.
   final String wire;
   final String label;
   final IconData icon;
+
+  /// Accent for text / icons on [tintBg] (AA-checked pairs).
   final Color tint;
+  final Color tintBg;
 
   /// Localized display label for the current language.
   String labelOf(S s) {
@@ -46,6 +61,10 @@ enum BusinessCategory {
         return s.catOther;
     }
   }
+
+  /// Short label for tight spots (the discover category strip).
+  String shortLabelOf(S s) =>
+      this == BusinessCategory.coffee ? s.catCoffeeShort : labelOf(s);
 
   String toJson() => wire;
 

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/app_config.dart';
 import '../storage/token_storage.dart';
+import '../i18n/strings.dart';
+import '../session/session_events.dart';
 import 'api_exception.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/locale_interceptor.dart';
@@ -14,9 +16,11 @@ import 'interceptors/refresh_interceptor.dart';
 /// - Accept-Language sent based on the user's selected app language.
 /// - All transport / backend errors translated to {@link ApiException}.
 class ApiClient {
-  ApiClient(this._dio);
+  ApiClient(this._dio, {String Function()? networkMessage})
+      : _networkMessage = networkMessage ?? (() => 'Şəbəkə xətası');
 
   final Dio _dio;
+  final String Function() _networkMessage;
 
   Future<T> get<T>(
     String path, {
@@ -90,14 +94,16 @@ class ApiClient {
     if (data is Map<String, dynamic>) {
       return ApiException(
         code: (data['code'] as String?) ?? 'UNKNOWN',
-        message: (data['message'] as String?) ?? e.message ?? 'Xəta baş verdi',
+        message: (data['message'] as String?) ?? _networkMessage(),
         status: e.response?.statusCode ?? 0,
         fields: _extractFieldErrors(data),
       );
     }
+    // No JSON from our API: offline, timeout, or a proxy error page. Dio's
+    // own text is technical English and must not reach the user.
     return ApiException(
       code: 'NETWORK',
-      message: e.message ?? 'Şəbəkə xətası',
+      message: _networkMessage(),
       status: e.response?.statusCode ?? 0,
     );
   }
@@ -136,7 +142,11 @@ final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
 
   dio.interceptors.add(AuthInterceptor(tokens));
   dio.interceptors.add(LocaleInterceptor(ref));
-  dio.interceptors.add(RefreshInterceptor(dio, tokens));
+  dio.interceptors.add(RefreshInterceptor(
+    dio,
+    tokens,
+    onSessionExpired: ref.read(sessionEventsProvider).notifyExpired,
+  ));
 
-  return ApiClient(dio);
+  return ApiClient(dio, networkMessage: () => ref.read(sProvider).networkError);
 });

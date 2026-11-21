@@ -10,6 +10,7 @@ import '../../../core/widgets/empty_state.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../menu/data/menu_repository.dart';
+import '../../../core/utils/money.dart';
 
 /// Admin menu manager. Pick a business, then either paste a menu link OR
 /// build a structured menu grouped by categories (both can coexist — the
@@ -61,6 +62,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
     if (_company == null) return;
     final _NewItem? item = await showModalBottomSheet<_NewItem>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -98,7 +100,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: error ? AppColors.error : null,
+      backgroundColor: error ? AppColors.danger : null,
     ));
   }
 
@@ -162,6 +164,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     FilledButton(
+                      style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
                       onPressed: _savingLink ? null : _saveLink,
                       child: Text(s.saveShort),
                     ),
@@ -170,10 +173,10 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
                 const SizedBox(height: AppSpacing.xl),
                 const Divider(),
                 const SizedBox(height: AppSpacing.md),
-                Text(s.structuredMenu,
-                    style: AppTextStyles.h3),
+                Text(s.structuredMenu, style: AppTextStyles.h3),
                 const SizedBox(height: AppSpacing.md),
                 _MenuItems(
+                  currency: _company?.currency ?? 'AZN',
                   companyId: _company!.id,
                   onDelete: _deleteItem,
                 ),
@@ -187,10 +190,17 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
 }
 
 class _MenuItems extends ConsumerWidget {
-  const _MenuItems({required this.companyId, required this.onDelete});
+  const _MenuItems({
+    required this.companyId,
+    required this.onDelete,
+    this.currency = 'AZN',
+  });
 
   final String companyId;
   final Future<void> Function(MenuItem) onDelete;
+
+  /// Venue currency — prices render as ₼ or ₺ accordingly.
+  final String currency;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -202,74 +212,74 @@ class _MenuItems extends ConsumerWidget {
         padding: EdgeInsets.all(AppSpacing.lg),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (Object e, _) => Text('${s.error}: $e', style: AppTextStyles.bodySm),
+      error: (Object e, _) =>
+          Text('${s.error}: $e', style: AppTextStyles.bodySm),
       data: (List<MenuItem> items) {
         if (items.isEmpty) {
           return Text(
             s.noFoodYet,
-            style: AppTextStyles.bodySm
-                .copyWith(color: AppColors.textSecondary),
+            style:
+                AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary),
           );
         }
         // Group by category, preserving order.
-        final Map<String, List<MenuItem>> byCat =
-            <String, List<MenuItem>>{};
+        final Map<String, List<MenuItem>> byCat = <String, List<MenuItem>>{};
         for (final MenuItem m in items) {
           byCat.putIfAbsent(m.category, () => <MenuItem>[]).add(m);
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            for (final MapEntry<String, List<MenuItem>> e in byCat.entries)
-              ...<Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(
-                      top: AppSpacing.md, bottom: AppSpacing.sm),
-                  child: Text(e.key,
-                      style: AppTextStyles.overline
-                          .copyWith(color: AppColors.primary)),
-                ),
-                for (final MenuItem m in e.value)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.lg),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(m.name,
-                                  style: AppTextStyles.bodyLg
-                                      .copyWith(fontWeight: FontWeight.w600)),
-                              if ((m.description ?? '').isNotEmpty)
-                                Text(m.description!,
-                                    style: AppTextStyles.caption,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
-                        ),
-                        if (m.price != null)
-                          Text('${m.price!.toStringAsFixed(2)} ₼',
-                              style: AppTextStyles.bodySm.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              )),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded,
-                              color: AppColors.error),
-                          onPressed: () => onDelete(m),
-                        ),
-                      ],
-                    ),
+            for (final MapEntry<String, List<MenuItem>> e
+                in byCat.entries) ...<Widget>[
+              Padding(
+                padding: const EdgeInsets.only(
+                    top: AppSpacing.md, bottom: AppSpacing.sm),
+                child: Text(e.key,
+                    style: AppTextStyles.overline
+                        .copyWith(color: AppColors.action)),
+              ),
+              for (final MenuItem m in e.value)
+                Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.border),
                   ),
-              ],
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Text(m.name,
+                                style: AppTextStyles.bodyLg
+                                    .copyWith(fontWeight: FontWeight.w600)),
+                            if ((m.description ?? '').isNotEmpty)
+                              Text(m.description!,
+                                  style: AppTextStyles.caption,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                      if (m.price != null)
+                        Text(Money.format(m.price!, currency),
+                            style: AppTextStyles.bodySm.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.action,
+                            )),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded,
+                            color: AppColors.danger),
+                        onPressed: () => onDelete(m),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ],
         );
       },

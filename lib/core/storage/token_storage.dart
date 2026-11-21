@@ -12,6 +12,8 @@ class TokenStorage {
   static const String _kAccess = 'qazan.access_token';
   static const String _kRefresh = 'qazan.refresh_token';
   static const String _kExpires = 'qazan.access_expires_at';
+  static const String _kUser = 'qazan.cached_user';
+  static const String _kNfcQueue = 'qazan.nfc_queue';
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -42,10 +44,25 @@ class TokenStorage {
     return raw == null ? null : DateTime.tryParse(raw);
   }
 
+  /// Last known profile, so a cold start without network keeps the session.
+  Future<void> saveUserJson(String json) async {
+    final SharedPreferences p = await _prefs;
+    await p.setString(_kUser, json);
+  }
+
+  Future<String?> readUserJson() async {
+    final SharedPreferences p = await _prefs;
+    return p.getString(_kUser);
+  }
+
+  /// Ends the local session, including anything tied to this account:
+  /// taps queued offline must never be credited to the next person.
   Future<void> clear() async {
     final SharedPreferences p = await _prefs;
     await p.remove(_kAccess);
     await p.remove(_kRefresh);
     await p.remove(_kExpires);
+    await p.remove(_kUser);
+    await p.remove(_kNfcQueue);
   }
 }

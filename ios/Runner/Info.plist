@@ -2,21 +2,27 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.201188254579-tvg2reerpoegenqdkl3om48qf1e8hure</string>
+			</array>
+		</dict>
+	</array>
+	<key>GIDClientID</key>
+	<string>201188254579-tvg2reerpoegenqdkl3om48qf1e8hure.apps.googleusercontent.com</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
-		<key>NSCameraUsageDescription</key>
-		<string>Müştərinin QR kodunu skan etmək və biznes şəkilləri çəkmək üçün kameraya icazə lazımdır.</string>
+		<key>NFCReaderUsageDescription</key>
+		<string>Qazan, mekânın sadakat kartını okuyarak damga, coin ve hediye eklemek ve kasada hediyeni kullanmak için NFC kullanır.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>Biznes loqosu və şəkillərini yükləmək üçün foto qalereyasına icazə lazımdır.</string>
-		<key>NSPhotoLibraryAddUsageDescription</key>
-		<string>QR kodu və qəbzləri yadda saxlamaq üçün foto qalereyasına icazə lazımdır.</string>
+		<string>Profil fotoğrafını ve işletmenin logo ve fotoğraflarını yüklemek için fotoğraflarına erişim gerekir.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>Yaxınlıqdakı yerlərə məsafəni göstərmək üçün məkan icazəsi lazımdır.</string>
-		<key>NSAppTransportSecurity</key>
-		<dict>
-			<key>NSAllowsArbitraryLoads</key>
-			<true/>
-		</dict>
+		<string>Yakındaki mekânları ve uzaklığını göstermek ve kart okuttuğunda mekânda olduğunu doğrulamak için konumun kullanılır.</string>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>
@@ -69,17 +75,14 @@
 		<key>UISupportedInterfaceOrientations</key>
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>
-			<string>UIInterfaceOrientationLandscapeLeft</string>
-			<string>UIInterfaceOrientationLandscapeRight</string>
-		</array>
-		<key>UISupportedInterfaceOrientations~ipad</key>
-		<array>
-			<string>UIInterfaceOrientationPortrait</string>
-			<string>UIInterfaceOrientationPortraitUpsideDown</string>
-			<string>UIInterfaceOrientationLandscapeLeft</string>
-			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
 		<key>UIStatusBarHidden</key>
+		<false/>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+		</array>
+		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
 	</dict>
 </plist>

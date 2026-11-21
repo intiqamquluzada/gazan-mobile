@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../companies/application/companies_providers.dart';
 import '../application/reviews_providers.dart';
 import '../data/reviews_repository.dart';
 import '../domain/review.dart';
@@ -30,11 +31,11 @@ class ReviewsSection extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: AppShadows.md,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.sm,
       ),
       child: async.when(
         loading: () => const Center(
@@ -50,22 +51,25 @@ class ReviewsSection extends ConsumerWidget {
     );
   }
 
-  Widget _content(
-      BuildContext context, WidgetRef ref, S s, CompanyReviews r) {
+  Widget _content(BuildContext context, WidgetRef ref, S s, CompanyReviews r) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Row(
           children: <Widget>[
-            Text(s.reviewsWord, style: AppTextStyles.h3),
+            const Icon(Icons.chat_bubble_outline_rounded,
+                size: 19, color: AppColors.caramel),
+            const SizedBox(width: AppSpacing.sm),
+            Text(s.reviewsWord,
+                style: AppTextStyles.h3.copyWith(
+                    color: context.palette.ink, fontWeight: FontWeight.w700)),
             const Spacer(),
             if (r.count > 0) ...<Widget>[
               Text(r.average.toStringAsFixed(1),
-                  style: AppTextStyles.h3
-                      .copyWith(color: AppColors.textPrimary)),
+                  style:
+                      AppTextStyles.h3.copyWith(color: AppColors.textPrimary)),
               const SizedBox(width: 4),
-              const Icon(Icons.star_rounded,
-                  size: 20, color: AppColors.warning),
+              const Icon(Icons.star_rounded, size: 20, color: AppColors.reward),
               const SizedBox(width: 4),
               Text('(${r.count})', style: AppTextStyles.bodySm),
             ],
@@ -74,32 +78,58 @@ class ReviewsSection extends ConsumerWidget {
         const SizedBox(height: AppSpacing.lg),
         if (r.reviews.isEmpty)
           Text(s.noReviewsYet,
-              style: AppTextStyles.bodySm
-                  .copyWith(color: AppColors.textSecondary))
+              style:
+                  AppTextStyles.bodySm.copyWith(color: AppColors.textSecondary))
         else
           ...r.reviews.take(5).map((Review rev) => _ReviewTile(rev)),
         const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: PrimaryButton(
-            label: r.myReview == null ? s.writeReview : s.editReview,
-            icon: Icons.rate_review_outlined,
-            onPressed: () => _openWriteSheet(context, ref, r.myReview),
+        if (r.canReview)
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: r.myReview == null ? s.writeReview : s.editReview,
+              icon: Icons.rate_review_outlined,
+              onPressed: () => _openWriteSheet(context, ref, r.myReview),
+            ),
+          )
+        else
+          // Only verified visitors may review — explain how to unlock it.
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: context.palette.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              children: <Widget>[
+                const Icon(Icons.lock_outline_rounded,
+                    size: 18, color: AppColors.textSecondary),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    s.reviewLockedHint,
+                    style: AppTextStyles.bodySm
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
       ],
     );
   }
 
-  void _openWriteSheet(
-      BuildContext context, WidgetRef ref, Review? existing) {
+  void _openWriteSheet(BuildContext context, WidgetRef ref, Review? existing) {
     showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
       ),
       builder: (BuildContext _) => _WriteReviewSheet(
         companyId: companyId,
@@ -115,8 +145,7 @@ class _ReviewTile extends ConsumerWidget {
 
   final Review review;
 
-  String _date(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.'
+  String _date(DateTime d) => '${d.day.toString().padLeft(2, '0')}.'
       '${d.month.toString().padLeft(2, '0')}.${d.year}';
 
   @override
@@ -141,6 +170,16 @@ class _ReviewTile extends ConsumerWidget {
                 ),
               ),
               _Stars(rating: review.rating, size: 14),
+              if (!review.mine)
+                IconButton(
+                  tooltip: s.reportReview,
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                  icon: const Icon(Icons.flag_outlined, size: 18),
+                  onPressed: () => _reportReview(context, ref, review.id),
+                ),
             ],
           ),
           if (review.comment != null && review.comment!.isNotEmpty) ...<Widget>[
@@ -149,6 +188,92 @@ class _ReviewTile extends ConsumerWidget {
           ],
           const SizedBox(height: 2),
           Text(_date(review.createdAt), style: AppTextStyles.caption),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks for a reason and reports the review (App Store guideline 1.2).
+Future<void> _reportReview(
+    BuildContext context, WidgetRef ref, String reviewId) async {
+  final S s = ref.read(sProvider);
+  final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+  final ({String reason, String note})? picked =
+      await showModalBottomSheet<({String reason, String note})>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (BuildContext _) => const _ReportSheet(),
+  );
+  if (picked == null) return;
+  try {
+    await ref
+        .read(reviewsRepositoryProvider)
+        .report(reviewId, picked.reason, note: picked.note);
+    messenger.showSnackBar(SnackBar(content: Text(s.reportSent)));
+  } on ApiException catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  }
+}
+
+class _ReportSheet extends ConsumerStatefulWidget {
+  const _ReportSheet();
+
+  @override
+  ConsumerState<_ReportSheet> createState() => _ReportSheetState();
+}
+
+class _ReportSheetState extends ConsumerState<_ReportSheet> {
+  String _reason = 'ABUSIVE';
+  final TextEditingController _note = TextEditingController();
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final S s = ref.watch(sProvider);
+    final List<(String, String)> reasons = <(String, String)>[
+      ('ABUSIVE', s.reportReasonAbusive),
+      ('SPAM', s.reportReasonSpam),
+      ('FAKE', s.reportReasonFake),
+      ('OTHER', s.reportReasonOther),
+    ];
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl,
+          AppSpacing.xl + MediaQuery.viewInsetsOf(context).bottom),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(s.reportReviewTitle, style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.md),
+          for (final (String code, String label) in reasons)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(_reason == code
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_unchecked_rounded),
+              title: Text(label),
+              onTap: () => setState(() => _reason = code),
+            ),
+          TextField(
+            controller: _note,
+            maxLength: 500,
+            maxLines: 2,
+            decoration: InputDecoration(hintText: s.reportNoteHint),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          FilledButton(
+            onPressed: () => Navigator.of(context)
+                .pop((reason: _reason, note: _note.text)),
+            child: Text(s.reportSend),
+          ),
         ],
       ),
     );
@@ -170,7 +295,7 @@ class _Stars extends StatelessWidget {
         (int i) => Icon(
           i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
           size: size,
-          color: AppColors.warning,
+          color: AppColors.reward,
         ),
       ),
     );
@@ -224,7 +349,10 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
             rating: _rating,
             comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
           );
-      ref.invalidate(companyReviewsProvider(widget.companyId));
+      // The venue's average rating and count live on the company too.
+      ref
+        ..invalidate(companyReviewsProvider(widget.companyId))
+        ..invalidate(companyByIdProvider(widget.companyId));
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -249,7 +377,10 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
       padding: bottom,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xl,
+          AppSpacing.xl,
+          AppSpacing.lg,
+          AppSpacing.xl,
+          AppSpacing.xl,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -284,7 +415,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
                           ? Icons.star_rounded
                           : Icons.star_outline_rounded,
                       size: 40,
-                      color: AppColors.warning,
+                      color: AppColors.reward,
                     ),
                   ),
                 ),
@@ -294,7 +425,7 @@ class _WriteReviewSheetState extends ConsumerState<_WriteReviewSheet> {
             TextField(
               controller: _comment,
               maxLines: 4,
-              maxLength: 1000,
+              maxLength: 500,
               decoration: InputDecoration(
                 hintText: s.reviewHint,
                 alignLabelWithHint: true,

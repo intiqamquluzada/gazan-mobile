@@ -31,8 +31,7 @@ final FutureProvider<String> defaultCountryCodeProvider =
   }
 
   // 2) Device region.
-  final String? region =
-      PlatformDispatcher.instance.locale.countryCode;
+  final String? region = PlatformDispatcher.instance.locale.countryCode;
   if (region != null && region.length == 2) {
     return region.toUpperCase();
   }
