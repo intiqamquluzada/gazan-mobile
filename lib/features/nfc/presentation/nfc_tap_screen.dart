@@ -40,6 +40,10 @@ enum _Phase {
   unsupported,
   disabled,
   waiting,
+
+  /// The user closed the iOS scan sheet (or it timed out): nothing failed,
+  /// so wait calmly for them to start again.
+  idle,
   sending,
   repeat,
   done,
@@ -81,12 +85,20 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
         return;
       }
       setState(() => _phase = _Phase.waiting);
+      // A dismissed iOS sheet leaves the plugin's session behind, and the
+      // next start fails with "session_already_exists" — clear it first.
+      await stopNfcSession();
       await NfcManager.instance.startSession(
         // Our cards are NTAG (ISO 14443).
         pollingOptions: <NfcPollingOption>{NfcPollingOption.iso14443},
         alertMessageIos: ref.read(sProvider).nfcHoldPhone,
         onSessionErrorIos: (NfcReaderSessionErrorIos e) {
+          unawaited(stopNfcSession());
           if (!mounted || _phase != _Phase.waiting) return;
+          if (isNfcDismissal(e)) {
+            setState(() => _phase = _Phase.idle);
+            return;
+          }
           setState(() {
             _phase = _Phase.error;
             _error = ref.read(sProvider).nfcCancelled;
@@ -211,13 +223,21 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
         );
       case _Phase.waiting:
         return _Waiting(s: s);
+      case _Phase.idle:
+        return _Waiting(
+          s: s,
+          title: s.nfcTitle,
+          body: s.nfcIdleBody,
+          actionLabel: s.nfcStartScan,
+          onAction: _again,
+        );
       case _Phase.sending:
         return const CircularProgressIndicator();
       case _Phase.repeat:
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(AppIcons.check, size: 64, color: AppColors.caramel),
+            Icon(AppIcons.check, size: 64, color: AppColors.caramel),
             const SizedBox(height: AppSpacing.lg),
             Text(s.nfcAlreadyCounted,
                 textAlign: TextAlign.center, style: AppTextStyles.h3),
@@ -242,9 +262,22 @@ class _NfcTapScreenState extends ConsumerState<NfcTapScreen> {
 /// gently while soft mint rings ripple out behind it — a calm, continuous
 /// hint that the phone is listening.
 class _Waiting extends StatefulWidget {
-  const _Waiting({required this.s});
+  const _Waiting({
+    required this.s,
+    this.title,
+    this.body,
+    this.actionLabel,
+    this.onAction,
+  });
 
   final S s;
+
+  /// Overrides for the idle state (sheet dismissed): its own copy and a
+  /// button to scan again. Null keeps the "listening" wording.
+  final String? title;
+  final String? body;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   State<_Waiting> createState() => _WaitingState();
@@ -260,8 +293,22 @@ class _WaitingState extends State<_Waiting>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (reduceMotionOf(context)) {
-      _c.value = 0.3;
+    _syncMotion();
+  }
+
+  @override
+  void didUpdateWidget(_Waiting old) {
+    super.didUpdateWidget(old);
+    _syncMotion();
+  }
+
+  /// Ripples mean "the phone is listening", so they stop while idle.
+  void _syncMotion() {
+    final bool idle = widget.onAction != null;
+    if (idle || reduceMotionOf(context)) {
+      _c
+        ..stop()
+        ..value = 0.3;
     } else if (!_c.isAnimating) {
       _c.repeat();
     }
@@ -319,7 +366,7 @@ class _WaitingState extends State<_Waiting>
                 ),
                 const SizedBox(height: AppSpacing.xl),
                 Text(
-                  widget.s.nfcHoldPhone,
+                  widget.title ?? widget.s.nfcHoldPhone,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.display.copyWith(
                     color: context.palette.ink,
@@ -329,11 +376,22 @@ class _WaitingState extends State<_Waiting>
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  widget.s.nfcHoldPhoneBody,
+                  widget.body ?? widget.s.nfcHoldPhoneBody,
                   textAlign: TextAlign.center,
                   style: AppTextStyles.body
                       .copyWith(color: p.textSecondary, height: 1.5),
                 ),
+                if (widget.onAction != null) ...<Widget>[
+                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: widget.onAction,
+                      icon: const Icon(AppIcons.nfc),
+                      label: Text(widget.actionLabel ?? widget.s.nfcRetry),
+                    ),
+                  ),
+                ],
               ],
             );
           },

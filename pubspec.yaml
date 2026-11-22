@@ -80,13 +80,13 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.1
   flutter_native_splash: ^2.4.3
 
-# Native launch screen (shown before Flutter boots) — brand green + white Q.
+# Native launch screen (shown before Flutter boots) — brand orange + white Q (mid-tone of the Flutter splash gradient).
 # Regenerate with: dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#2A8236"
+  color: "#F68328"
   image: assets/branding/app_icon_foreground.png
   android_12:
-    color: "#2A8236"
+    color: "#F68328"
     image: assets/branding/app_icon_foreground.png
   web: false
 

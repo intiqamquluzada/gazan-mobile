@@ -114,7 +114,7 @@ class _RoleCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              const Icon(AppIcons.chevron,
+              Icon(AppIcons.chevron,
                   size: 20, color: AppColors.textTertiary),
             ],
           ),

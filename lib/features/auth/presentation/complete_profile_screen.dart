@@ -119,6 +119,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
+                hint: s.fullNameHint,
                 label: s.fullName,
                 controller: _name,
                 prefixIcon: Icons.person_outline_rounded,
@@ -128,6 +129,7 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
               const SizedBox(height: AppSpacing.lg),
               if (_email.text.isNotEmpty) ...<Widget>[
                 AppTextField(
+                  hint: s.emailHint,
                   label: s.email,
                   controller: _email,
                   readOnly: true,

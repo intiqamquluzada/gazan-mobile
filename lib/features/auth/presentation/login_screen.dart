@@ -116,10 +116,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Container(
                   width: 214,
                   height: 160,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
-                      colors: <Color>[Color(0xFFE2F1DA), Color(0x00E2F1DA)],
+                      colors: <Color>[
+                        AppColors.waveStrong,
+                        AppColors.waveStrong.withValues(alpha: 0),
+                      ],
                       stops: <double>[0.55, 1],
                     ),
                   ),

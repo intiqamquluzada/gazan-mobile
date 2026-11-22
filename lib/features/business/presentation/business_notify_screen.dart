@@ -73,7 +73,7 @@ class _NotifyState extends ConsumerState<BusinessNotifyScreen> {
           TextField(
             controller: _title,
             maxLength: 160,
-            decoration: InputDecoration(labelText: s.titleLabel),
+            decoration: InputDecoration(hintText: s.hintNotifTitle, labelText: s.titleLabel),
           ),
           const SizedBox(height: AppSpacing.sm),
           TextField(
@@ -81,6 +81,7 @@ class _NotifyState extends ConsumerState<BusinessNotifyScreen> {
             maxLines: 4,
             maxLength: 2000,
             decoration: InputDecoration(
+              hintText: s.hintNotifBody,
               labelText: s.bodyLabel,
               alignLabelWithHint: true,
             ),

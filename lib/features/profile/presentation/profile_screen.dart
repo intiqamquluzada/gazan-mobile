@@ -113,7 +113,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.celebration_rounded,
                   value: '$totalRewards',
                   label: s.rewardsEarned,
-                  tint: AppColors.success,
+                  tint: AppColors.rewardText,
                 ),
               ),
             ],
@@ -206,7 +206,7 @@ class ProfileScreen extends ConsumerWidget {
             icon: const Icon(Icons.delete_forever_rounded,
                 color: AppColors.danger),
             label: Text(s.deleteAccount,
-                style: const TextStyle(color: AppColors.dangerText)),
+                style: TextStyle(color: AppColors.dangerText)),
             onPressed: () => _confirmDeleteAccount(context, ref),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -246,8 +246,9 @@ class ProfileScreen extends ConsumerWidget {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
+      // The sheet draws its own handle; the theme's would double it.
+      showDragHandle: false,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
@@ -476,7 +477,7 @@ class _MenuTile extends StatelessWidget {
         children: <Widget>[
           if (trailing != null) Text(trailing!, style: AppTextStyles.bodySm),
           const SizedBox(width: AppSpacing.xs),
-          const Icon(Icons.arrow_forward_ios_rounded,
+          Icon(Icons.arrow_forward_ios_rounded,
               size: 14, color: AppColors.textTertiary),
         ],
       ),

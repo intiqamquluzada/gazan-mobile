@@ -66,6 +66,9 @@ extension PanelStrings on S {
   String get spendYourRewards => _p('spendYourRewards', 'Hədiyyələrin');
   String get spendUsedNow => _p('spendUsedNow', 'İstifadə olundu');
   String get nfcCancelled => _p('nfcCancelled', 'Oxuma ləğv edildi.');
+  String get nfcStartScan => _p('nfcStartScan', 'Oxutmağa başla');
+  String get nfcIdleBody => _p('nfcIdleBody',
+      'Hazır olanda düyməyə bas və telefonu kassadakı karta yaxınlaşdır.');
   String get nfcHoldCard => _p('nfcHoldCard', 'Kartı telefonun arxasına yaxınlaşdır');
   String get nfcScanCard => _p('nfcScanCard', 'Kartı oxut');
   String get nfcNeedsAssign => _p('nfcNeedsAssign', 'Hələ təyin edilməyib');
@@ -223,6 +226,8 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'spendYourRewards': 'Your rewards',
     'spendUsedNow': 'Used',
     'nfcCancelled': 'Reading was cancelled.',
+    'nfcStartScan': 'Start scanning',
+    'nfcIdleBody': 'When you are ready, tap the button and hold your phone to the card at the counter.',
     'nfcHoldCard': 'Hold the card to the back of the phone',
     'nfcScanCard': 'Scan a card',
     'nfcNeedsAssign': 'Not set up yet',
@@ -377,6 +382,8 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'spendYourRewards': 'Ваши подарки',
     'spendUsedNow': 'Использовано',
     'nfcCancelled': 'Чтение отменено.',
+    'nfcStartScan': 'Начать сканирование',
+    'nfcIdleBody': 'Когда будете готовы, нажмите кнопку и поднесите телефон к карте на кассе.',
     'nfcHoldCard': 'Поднесите карту к задней стороне телефона',
     'nfcScanCard': 'Считать карту',
     'nfcNeedsAssign': 'Ещё не настроена',
@@ -531,6 +538,8 @@ const Map<String, Map<String, String>> _panel = <String, Map<String, String>>{
     'spendYourRewards': 'Hediyelerin',
     'spendUsedNow': 'Kullanıldı',
     'nfcCancelled': 'Okuma iptal edildi.',
+    'nfcStartScan': 'Taramayı başlat',
+    'nfcIdleBody': 'Hazır olduğunda düğmeye bas ve telefonu kasadaki karta yaklaştır.',
     'nfcHoldCard': 'Kartı telefonun arkasına yaklaştır',
     'nfcScanCard': 'Kartı okut',
     'nfcNeedsAssign': 'Henüz atanmadı',

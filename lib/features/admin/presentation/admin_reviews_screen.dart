@@ -184,7 +184,7 @@ class _AdminReviewsState extends ConsumerState<AdminReviewsScreen> {
                             ),
                           IconButton(
                             visualDensity: VisualDensity.compact,
-                            icon: const Icon(Icons.delete_outline_rounded,
+                            icon: Icon(Icons.delete_outline_rounded,
                                 color: AppColors.dangerText),
                             tooltip: s.delete,
                             onPressed: () => _delete(r),
@@ -208,7 +208,7 @@ class _AdminReviewsState extends ConsumerState<AdminReviewsScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: <Widget>[
-                                  const Icon(Icons.flag_rounded,
+                                  Icon(Icons.flag_rounded,
                                       size: 12, color: AppColors.dangerText),
                                   const SizedBox(width: 4),
                                   Text(s.reportCount(r.reportCount),

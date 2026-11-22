@@ -185,7 +185,7 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _label,
-              decoration: InputDecoration(labelText: s.name),
+              decoration: InputDecoration(hintText: s.hintNfcLabel, labelText: s.name),
             ),
             if (_error != null) ...<Widget>[
               const SizedBox(height: AppSpacing.sm),
@@ -212,7 +212,11 @@ class _AssignSheetState extends ConsumerState<_AssignSheet> {
     return TextField(
       controller: c,
       keyboardType: TextInputType.number,
-      decoration: InputDecoration(labelText: label, helperText: helper),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: ref.read(sProvider).hintNumber,
+        helperText: helper,
+      ),
     );
   }
 }

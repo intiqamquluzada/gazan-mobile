@@ -25,8 +25,9 @@ Future<bool> showConfirmSheet(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
+    // The sheet draws its own handle; the theme's would double it.
+    showDragHandle: false,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
     ),

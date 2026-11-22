@@ -57,7 +57,7 @@ class ReviewsSection extends ConsumerWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            const Icon(Icons.chat_bubble_outline_rounded,
+            Icon(Icons.chat_bubble_outline_rounded,
                 size: 19, color: AppColors.caramel),
             const SizedBox(width: AppSpacing.sm),
             Text(s.reviewsWord,
@@ -69,7 +69,7 @@ class ReviewsSection extends ConsumerWidget {
                   style:
                       AppTextStyles.h3.copyWith(color: AppColors.textPrimary)),
               const SizedBox(width: 4),
-              const Icon(Icons.star_rounded, size: 20, color: AppColors.reward),
+              Icon(Icons.star_rounded, size: 20, color: AppColors.reward),
               const SizedBox(width: 4),
               Text('(${r.count})', style: AppTextStyles.bodySm),
             ],
@@ -103,7 +103,7 @@ class ReviewsSection extends ConsumerWidget {
             ),
             child: Row(
               children: <Widget>[
-                const Icon(Icons.lock_outline_rounded,
+                Icon(Icons.lock_outline_rounded,
                     size: 18, color: AppColors.textSecondary),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
@@ -125,8 +125,9 @@ class ReviewsSection extends ConsumerWidget {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
+      // The sheet draws its own handle; the theme's would double it.
+      showDragHandle: false,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),

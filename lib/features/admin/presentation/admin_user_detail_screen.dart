@@ -148,7 +148,7 @@ class _ResetDialogState extends ConsumerState<_ResetDialog> {
       content: TextField(
         controller: _c,
         obscureText: true,
-        decoration: InputDecoration(labelText: s.password, errorText: _error),
+        decoration: InputDecoration(hintText: s.passwordHintMin8, labelText: s.password, errorText: _error),
       ),
       actions: <Widget>[
         TextButton(

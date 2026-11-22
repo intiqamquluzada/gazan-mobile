@@ -439,9 +439,9 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
               const SizedBox(height: AppSpacing.xxl),
 
               _section(s.sectionBasicInfo),
-              AppTextField(label: s.name, controller: _name),
+              AppTextField(hint: s.businessNameHint, label: s.name, controller: _name),
               const SizedBox(height: AppSpacing.lg),
-              AppTextField(label: s.taglineLabel, controller: _tagline),
+              AppTextField(hint: s.hintTagline, label: s.taglineLabel, controller: _tagline),
               const SizedBox(height: AppSpacing.lg),
               Text(s.category,
                   style: AppTextStyles.bodySm.copyWith(
@@ -502,6 +502,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
 
               _section(s.sectionContactHours),
               AppTextField(
+                hint: s.hintAddress,
                 label: s.address,
                 controller: _address,
                 prefixIcon: AppIcons.location,
@@ -515,6 +516,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
+                hint: s.hintPhone,
                 label: s.phone,
                 controller: _phone,
                 keyboardType: TextInputType.phone,
@@ -541,6 +543,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
                 children: <Widget>[
                   Expanded(
                     child: AppTextField(
+                      hint: s.hintLatitude,
                       label: s.latitude,
                       controller: _lat,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -550,6 +553,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: AppTextField(
+                      hint: s.hintLongitude,
                       label: s.longitude,
                       controller: _lng,
                       keyboardType: const TextInputType.numberWithOptions(
@@ -688,17 +692,17 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
                       ),
                     ),
                     children: <Widget>[
-                      AppTextField(label: s.nameEn, controller: _nameEn),
+                      AppTextField(hint: s.businessNameHint, label: s.nameEn, controller: _nameEn),
                       const SizedBox(height: AppSpacing.md),
-                      AppTextField(label: s.taglineEn, controller: _taglineEn),
+                      AppTextField(hint: s.hintTagline, label: s.taglineEn, controller: _taglineEn),
                       const SizedBox(height: AppSpacing.lg),
-                      AppTextField(label: s.nameRu, controller: _nameRu),
+                      AppTextField(hint: s.businessNameHint, label: s.nameRu, controller: _nameRu),
                       const SizedBox(height: AppSpacing.md),
-                      AppTextField(label: s.taglineRu, controller: _taglineRu),
+                      AppTextField(hint: s.hintTagline, label: s.taglineRu, controller: _taglineRu),
                       const SizedBox(height: AppSpacing.lg),
-                      AppTextField(label: s.nameTr, controller: _nameTr),
+                      AppTextField(hint: s.businessNameHint, label: s.nameTr, controller: _nameTr),
                       const SizedBox(height: AppSpacing.md),
-                      AppTextField(label: s.taglineTr, controller: _taglineTr),
+                      AppTextField(hint: s.hintTagline, label: s.taglineTr, controller: _taglineTr),
                     ],
                   ),
                 ),
@@ -805,7 +809,7 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
             color: AppColors.caramelSoft,
             borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
-          child: const Icon(AppIcons.store, color: AppColors.action, size: 30),
+          child: Icon(AppIcons.store, color: AppColors.action, size: 30),
         ),
         const SizedBox(height: AppSpacing.lg),
         Text(s.createYourBusiness, style: AppTextStyles.h1),
@@ -817,9 +821,9 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
           ),
         ),
         const SizedBox(height: AppSpacing.xxl),
-        AppTextField(label: s.businessName, controller: _name),
+        AppTextField(hint: s.businessNameHint, label: s.businessName, controller: _name),
         const SizedBox(height: AppSpacing.lg),
-        AppTextField(label: s.taglineLabel, controller: _tagline),
+        AppTextField(hint: s.hintTagline, label: s.taglineLabel, controller: _tagline),
         const SizedBox(height: AppSpacing.lg),
         Text(s.categoryLabel,
             style: AppTextStyles.bodySm.copyWith(
@@ -839,6 +843,7 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
         ),
         const SizedBox(height: AppSpacing.lg),
         AppTextField(
+          hint: s.hintAddress,
           label: s.address,
           controller: _address,
           prefixIcon: AppIcons.location,
@@ -889,7 +894,7 @@ class _PhotoThumb extends StatelessWidget {
                 color: AppColors.surfaceMuted,
                 alignment: Alignment.center,
                 child:
-                    const Icon(AppIcons.error, color: AppColors.textTertiary),
+                    Icon(AppIcons.error, color: AppColors.textTertiary),
               ),
             ),
           ),
@@ -947,11 +952,11 @@ class _AddPhotoTile extends ConsumerWidget {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Icon(AppIcons.camera, color: AppColors.action),
+                  Icon(AppIcons.camera, color: AppColors.action),
                   const SizedBox(height: 4),
                   Text(s.addPhoto,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11, color: AppColors.action)),
                 ],
               ),
@@ -980,7 +985,7 @@ class _LogoPreview extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.border),
         ),
-        child: const Icon(AppIcons.store, color: AppColors.action, size: 30),
+        child: Icon(AppIcons.store, color: AppColors.action, size: 30),
       );
     }
     return ClipRRect(
@@ -1006,7 +1011,7 @@ class _LogoPreview extends StatelessWidget {
           height: s,
           color: AppColors.surfaceMuted,
           alignment: Alignment.center,
-          child: const Icon(AppIcons.error, color: AppColors.textTertiary),
+          child: Icon(AppIcons.error, color: AppColors.textTertiary),
         ),
       ),
     );

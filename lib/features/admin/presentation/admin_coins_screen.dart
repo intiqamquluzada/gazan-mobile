@@ -530,6 +530,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
                 keyboardType:
                     const TextInputType.numberWithOptions(signed: true),
                 decoration: InputDecoration(
+                  hintText: s.hintAmount,
                   labelText: s.amountExample,
                   prefixIcon: const Icon(AppIcons.token),
                   border: OutlineInputBorder(
@@ -541,6 +542,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
               TextField(
                 controller: _note,
                 decoration: InputDecoration(
+                  hintText: s.hintNote,
                   labelText: s.noteOptional,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),

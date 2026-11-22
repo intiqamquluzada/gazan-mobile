@@ -313,7 +313,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             controller: _code,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            decoration: InputDecoration(labelText: s.regVerifyCode),
+            decoration: InputDecoration(hintText: s.hintVerifyCode, labelText: s.regVerifyCode),
           ),
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(
@@ -325,6 +325,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return <Widget>[
           _heading(s.regDetailsTitle, _fullPhone),
           AppTextField(
+            hint: s.hintFirstName,
             label: s.firstName,
             controller: _first,
             prefixIcon: Icons.person_outline_rounded,
@@ -334,6 +335,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
           const SizedBox(height: AppSpacing.lg),
           AppTextField(
+            hint: s.hintLastName,
             label: s.lastName,
             controller: _last,
             prefixIcon: Icons.badge_outlined,

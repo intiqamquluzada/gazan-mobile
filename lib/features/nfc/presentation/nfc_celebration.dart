@@ -322,7 +322,7 @@ class _Piece {
   final double spin;
   final Color color;
 
-  static const List<Color> _colors = <Color>[
+  static List<Color> _colors = <Color>[
     AppColors.reward,
     AppColors.caramel,
     AppColors.success,

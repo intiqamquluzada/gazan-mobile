@@ -149,7 +149,7 @@ class _BubbleSkeleton extends StatelessWidget {
           Container(
             width: 70,
             height: 70,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               shape: BoxShape.circle,
             ),

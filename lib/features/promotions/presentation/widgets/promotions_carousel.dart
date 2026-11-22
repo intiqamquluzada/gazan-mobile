@@ -283,7 +283,7 @@ class _PromoCard extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(width: 2),
-                              const Icon(Icons.chevron_right_rounded,
+                              Icon(Icons.chevron_right_rounded,
                                   size: 16, color: AppColors.action),
                             ],
                           ),

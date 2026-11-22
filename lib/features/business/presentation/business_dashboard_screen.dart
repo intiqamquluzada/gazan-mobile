@@ -345,7 +345,7 @@ class _PrimaryAction extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: <Color>[AppColors.action, AppColors.actionPressed],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -448,7 +448,7 @@ class _CustomerTile extends ConsumerWidget {
                     )),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded,
+              Icon(Icons.chevron_right_rounded,
                   color: AppColors.textTertiary),
             ],
           ),

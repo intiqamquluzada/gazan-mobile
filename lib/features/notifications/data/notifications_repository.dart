@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../business/domain/panel_models.dart';
 
@@ -10,6 +11,7 @@ class AppNotification {
     required this.body,
     required this.read,
     this.createdAt,
+    this.imageUrl,
   });
 
   final String id;
@@ -17,6 +19,9 @@ class AppNotification {
   final String body;
   final bool read;
   final DateTime? createdAt;
+
+  /// Optional picture attached by the sender (already a loadable URL).
+  final String? imageUrl;
 
   factory AppNotification.fromJson(Map<String, dynamic> j) {
     return AppNotification(
@@ -27,7 +32,13 @@ class AppNotification {
       createdAt: j['createdAt'] is String
           ? DateTime.tryParse(j['createdAt'] as String)?.toLocal()
           : null,
+      imageUrl: _image(j['imageUrl']),
     );
+  }
+
+  static String? _image(Object? raw) {
+    if (raw is! String || raw.trim().isEmpty) return null;
+    return AppConfig.mediaUrl(raw.trim());
   }
 }
 

@@ -291,7 +291,7 @@ class _CompanyTile extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child:
-                  const Icon(AppIcons.store, color: AppColors.action, size: 22),
+                  Icon(AppIcons.store, color: AppColors.action, size: 22),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -314,7 +314,7 @@ class _CompanyTile extends ConsumerWidget {
                       padding: const EdgeInsets.only(top: 2),
                       child: Row(
                         children: <Widget>[
-                          const Icon(AppIcons.star,
+                          Icon(AppIcons.star,
                               size: 14, color: AppColors.reward),
                           const SizedBox(width: 2),
                           Text(

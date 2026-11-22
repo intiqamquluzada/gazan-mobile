@@ -506,7 +506,7 @@ class _NewCardSheetState extends ConsumerState<_NewCardSheet> {
               TextField(
                 controller: _points,
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: s.nfcPointsPerTap),
+                decoration: InputDecoration(hintText: s.hintNumber, labelText: s.nfcPointsPerTap),
               ),
             const SizedBox(height: AppSpacing.md),
             TextField(
@@ -627,7 +627,7 @@ class _TapsState extends ConsumerState<_Taps> {
                         ),
                       ),
                       if (t.suspicious)
-                        const Icon(Icons.warning_amber_rounded,
+                        Icon(Icons.warning_amber_rounded,
                             size: 18, color: AppColors.catCoffee),
                     ],
                   );

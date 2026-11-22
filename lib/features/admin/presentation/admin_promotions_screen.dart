@@ -127,8 +127,9 @@ class AdminPromotionsScreen extends ConsumerWidget {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
+      // The sheet draws its own handle; the theme's would double it.
+      showDragHandle: false,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
@@ -475,13 +476,13 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
             TextField(
               controller: _title,
               onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(labelText: s.titleLabel),
+              decoration: InputDecoration(hintText: s.hintPromoTitle, labelText: s.titleLabel),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _subtitle,
               onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(labelText: s.subtitleLabel),
+              decoration: InputDecoration(hintText: s.hintPromoSubtitle, labelText: s.subtitleLabel),
             ),
             const SizedBox(height: AppSpacing.sm),
             Row(
@@ -491,14 +492,14 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
                   child: TextField(
                     controller: _emoji,
                     onChanged: (_) => setState(() {}),
-                    decoration: InputDecoration(labelText: s.emojiLabel),
+                    decoration: InputDecoration(hintText: s.hintEmoji, labelText: s.emojiLabel),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: TextField(
                     controller: _cta,
-                    decoration: InputDecoration(labelText: s.buttonTextLabel),
+                    decoration: InputDecoration(hintText: s.hintButtonText, labelText: s.buttonTextLabel),
                   ),
                 ),
               ],
