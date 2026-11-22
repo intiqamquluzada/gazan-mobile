@@ -84,24 +84,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 }
 
-/// The splash brand stamp — the animated logo dropped onto a soft shadow.
+/// The splash brand stamp — the animated pot-of-gold logo.
 class _LogoBadge extends StatelessWidget {
   const _LogoBadge();
 
   @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: AppColors.shadowTint.withValues(alpha: 0.2),
-            blurRadius: 28,
-            offset: Offset(0, 14),
-          ),
-        ],
-      ),
-      child: const QazanLogo(size: 104, onDark: true),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const QazanLogo(size: 128, onDark: true);
 }
