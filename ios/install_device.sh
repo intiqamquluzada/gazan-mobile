@@ -18,6 +18,9 @@ if [ -z "$DEVICE" ]; then
 fi
 [ -n "$DEVICE" ] || { echo "No connected iPhone. Unlock it and keep it on the same Wi-Fi."; exit 1; }
 
+# A stale build dir leaves unsigned frameworks behind (install fails with
+# "integrity could not be verified"), so always start clean.
+rm -rf build/ios/device-dd
 flutter build ios --release --config-only
 xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
   -destination 'generic/platform=iOS' -derivedDataPath build/ios/device-dd \
