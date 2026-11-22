@@ -161,7 +161,7 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
               const SizedBox(height: AppSpacing.lg),
               TextFormField(
                 controller: _name,
-                decoration: InputDecoration(labelText: s.fullName),
+                decoration: InputDecoration(hintText: s.fullNameHint, labelText: s.fullName),
                 validator: (String? v) => (v == null || v.trim().length < 2)
                     ? s.enterNameShort
                     : null,
@@ -170,7 +170,7 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
               TextFormField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(labelText: s.email),
+                decoration: InputDecoration(hintText: s.emailHint, labelText: s.email),
                 validator: (String? v) =>
                     (v == null || !v.contains('@')) ? s.invalidEmail : null,
               ),
@@ -183,7 +183,7 @@ class _AddStaffSheetState extends ConsumerState<_AddStaffSheet> {
               TextFormField(
                 controller: _password,
                 obscureText: true,
-                decoration: InputDecoration(labelText: s.password),
+                decoration: InputDecoration(hintText: s.passwordHintMin8, labelText: s.password),
                 validator: (String? v) =>
                     (v == null || v.length < 8) ? s.pwErrMin8 : null,
               ),

@@ -39,7 +39,7 @@ class AppTheme {
       error: AppColors.danger,
       onError: AppColors.onDark,
       errorContainer: p.dangerSoft,
-      onErrorContainer: AppColors.dangerText,
+      onErrorContainer: dark ? const Color(0xFFF2899A) : const Color(0xFFB7344B),
       surface: p.surface,
       onSurface: p.textPrimary,
       onSurfaceVariant: p.textSecondary,
@@ -48,7 +48,7 @@ class AppTheme {
       surfaceContainer: p.surfaceMuted,
       surfaceContainerHigh: p.surfaceMuted,
       surfaceContainerHighest: p.surfaceAccent,
-      outline: dark ? p.border : AppColors.borderStrong,
+      outline: dark ? p.border : AppColorsLight.borderStrong,
       outlineVariant: p.border,
       shadow: AppColors.shadowTint,
       scrim: AppColors.scrim,
@@ -58,12 +58,12 @@ class AppTheme {
       surfaceTint: AppColors.transparent,
     );
 
-    // Primary buttons: gradient fill (light → mid green), drawn by the
-    // background builder so every FilledButton / ElevatedButton in the app
-    // gets it. Disabled and pressed states fall back to flat colours.
+    // Primary buttons: warm amber → orange gradient with a white label in
+    // both modes, drawn by the background builder so every FilledButton /
+    // ElevatedButton in the app gets it. Disabled and pressed states fall
+    // back to flat colours.
     Widget gradientFill(BuildContext _, Set<WidgetState> s, Widget? child) {
-      if (dark ||
-          s.contains(WidgetState.disabled) ||
+      if (s.contains(WidgetState.disabled) ||
           s.contains(WidgetState.pressed)) {
         return child ?? const SizedBox.shrink();
       }
@@ -85,7 +85,7 @@ class AppTheme {
           minimumSize: const WidgetStatePropertyAll(Size.fromHeight(50)),
           shape: const WidgetStatePropertyAll(StadiumBorder()),
           textStyle: WidgetStatePropertyAll(
-              AppTextStyles.button.copyWith(fontWeight: FontWeight.w600)),
+              AppTextStyles.button.copyWith(fontWeight: FontWeight.w700)),
           elevation: const WidgetStatePropertyAll(0),
           foregroundColor: WidgetStatePropertyAll(fg),
           backgroundColor:
@@ -102,7 +102,7 @@ class AppTheme {
       displayColor: p.textPrimary,
     );
     final Color pressed =
-        dark ? AppColorsDark.actionPressed : AppColors.actionPressed;
+        dark ? AppColorsDark.actionPressed : AppColorsLight.actionPressed;
 
     return ThemeData(
       useMaterial3: true,
@@ -276,7 +276,7 @@ class AppTheme {
         backgroundColor: dark ? p.surfaceMuted : AppColors.surfaceDark,
         contentTextStyle: AppTextStyles.bodySm
             .copyWith(color: dark ? p.textPrimary : AppColors.onDark),
-        actionTextColor: dark ? p.caramel : AppColors.surfaceAccent,
+        actionTextColor: dark ? p.caramel : AppColorsLight.surfaceAccent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
@@ -286,7 +286,8 @@ class AppTheme {
         indicatorColor: AppColors.transparent,
         height: 64,
         elevation: 0,
-        labelTextStyle: WidgetStatePropertyAll(AppTextStyles.caption),
+        labelTextStyle: WidgetStatePropertyAll(
+            AppTextStyles.caption.copyWith(color: p.textTertiary)),
       ),
     );
   }

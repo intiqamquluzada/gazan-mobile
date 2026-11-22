@@ -182,6 +182,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
               Center(child: _avatarPicker()),
               const SizedBox(height: AppSpacing.xl),
               AppTextField(
+                hint: s.fullNameHint,
                 label: s.fullName,
                 controller: _name,
                 prefixIcon: Icons.person_outline_rounded,
@@ -191,6 +192,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
               ),
               const SizedBox(height: AppSpacing.lg),
               AppTextField(
+                hint: s.emailHint,
                 label: s.emailReadOnly,
                 controller: _email,
                 readOnly: true,

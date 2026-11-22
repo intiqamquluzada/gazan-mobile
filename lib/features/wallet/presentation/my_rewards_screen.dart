@@ -236,7 +236,7 @@ class _RewardTile extends ConsumerWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        const Icon(AppIcons.token,
+                        Icon(AppIcons.token,
                             size: 14, color: AppColors.action),
                         const SizedBox(width: 2),
                         Text('${claim.coinCost}',

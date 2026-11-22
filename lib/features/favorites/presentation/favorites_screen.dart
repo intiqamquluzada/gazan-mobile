@@ -83,7 +83,7 @@ class _Empty extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(Icons.favorite_border_rounded,
+            Icon(Icons.favorite_border_rounded,
                 size: 56, color: AppColors.textTertiary),
             const SizedBox(height: AppSpacing.lg),
             Text(s.noFavoritesYet, style: AppTextStyles.h3),

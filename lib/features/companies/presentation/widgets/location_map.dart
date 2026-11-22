@@ -47,7 +47,7 @@ class LocationMap extends ConsumerWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(Icons.place_outlined,
+              Icon(Icons.place_outlined,
                   size: 20, color: AppColors.caramel),
               const SizedBox(width: AppSpacing.sm),
               Text(s.address,
@@ -93,7 +93,7 @@ class LocationMap extends ConsumerWidget {
                             point: point,
                             width: 44,
                             height: 44,
-                            child: const Icon(
+                            child: Icon(
                               Icons.location_on_rounded,
                               color: AppColors.action,
                               size: 40,

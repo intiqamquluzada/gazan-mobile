@@ -82,7 +82,7 @@ class ThemeSheet extends ConsumerWidget {
                         ),
                       ),
                       if (o.mode == current)
-                        const Icon(Icons.check_circle_rounded,
+                        Icon(Icons.check_circle_rounded,
                             color: AppColors.action),
                     ],
                   ),

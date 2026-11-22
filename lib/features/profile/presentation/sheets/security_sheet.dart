@@ -84,6 +84,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
               Text(s.changePassword, style: AppTextStyles.h2),
               const SizedBox(height: AppSpacing.xl),
               AppTextField(
+                hint: s.hintCurrentPassword,
                 label: s.currentPassword,
                 controller: _current,
                 obscure: true,
@@ -93,6 +94,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
+                hint: s.passwordHintMin8,
                 label: s.newPassword,
                 controller: _new,
                 obscure: true,
@@ -102,6 +104,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
               ),
               const SizedBox(height: AppSpacing.md),
               AppTextField(
+                hint: s.hintRepeatPassword,
                 label: s.repeatNewPassword,
                 controller: _confirm,
                 obscure: true,

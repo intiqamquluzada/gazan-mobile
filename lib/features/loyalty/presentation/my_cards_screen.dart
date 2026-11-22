@@ -323,7 +323,7 @@ class _CardEntry extends ConsumerWidget {
                     ),
                     child: Row(
                       children: <Widget>[
-                        const Icon(AppIcons.gift, color: AppColors.reward),
+                        Icon(AppIcons.gift, color: AppColors.reward),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(

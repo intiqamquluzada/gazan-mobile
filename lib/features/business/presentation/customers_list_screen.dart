@@ -159,7 +159,7 @@ class _Row extends ConsumerWidget {
               ],
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
+            Icon(Icons.chevron_right_rounded,
                 color: AppColors.textTertiary),
           ],
         ),

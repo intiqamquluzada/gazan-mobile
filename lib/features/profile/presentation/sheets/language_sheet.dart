@@ -102,7 +102,7 @@ class _LangTile extends StatelessWidget {
                 child: Text(lang.label, style: AppTextStyles.bodyLg),
               ),
               if (selected)
-                const Icon(Icons.check_circle_rounded, color: AppColors.action),
+                Icon(Icons.check_circle_rounded, color: AppColors.action),
             ],
           ),
         ),

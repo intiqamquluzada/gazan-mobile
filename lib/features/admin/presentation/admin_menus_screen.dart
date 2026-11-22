@@ -65,7 +65,6 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
       useRootNavigator: true,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
@@ -364,13 +363,13 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _name,
-              decoration: InputDecoration(labelText: s.name),
+              decoration: InputDecoration(hintText: s.hintMenuItemName, labelText: s.name),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _description,
               decoration:
-                  InputDecoration(labelText: s.descriptionOptionalField),
+                  InputDecoration(hintText: s.hintMenuItemDesc, labelText: s.descriptionOptionalField),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
@@ -378,6 +377,7 @@ class _AddItemSheetState extends ConsumerState<_AddItemSheet> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
+                hintText: s.hintPrice,
                 labelText: s.priceOptional,
               ),
             ),

@@ -37,7 +37,7 @@ class AppShadows {
   /// shadow-card — resting cards: 0 8px 24px rgba(30, 58, 36, 0.07).
   static const List<BoxShadow> sm = <BoxShadow>[
     BoxShadow(
-      color: Color(0x121E3A24),
+      color: Color(0x124A2A14),
       blurRadius: 24,
       offset: Offset(0, 8),
     ),
@@ -47,7 +47,7 @@ class AppShadows {
   /// 0 16px 40px rgba(30, 58, 36, 0.11).
   static const List<BoxShadow> md = <BoxShadow>[
     BoxShadow(
-      color: Color(0x1C1E3A24),
+      color: Color(0x1C4A2A14),
       blurRadius: 40,
       offset: Offset(0, 16),
     ),

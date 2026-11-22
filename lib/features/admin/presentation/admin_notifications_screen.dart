@@ -106,7 +106,7 @@ class _AdminNotificationsScreenState
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     children: <Widget>[
-                      const Icon(Icons.storefront_rounded,
+                      Icon(Icons.storefront_rounded,
                           size: 16, color: AppColors.textSecondary),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
@@ -218,6 +218,7 @@ class _AdminNotificationsScreenState
               controller: _title,
               maxLength: 160,
               decoration: InputDecoration(
+                hintText: s.hintNotifTitle,
                 labelText: s.titleLabel,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -230,6 +231,7 @@ class _AdminNotificationsScreenState
               maxLines: 4,
               maxLength: 2000,
               decoration: InputDecoration(
+                hintText: s.hintNotifBody,
                 labelText: s.bodyLabel,
                 alignLabelWithHint: true,
                 border: OutlineInputBorder(

@@ -233,8 +233,8 @@ class _SlideView extends StatelessWidget {
   }
 }
 
-/// The emphasised word in a slide title: green with a hand-drawn swoosh
-/// under it, or green on a mint chip.
+/// The emphasised word in a slide title: accent colour with a hand-drawn
+/// swoosh under it, or on an accent chip.
 class _Highlighted extends StatelessWidget {
   const _Highlighted({
     required this.text,
@@ -248,8 +248,8 @@ class _Highlighted extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color green = Color(0xFF3E9A45);
-    final Text word = Text(text, style: style.copyWith(color: green));
+    final Color accent = AppColors.caramel;
+    final Text word = Text(text, style: style.copyWith(color: accent));
     if (kind == _Highlight.chip) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -261,7 +261,7 @@ class _Highlighted extends StatelessWidget {
       );
     }
     return CustomPaint(
-      foregroundPainter: const _SwooshPainter(green),
+      foregroundPainter: _SwooshPainter(accent),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: word,

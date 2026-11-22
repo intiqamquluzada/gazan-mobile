@@ -22,7 +22,6 @@ class WaveBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppPalette p = context.palette;
-    final bool dark = Theme.of(context).brightness == Brightness.dark;
     final bool nested = context
             .dependOnInheritedWidgetOfExactType<_WaveScope>() !=
         null;
@@ -30,8 +29,8 @@ class WaveBackground extends StatelessWidget {
       painter: _WavePainter(
         bottomWave: !nested,
         background: p.background,
-        strong: dark ? const Color(0xFF16231A) : const Color(0xFFE2F1DA),
-        soft: dark ? const Color(0xFF131D16) : const Color(0xFFEAF5E4),
+        strong: AppColors.waveStrong,
+        soft: AppColors.waveSoft,
       ),
       child: child,
     );

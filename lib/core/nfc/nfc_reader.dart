@@ -32,15 +32,25 @@ NfcRead parseNfcTag(NfcTag tag) {
   return NfcRead(token: NfcPayload.tokenOf(ios), uid: NfcPayload.uidHex(id));
 }
 
+/// True when the iOS scan sheet closed because the user dismissed it (X,
+/// Cancel, tap outside) or it timed out — not a failure worth an error.
+bool isNfcDismissal(NfcReaderSessionErrorIos e) =>
+    e.code == NfcReaderErrorCodeIos.readerSessionInvalidationErrorUserCanceled ||
+    e.code == NfcReaderErrorCodeIos.readerSessionInvalidationErrorSessionTimeout;
+
 /// Reads a single tag and ends the session. Returns null when the user
 /// cancels the iOS sheet. NTAG cards are ISO 14443, so only that is polled.
-Future<NfcRead?> readOneNfcTag({required String alertMessage}) {
+Future<NfcRead?> readOneNfcTag({required String alertMessage}) async {
+  // A dismissed iOS sheet leaves the plugin's session behind, and the next
+  // start fails with "session_already_exists" — clear it first.
+  await stopNfcSession();
   final Completer<NfcRead?> done = Completer<NfcRead?>();
-  NfcManager.instance
+  unawaited(NfcManager.instance
       .startSession(
     pollingOptions: <NfcPollingOption>{NfcPollingOption.iso14443},
     alertMessageIos: alertMessage,
     onSessionErrorIos: (NfcReaderSessionErrorIos _) {
+      unawaited(stopNfcSession());
       if (!done.isCompleted) done.complete(null);
     },
     onDiscovered: (NfcTag tag) {
@@ -51,7 +61,7 @@ Future<NfcRead?> readOneNfcTag({required String alertMessage}) {
   )
       .catchError((Object e) {
     if (!done.isCompleted) done.completeError(e);
-  });
+  }));
   return done.future;
 }
 

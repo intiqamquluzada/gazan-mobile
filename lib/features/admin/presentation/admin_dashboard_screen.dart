@@ -480,7 +480,7 @@ class _RecentCompanyTile extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child:
-                  const Icon(AppIcons.store, color: AppColors.action, size: 20),
+                  Icon(AppIcons.store, color: AppColors.action, size: 20),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -494,7 +494,7 @@ class _RecentCompanyTile extends StatelessWidget {
               ),
             ),
             if (c.featured)
-              const Icon(AppIcons.star, color: AppColors.reward, size: 20),
+              Icon(AppIcons.star, color: AppColors.reward, size: 20),
           ],
         ),
       ),

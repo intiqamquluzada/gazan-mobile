@@ -67,7 +67,7 @@ class _MenuPreviewState extends ConsumerState<MenuPreview> {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(Icons.restaurant_menu_rounded,
+              Icon(Icons.restaurant_menu_rounded,
                   size: 20, color: AppColors.caramel),
               const SizedBox(width: AppSpacing.sm),
               Text(s.menuWord,

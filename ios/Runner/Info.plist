@@ -2,25 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.201188254579-tvg2reerpoegenqdkl3om48qf1e8hure</string>
-			</array>
-		</dict>
-	</array>
-	<key>GIDClientID</key>
-	<string>201188254579-tvg2reerpoegenqdkl3om48qf1e8hure.apps.googleusercontent.com</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.201188254579-tvg2reerpoegenqdkl3om48qf1e8hure</string>
+				</array>
+			</dict>
+		</array>
+		<key>GIDClientID</key>
+		<string>201188254579-tvg2reerpoegenqdkl3om48qf1e8hure.apps.googleusercontent.com</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>NFCReaderUsageDescription</key>
 		<string>Qazan, mekânın sadakat kartını okuyarak damga, coin ve hediye eklemek ve kasada hediyeni kullanmak için NFC kullanır.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Profil fotoğrafını ve işletmenin logo ve fotoğraflarını yüklemek için fotoğraflarına erişim gerekir.</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>comgooglemaps</string>
+		</array>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>Yakındaki mekânları ve uzaklığını göstermek ve kart okuttuğunda mekânda olduğunu doğrulamak için konumun kullanılır. Qazan konumunu arka planda takip etmez.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>Yakındaki mekânları ve uzaklığını göstermek ve kart okuttuğunda mekânda olduğunu doğrulamak için konumun kullanılır.</string>
 		<key>CFBundleDevelopmentRegion</key>

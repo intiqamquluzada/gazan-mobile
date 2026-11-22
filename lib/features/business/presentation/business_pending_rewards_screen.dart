@@ -307,7 +307,7 @@ class _PendingRewardsState extends ConsumerState<BusinessPendingRewardsScreen>
         for (final SpendSession x in _sessions)
           Card(
             child: ListTile(
-              leading: const Icon(Icons.point_of_sale_rounded,
+              leading: Icon(Icons.point_of_sale_rounded,
                   color: AppColors.caramel),
               title: Text(x.customerName),
               subtitle: Text('${x.rewards.length} ${s.rewardWord}'),
@@ -352,7 +352,7 @@ class _PendingRewardsState extends ConsumerState<BusinessPendingRewardsScreen>
                 Container(
                   width: 42,
                   height: 42,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.rewardSoft,
                     shape: BoxShape.circle,
                   ),

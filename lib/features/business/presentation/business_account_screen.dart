@@ -164,7 +164,7 @@ class BusinessAccountScreen extends ConsumerWidget {
             icon: const Icon(Icons.delete_forever_rounded,
                 color: AppColors.danger),
             label: Text(s.deleteAccount,
-                style: const TextStyle(color: AppColors.dangerText)),
+                style: TextStyle(color: AppColors.dangerText)),
             onPressed: () => _confirmDeleteAccount(context, ref),
           ),
         ],
@@ -227,8 +227,9 @@ class BusinessAccountScreen extends ConsumerWidget {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
+      // The sheet draws its own handle; the theme's would double it.
+      showDragHandle: false,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
@@ -299,7 +300,7 @@ class _Tile extends StatelessWidget {
                       style: AppTextStyles.caption
                           .copyWith(color: AppColors.textSecondary)),
                 const SizedBox(width: 4),
-                const Icon(Icons.chevron_right_rounded,
+                Icon(Icons.chevron_right_rounded,
                     color: AppColors.textTertiary),
               ],
             ),

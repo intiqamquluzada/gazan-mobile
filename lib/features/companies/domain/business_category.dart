@@ -11,34 +11,39 @@ enum BusinessCategory {
   // Only four categories own an accent colour (coffee amber, restaurant
   // rose, beauty purple, fitness teal); the rest share the neutral pair so
   // the palette never grows with the category list.
-  coffee('COFFEE', 'Kafe & Qəhvəxana', Icons.coffee_outlined,
-      AppColors.catCoffee, AppColors.catCoffeeBg),
-  restaurant('RESTAURANT', 'Restoran', Icons.restaurant_outlined,
-      AppColors.catRestaurant, AppColors.catRestaurantBg),
-  beauty('BEAUTY', 'Gözəllik', Icons.spa_outlined, AppColors.catBeauty,
-      AppColors.catBeautyBg),
-  barber('BARBER', 'Bərbər', Icons.cut_outlined, AppColors.catNeutral,
-      AppColors.catNeutralBg),
-  carwash('CARWASH', 'Avtoyuma', Icons.local_car_wash_outlined,
-      AppColors.catNeutral, AppColors.catNeutralBg),
-  fitness('FITNESS', 'Fitness', Icons.fitness_center_outlined,
-      AppColors.catTeal, AppColors.catTealBg),
-  bakery('BAKERY', 'Şirniyyat', Icons.bakery_dining_outlined,
-      AppColors.catNeutral, AppColors.catNeutralBg),
-  other('OTHER', 'Digər', Icons.storefront_outlined, AppColors.catNeutral,
-      AppColors.catNeutralBg);
+  coffee('COFFEE', 'Kafe & Qəhvəxana', Icons.coffee_outlined),
+  restaurant('RESTAURANT', 'Restoran', Icons.restaurant_outlined),
+  beauty('BEAUTY', 'Gözəllik', Icons.spa_outlined),
+  barber('BARBER', 'Bərbər', Icons.cut_outlined),
+  carwash('CARWASH', 'Avtoyuma', Icons.local_car_wash_outlined),
+  fitness('FITNESS', 'Fitness', Icons.fitness_center_outlined),
+  bakery('BAKERY', 'Şirniyyat', Icons.bakery_dining_outlined),
+  other('OTHER', 'Digər', Icons.storefront_outlined);
 
-  const BusinessCategory(
-      this.wire, this.label, this.icon, this.tint, this.tintBg);
+  const BusinessCategory(this.wire, this.label, this.icon);
 
   /// JSON wire form sent over the API.
   final String wire;
   final String label;
   final IconData icon;
 
-  /// Accent for text / icons on [tintBg] (AA-checked pairs).
-  final Color tint;
-  final Color tintBg;
+  /// Accent for text / icons on [tintBg] (AA-checked pairs). Getters, not
+  /// fields, so they follow light / dark mode.
+  Color get tint => switch (this) {
+        BusinessCategory.coffee => AppColors.catCoffee,
+        BusinessCategory.restaurant => AppColors.catRestaurant,
+        BusinessCategory.beauty => AppColors.catBeauty,
+        BusinessCategory.fitness => AppColors.catTeal,
+        _ => AppColors.catNeutral,
+      };
+
+  Color get tintBg => switch (this) {
+        BusinessCategory.coffee => AppColors.catCoffeeBg,
+        BusinessCategory.restaurant => AppColors.catRestaurantBg,
+        BusinessCategory.beauty => AppColors.catBeautyBg,
+        BusinessCategory.fitness => AppColors.catTealBg,
+        _ => AppColors.catNeutralBg,
+      };
 
   /// Localized display label for the current language.
   String labelOf(S s) {

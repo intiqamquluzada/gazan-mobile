@@ -257,7 +257,7 @@ class _ManualState extends ConsumerState<BusinessManualScreen> {
             TextField(
               controller: _amount,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: s.coinLabel),
+              decoration: InputDecoration(hintText: s.hintNumber, labelText: s.coinLabel),
             ),
           const SizedBox(height: AppSpacing.lg),
           FilledButton(

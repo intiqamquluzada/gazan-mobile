@@ -43,7 +43,7 @@ class _AdminCompanyDetailScreenState
             maxLength: 300,
             maxLines: 3,
             minLines: 1,
-            decoration: InputDecoration(labelText: s.reasonLabel),
+            decoration: InputDecoration(hintText: s.hintReason, labelText: s.reasonLabel),
           ),
           actions: <Widget>[
             TextButton(

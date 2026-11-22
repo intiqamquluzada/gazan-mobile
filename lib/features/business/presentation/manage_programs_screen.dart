@@ -128,8 +128,9 @@ class ManageProgramsScreen extends ConsumerWidget {
       context: context,
       useRootNavigator: true,
       isScrollControlled: true,
+      // The sheet draws its own handle; the theme's would double it.
+      showDragHandle: false,
       useSafeArea: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius:
             BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
@@ -632,7 +633,7 @@ class _StepHeader extends StatelessWidget {
           width: 24,
           height: 24,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.action,
             shape: BoxShape.circle,
           ),
@@ -761,7 +762,7 @@ class _PreviewCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[AppColors.action, AppColors.actionPressed],

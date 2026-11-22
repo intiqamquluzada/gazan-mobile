@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/constants/app_strings.dart';
 import 'core/platform/app_variant.dart';
 import 'core/push/push_service.dart';
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_mode_controller.dart';
 import 'features/profile/application/profile_settings_controller.dart';
@@ -49,6 +50,23 @@ class QazanApp extends ConsumerWidget {
       themeMode: themeMode,
       locale: locale,
       routerConfig: router,
+      builder: (BuildContext context, Widget? child) {
+        // Point the mode-aware colour tokens at the theme in use. On a
+        // switch, widgets that already built keep the old colours, so the
+        // whole tree is rebuilt once on the next frame.
+        if (AppColors.useBrightness(Theme.of(context).brightness)) {
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _rebuildAll(context));
+        }
+        // Tapping empty space closes the keyboard anywhere in the app.
+        // Buttons and fields win their own taps, so only "background"
+        // taps reach this detector.
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       localizationsDelegates: const <LocalizationsDelegate<Object>>[
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -62,4 +80,16 @@ class QazanApp extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Marks every element under [context] dirty so they all rebuild with the
+/// current colour tokens.
+void _rebuildAll(BuildContext context) {
+  if (!context.mounted) return;
+  void mark(Element e) {
+    e.markNeedsBuild();
+    e.visitChildren(mark);
+  }
+
+  (context as Element).visitChildren(mark);
 }

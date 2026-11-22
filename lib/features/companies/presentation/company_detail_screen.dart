@@ -1,4 +1,5 @@
 import 'dart:io' show File;
+import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -139,6 +140,12 @@ class _BodyState extends ConsumerState<_Body> {
               data: (List<CoinReward> r) => r.any((CoinReward x) => x.active),
               orElse: () => false,
             );
+    // The "Menu" tab scrolls to the inline menu, which renders nothing
+    // without structured items — so the tab only appears when it has
+    // something to show. A link-only menu still opens from the Menu button.
+    final bool hasMenuItems =
+        ref.watch(companyMenuProvider(company.id)).valueOrNull?.isNotEmpty ??
+            false;
 
     return Stack(
       children: <Widget>[
@@ -151,6 +158,7 @@ class _BodyState extends ConsumerState<_Body> {
               ..invalidate(coinRewardsProvider(company.id))
               ..invalidate(companyByIdProvider(company.id))
               ..invalidate(companyReviewsProvider(company.id))
+              ..invalidate(companyMenuProvider(company.id))
               ..invalidate(myCardsProvider)
               ..invalidate(coinSummaryProvider);
           },
@@ -179,8 +187,16 @@ class _BodyState extends ConsumerState<_Body> {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _SectionTabs(
-                      labels: <String>[s.campaigns, s.menuWord, s.aboutTab],
-                      anchors: <GlobalKey>[_campaignsKey, _menuKey, _aboutKey],
+                      labels: <String>[
+                        s.campaigns,
+                        if (hasMenuItems) s.menuWord,
+                        s.aboutTab,
+                      ],
+                      anchors: <GlobalKey>[
+                        _campaignsKey,
+                        if (hasMenuItems) _menuKey,
+                        _aboutKey,
+                      ],
                     ),
                     const SizedBox(height: AppSpacing.md),
                     _OffersCard(
@@ -456,6 +472,8 @@ class _PhotoHeaderState extends State<_PhotoHeader> {
   }
 }
 
+/// Round button floating on the venue photo. Frosted dark glass with a
+/// white icon, so it reads on any photo in light and dark mode alike.
 class _GlassCircle extends StatelessWidget {
   const _GlassCircle({required this.icon, this.onTap, this.iconColor});
 
@@ -465,17 +483,27 @@ class _GlassCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.onDark,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          width: 42,
-          height: 42,
-          child:
-              Icon(icon, size: 19, color: iconColor ?? AppColors.textPrimary),
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Material(
+          color: AppColors.media.withValues(alpha: 0.32),
+          shape: CircleBorder(
+            side: BorderSide(
+              color: AppColors.onDark.withValues(alpha: 0.28),
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            customBorder: const CircleBorder(),
+            splashColor: AppColors.onDark.withValues(alpha: 0.18),
+            highlightColor: AppColors.onDark.withValues(alpha: 0.10),
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: Icon(icon, size: 19, color: iconColor ?? AppColors.onDark),
+            ),
+          ),
         ),
       ),
     );
@@ -592,7 +620,7 @@ class _InfoCard extends ConsumerWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          const Icon(Icons.star_rounded,
+                          Icon(Icons.star_rounded,
                               size: 17, color: AppColors.reward),
                           const SizedBox(width: 3),
                           Text(company.rating.toStringAsFixed(1),
@@ -884,7 +912,8 @@ class _ActionButtons extends ConsumerWidget {
         useRootNavigator: true,
         isScrollControlled: true,
         useSafeArea: true,
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        // _MenuSheet draws its own handle.
+        showDragHandle: false,
         shape: const RoundedRectangleBorder(
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
@@ -1325,7 +1354,7 @@ class _CoinRewardsSection extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        const Icon(AppIcons.token,
+                        Icon(AppIcons.token,
                             size: 16, color: AppColors.action),
                         const SizedBox(width: 4),
                         if (known != null)
@@ -1339,12 +1368,12 @@ class _CoinRewardsSection extends ConsumerWidget {
                             onTap: () => ref.invalidate(coinSummaryProvider),
                             child: Tooltip(
                               message: s.retry,
-                              child: const Icon(Icons.refresh_rounded,
+                              child: Icon(Icons.refresh_rounded,
                                   size: 18, color: AppColors.action),
                             ),
                           )
                         else
-                          const SizedBox.square(
+                          SizedBox.square(
                             dimension: 14,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,

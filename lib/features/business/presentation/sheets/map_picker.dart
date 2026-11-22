@@ -122,7 +122,7 @@ class _MapPickerScreenState extends ConsumerState<_MapPickerScreen> {
                           width: 46,
                           height: 46,
                           alignment: Alignment.topCenter,
-                          child: const Icon(
+                          child: Icon(
                             Icons.location_on_rounded,
                             color: AppColors.action,
                             size: 44,

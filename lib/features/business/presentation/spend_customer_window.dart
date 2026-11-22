@@ -226,7 +226,7 @@ class _CustomerWindowState extends ConsumerState<_CustomerWindow> {
                     ),
                     child: Row(
                       children: <Widget>[
-                        const Icon(Icons.card_giftcard_rounded,
+                        Icon(Icons.card_giftcard_rounded,
                             color: AppColors.caramel),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(

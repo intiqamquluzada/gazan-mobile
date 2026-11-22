@@ -104,7 +104,7 @@ class BusinessMenuScreen extends ConsumerWidget {
                                     color: AppColors.caramelText,
                                   )),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded,
+                              icon: Icon(Icons.delete_outline_rounded,
                                   color: AppColors.dangerText),
                               tooltip: s.delete,
                               onPressed: () => _delete(context, ref, m),
@@ -244,14 +244,14 @@ class _MenuItemFormState extends ConsumerState<_MenuItemForm> {
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _name,
-              decoration: InputDecoration(labelText: s.name),
+              decoration: InputDecoration(hintText: s.hintMenuItemName, labelText: s.name),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
               controller: _desc,
               maxLines: 2,
               decoration:
-                  InputDecoration(labelText: s.descriptionOptionalField),
+                  InputDecoration(hintText: s.hintMenuItemDesc, labelText: s.descriptionOptionalField),
             ),
             const SizedBox(height: AppSpacing.sm),
             TextField(
@@ -259,7 +259,7 @@ class _MenuItemFormState extends ConsumerState<_MenuItemForm> {
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               decoration:
-                  InputDecoration(labelText: s.priceOptional),
+                  InputDecoration(hintText: s.hintPrice, labelText: s.priceOptional),
             ),
             const SizedBox(height: AppSpacing.xl),
             FilledButton(

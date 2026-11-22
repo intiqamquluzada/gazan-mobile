@@ -326,7 +326,7 @@ class _TapRow extends ConsumerWidget {
           ),
         ),
         if (tap.suspicious)
-          const Icon(Icons.warning_amber_rounded,
+          Icon(Icons.warning_amber_rounded,
               size: 18, color: AppColors.catCoffee),
       ],
     );

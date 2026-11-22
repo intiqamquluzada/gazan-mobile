@@ -16,8 +16,13 @@ import '../../wallet/application/wallet_providers.dart';
 /// Drops every cached value that belongs to one account, so the next person
 /// to sign in on this device never sees the previous user's balance,
 /// favourites or company.
+///
+/// Goes through the container, not [ref]: the caller is AuthController,
+/// and several of these providers watch it, so `ref.invalidate` trips
+/// Riverpod's CircularDependencyError (debug builds), which made sign-up
+/// and sign-out fail after the server had already succeeded.
 void resetUserScopedProviders(Ref ref) {
-  ref
+  ref.container
     ..invalidate(coinSummaryProvider)
     ..invalidate(myCompanyProvider)
     ..invalidate(favoritesProvider)

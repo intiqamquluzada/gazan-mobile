@@ -224,7 +224,7 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
           hintStyle: AppTextStyles.bodySm
               .copyWith(color: context.palette.textTertiary),
           prefixIcon:
-              const Icon(AppIcons.search, size: 19, color: AppColors.caramel),
+              Icon(AppIcons.search, size: 19, color: AppColors.caramel),
           prefixIconConstraints:
               const BoxConstraints(minWidth: 44, minHeight: 20),
           suffixIcon: ValueListenableBuilder<TextEditingValue>(
@@ -232,7 +232,7 @@ class _SearchFieldState extends ConsumerState<_SearchField> {
             builder: (BuildContext _, TextEditingValue v, __) {
               if (v.text.isEmpty) return const SizedBox.shrink();
               return IconButton(
-                icon: const Icon(AppIcons.close,
+                icon: Icon(AppIcons.close,
                     size: 16, color: AppColors.textTertiary),
                 onPressed: () {
                   _controller.clear();

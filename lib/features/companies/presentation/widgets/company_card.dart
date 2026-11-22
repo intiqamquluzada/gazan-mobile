@@ -13,25 +13,24 @@ import '../../../promotions/application/promotions_providers.dart';
 import '../../../promotions/domain/promotion.dart';
 import '../../domain/company.dart';
 
-// Card colours, all from the central tokens (see AppColors). The card is
-// a white surface in both modes, so it reads the light token set.
-const Color _kSurface = AppColors.surface;
-const Color _kTitle = AppColors.textPrimary;
-const Color _kSubtitle = AppColors.textSecondary;
-const Color _kHeartBg = AppColors.dangerSoft;
+// Card colours, all from the central tokens (see AppColors). Getters, not
+// finals, so they follow light / dark mode.
+Color get _kSurface => AppColors.surface;
+Color get _kTitle => AppColors.textPrimary;
+Color get _kSubtitle => AppColors.textSecondary;
+Color get _kHeartBg => AppColors.dangerSoft;
 const Color _kHeart = AppColors.danger;
-const Color _kCta = AppColors.action;
-const Color _kPillBg = AppColors.caramelSoft;
-const Color _kPillText = AppColors.action;
-const Color _kBadgeBg = AppColors.successSoft;
-const Color _kBadgeText = AppColors.successText;
+Color get _kPillBg => AppColors.caramelSoft;
+Color get _kPillText => AppColors.action;
+Color get _kBadgeBg => AppColors.successSoft;
+Color get _kBadgeText => AppColors.successText;
 const Color _kOpenDot = AppColors.success;
-const Color _kClosedDot = AppColors.textTertiary;
-const Color _kDivider = AppColors.divider;
-const Color _kFeatureIcon = AppColors.textPrimary;
-const Color _kFeatureText = AppColors.textSecondary;
-const Color _kFooterText = AppColors.textSecondary;
-const Color _kLogoBorder = AppColors.border;
+Color get _kClosedDot => AppColors.textTertiary;
+Color get _kDivider => AppColors.divider;
+Color get _kFeatureIcon => AppColors.textPrimary;
+Color get _kFeatureText => AppColors.textSecondary;
+Color get _kFooterText => AppColors.textSecondary;
+Color get _kLogoBorder => AppColors.border;
 
 /// Venue card: cover photo + details, warm cream "premium café" look.
 ///
@@ -549,7 +548,7 @@ class _Content extends StatelessWidget {
       ],
       if (hasFooter) ...<Widget>[
         if (wide) const Spacer() else SizedBox(height: m.rowGap),
-        const Divider(height: 1, thickness: 1, color: _kDivider),
+        Divider(height: 1, thickness: 1, color: _kDivider),
         SizedBox(height: m.rowGap * 0.8),
         footer,
       ],
@@ -733,11 +732,11 @@ class _CompactContent extends StatelessWidget {
         // ── Location ──
         if (hasFooter) ...<Widget>[
           const SizedBox(height: 9),
-          const Divider(height: 1, thickness: 1, color: _kDivider),
+          Divider(height: 1, thickness: 1, color: _kDivider),
           const SizedBox(height: 7),
           Row(
             children: <Widget>[
-              const Icon(Icons.location_on_outlined,
+              Icon(Icons.location_on_outlined,
                   size: 13, color: _kFooterText),
               const SizedBox(width: 3),
               Expanded(
@@ -750,7 +749,7 @@ class _CompactContent extends StatelessWidget {
               ),
               if (distanceKm != null) ...<Widget>[
                 const SizedBox(width: 6),
-                const Icon(Icons.near_me_outlined,
+                Icon(Icons.near_me_outlined,
                     size: 12, color: _kFooterText),
                 const SizedBox(width: 3),
                 Text(
@@ -832,11 +831,23 @@ class _CollectButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Warm amber→orange gradient with a soft glow: an invitation to earn,
+    // not an alert.
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: _kCta,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.actionGradient,
+        ),
         borderRadius: BorderRadius.circular(height),
-        boxShadow: AppShadows.brand(_kCta),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AppColors.actionGlow.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -848,16 +859,16 @@ class _CollectButton extends StatelessWidget {
           child: SizedBox(
             height: height,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: hPad ?? height * 0.62),
+              padding: EdgeInsets.symmetric(horizontal: hPad ?? height * 0.5),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  Icon(Icons.auto_awesome_rounded,
+                      size: fontSize * 1.1, color: AppColors.onDark),
+                  SizedBox(width: fontSize * 0.4),
                   Text(label,
                       style:
-                          _font(fontSize, FontWeight.w600, AppColors.onDark)),
-                  SizedBox(width: fontSize * 0.2),
-                  Icon(Icons.chevron_right_rounded,
-                      size: fontSize * 1.35, color: AppColors.onDark),
+                          _font(fontSize, FontWeight.w700, AppColors.onDark)),
                 ],
               ),
             ),
