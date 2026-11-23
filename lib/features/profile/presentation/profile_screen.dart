@@ -305,7 +305,8 @@ class ProfileScreen extends ConsumerWidget {
       await ref.read(profileRemoteDataSourceProvider).deleteAccount();
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(errorText(s, e, fallback: s.accountDeleteFailed))),
+        SnackBar(
+            content: Text(errorText(s, e, fallback: s.accountDeleteFailed))),
       );
       return;
     }
@@ -361,8 +362,8 @@ class ProfileScreen extends ConsumerWidget {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     bool ok = false;
     try {
-      ok = await launchUrl(Uri.parse(uri),
-          mode: LaunchMode.externalApplication);
+      ok =
+          await launchUrl(Uri.parse(uri), mode: LaunchMode.externalApplication);
     } catch (_) {
       ok = false;
     }

@@ -3,6 +3,10 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../auth/application/auth_controller.dart';
+import '../../auth/domain/app_user.dart';
+import '../data/profile_remote_data_source.dart';
+
 /// User-tweakable notification preferences, persisted via
 /// [SharedPreferences] so they survive app restarts.
 class NotificationPrefs {
@@ -30,12 +34,39 @@ class NotificationPrefs {
         weeklyRecap: weeklyRecap ?? this.weeklyRecap,
         marketing: marketing ?? this.marketing,
       );
+
+  Map<String, bool> toJson() => <String, bool>{
+        'rewards': newRewards,
+        'offers': nearbyOffers,
+        'weekly': weeklyRecap,
+        'marketing': marketing,
+      };
+
+  static NotificationPrefs fromJson(Map<String, bool> j) => NotificationPrefs(
+        newRewards: j['rewards'] ?? true,
+        nearbyOffers: j['offers'] ?? true,
+        weeklyRecap: j['weekly'] ?? false,
+        marketing: j['marketing'] ?? false,
+      );
 }
 
+/// The switches live on the server, which is what decides whether a push
+/// is sent; a copy is kept on the phone so the screen opens instantly.
 class NotificationPrefsController extends StateNotifier<NotificationPrefs> {
-  NotificationPrefsController() : super(const NotificationPrefs()) {
-    _restore();
+  NotificationPrefsController(this._ref) : super(const NotificationPrefs()) {
+    _ready = _restore();
+    _ref.listen<AppUser?>(
+        currentUserProvider, (AppUser? _, AppUser? user) => _onUser(user),
+        fireImmediately: true);
   }
+
+  final Ref _ref;
+  late final Future<void> _ready;
+  String? _syncedFor;
+
+  /// Set once this phone's switches were sent for an account, so later
+  /// sign-ins adopt the server's values instead of overwriting them.
+  static String _kSynced(String userId) => 'qazan.notif.synced.$userId';
 
   static const String _kNew = 'qazan.notif.newRewards';
   static const String _kNearby = 'qazan.notif.nearbyOffers';
@@ -52,6 +83,61 @@ class NotificationPrefsController extends StateNotifier<NotificationPrefs> {
     );
   }
 
+  Future<void> _onUser(AppUser? user) async {
+    if (user == null) {
+      _syncedFor = null;
+      return;
+    }
+    final Map<String, bool>? server = user.notificationPrefs;
+    if (server == null || _syncedFor == user.id) return;
+    _syncedFor = user.id;
+    await _ready;
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    if (p.getBool(_kSynced(user.id)) ?? false) {
+      state = NotificationPrefs.fromJson(server);
+      await _persist();
+      return;
+    }
+    // First run against a server that stores the switches: the choices
+    // made on this phone before win (until now they never reached it).
+    final bool changedHere = p.containsKey(_kNew) ||
+        p.containsKey(_kNearby) ||
+        p.containsKey(_kWeekly) ||
+        p.containsKey(_kMarketing);
+    if (!changedHere) {
+      state = NotificationPrefs.fromJson(server);
+      await _persist();
+      await p.setBool(_kSynced(user.id), true);
+      return;
+    }
+    if (await _upload()) await p.setBool(_kSynced(user.id), true);
+  }
+
+  /// Sends the switches to the server. False when it could not be reached.
+  Future<bool> _upload() async {
+    if (_ref.read(currentUserProvider) == null) return false;
+    try {
+      await _ref
+          .read(profileRemoteDataSourceProvider)
+          .updateNotificationPrefs(state.toJson());
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _changed(NotificationPrefs next) async {
+    final NotificationPrefs before = state;
+    state = next;
+    await _persist();
+    if (_ref.read(currentUserProvider) == null) return;
+    if (!await _upload() && mounted) {
+      // The server still has the old value, so the switch would lie.
+      state = before;
+      await _persist();
+    }
+  }
+
   Future<void> _persist() async {
     final SharedPreferences p = await SharedPreferences.getInstance();
     await p.setBool(_kNew, state.newRewards);
@@ -60,31 +146,19 @@ class NotificationPrefsController extends StateNotifier<NotificationPrefs> {
     await p.setBool(_kMarketing, state.marketing);
   }
 
-  void toggleNewRewards(bool v) {
-    state = state.copyWith(newRewards: v);
-    _persist();
-  }
+  void toggleNewRewards(bool v) => _changed(state.copyWith(newRewards: v));
 
-  void toggleNearbyOffers(bool v) {
-    state = state.copyWith(nearbyOffers: v);
-    _persist();
-  }
+  void toggleNearbyOffers(bool v) => _changed(state.copyWith(nearbyOffers: v));
 
-  void toggleWeeklyRecap(bool v) {
-    state = state.copyWith(weeklyRecap: v);
-    _persist();
-  }
+  void toggleWeeklyRecap(bool v) => _changed(state.copyWith(weeklyRecap: v));
 
-  void toggleMarketing(bool v) {
-    state = state.copyWith(marketing: v);
-    _persist();
-  }
+  void toggleMarketing(bool v) => _changed(state.copyWith(marketing: v));
 }
 
 final StateNotifierProvider<NotificationPrefsController, NotificationPrefs>
     notificationPrefsProvider =
     StateNotifierProvider<NotificationPrefsController, NotificationPrefs>(
-  (Ref ref) => NotificationPrefsController(),
+  (Ref ref) => NotificationPrefsController(ref),
 );
 
 /// All UI languages the app supports. The order here drives the

@@ -45,17 +45,31 @@ class ProfileRemoteDataSource {
     return AuthRemoteDataSource.userFromJson(json);
   }
 
-  Future<void> changePassword({
-    required String currentPassword,
+  /// The server signs out every other device and hands this one a fresh
+  /// session; returns its JSON (`accessToken`, `refreshToken`, `user`), or
+  /// null from an older server that only answers "OK".
+  Future<Map<String, dynamic>?> changePassword({
+    String? currentPassword,
     required String newPassword,
   }) async {
-    await _api.post<dynamic>(
+    final Object? res = await _api.post<dynamic>(
       '/api/v1/users/me/change-password',
       body: <String, dynamic>{
-        'currentPassword': currentPassword,
+        if (currentPassword != null) 'currentPassword': currentPassword,
         'newPassword': newPassword,
       },
     );
+    if (res is Map<String, dynamic> && res['accessToken'] is String) return res;
+    return null;
+  }
+
+  /// Saves the push switches on the server, which decides what to send.
+  Future<AppUser> updateNotificationPrefs(Map<String, bool> prefs) async {
+    final Map<String, dynamic> json = await _api.put<Map<String, dynamic>>(
+      '/api/v1/users/me/notification-prefs',
+      body: prefs,
+    );
+    return AuthRemoteDataSource.userFromJson(json);
   }
 
   /// Permanently deletes the signed-in account (anonymized server-side,

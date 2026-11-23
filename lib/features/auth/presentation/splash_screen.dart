@@ -49,9 +49,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
     // Returning guests (and the desktop till app) go straight to sign-in.
-    context.go(seenOnboarding || AppVariant.isBusinessApp
-        ? '/login'
-        : '/onboarding');
+    context.go(
+        seenOnboarding || AppVariant.isBusinessApp ? '/login' : '/onboarding');
   }
 
   @override
