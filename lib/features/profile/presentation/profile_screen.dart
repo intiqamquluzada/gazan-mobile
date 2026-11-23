@@ -9,7 +9,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/theme_mode_controller.dart';
-import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/application/auth_controller.dart';
@@ -24,6 +23,7 @@ import 'sheets/language_sheet.dart';
 import 'sheets/notifications_sheet.dart';
 import 'sheets/security_sheet.dart';
 import 'sheets/theme_sheet.dart';
+import 'widgets/editable_avatar.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -63,11 +63,7 @@ class ProfileScreen extends ConsumerWidget {
             ),
             child: Row(
               children: <Widget>[
-                Avatar(
-                  name: user?.fullName ?? s.guest,
-                  imageUrl: user?.avatarUrl,
-                  size: 56,
-                ),
+                EditableAvatar(size: 56, fallbackName: s.guest),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(

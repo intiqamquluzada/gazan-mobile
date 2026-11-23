@@ -8,7 +8,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/theme_mode_controller.dart';
-import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
@@ -20,6 +19,7 @@ import '../../profile/presentation/sheets/language_sheet.dart';
 import '../../profile/presentation/sheets/security_sheet.dart';
 import '../../profile/presentation/sheets/theme_sheet.dart';
 import 'package:go_router/go_router.dart';
+import '../../profile/presentation/widgets/editable_avatar.dart';
 
 /// Personal account settings for a business owner — reached by tapping
 /// the avatar on the business dashboard. Distinct from "Mənim biznesim"
@@ -50,7 +50,7 @@ class BusinessAccountScreen extends ConsumerWidget {
             ),
             child: Row(
               children: <Widget>[
-                Avatar(name: user?.fullName ?? s.businessFallback, size: 56),
+                EditableAvatar(size: 56, fallbackName: s.businessFallback),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(

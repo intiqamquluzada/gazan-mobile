@@ -227,8 +227,13 @@ class AuthController extends StateNotifier<AuthState> {
     _cacheUser(user);
   }
 
-  void updateProfile(
-      {String? fullName, String? email, String? phone, String? avatarUrl}) {
+  void updateProfile({
+    String? fullName,
+    String? email,
+    String? phone,
+    String? avatarUrl,
+    bool clearAvatar = false,
+  }) {
     final AppUser? user = state.user;
     if (user == null) return;
     state = state.copyWith(
@@ -237,6 +242,7 @@ class AuthController extends StateNotifier<AuthState> {
         email: email,
         phone: phone,
         avatarUrl: avatarUrl,
+        clearAvatar: clearAvatar,
       ),
     );
     final AppUser? updated = state.user;

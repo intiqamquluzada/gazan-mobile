@@ -36,6 +36,15 @@ class ProfileRemoteDataSource {
     return AuthRemoteDataSource.userFromJson(json);
   }
 
+  /// Removes the profile photo (the server treats an empty value as "none").
+  Future<AppUser> removeAvatar() async {
+    final Map<String, dynamic> json = await _api.put<Map<String, dynamic>>(
+      '/api/v1/users/me',
+      body: <String, dynamic>{'avatarUrl': ''},
+    );
+    return AuthRemoteDataSource.userFromJson(json);
+  }
+
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
