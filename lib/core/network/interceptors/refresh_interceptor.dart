@@ -4,6 +4,9 @@ import '../../storage/token_storage.dart';
 
 enum _RefreshOutcome { refreshed, dead, transient }
 
+/// `RequestOptions.extra` flag: never refresh tokens for this request.
+const String kNoRefresh = 'noRefresh';
+
 /// Transparently refreshes an expired access token.
 ///
 /// When any non-auth request comes back `401`, this interceptor calls
@@ -34,8 +37,11 @@ class RefreshInterceptor extends Interceptor {
     final String path = err.requestOptions.path;
     final bool isAuthCall = path.startsWith('/api/v1/auth/');
     final bool alreadyRetried = err.requestOptions.extra['__retried'] == true;
+    // Background clean-up after sign-out carries the old session's token;
+    // refreshing (or ending "the" session) there could hit the next account.
+    final bool noRefresh = err.requestOptions.extra[kNoRefresh] == true;
 
-    if (!is401 || isAuthCall || alreadyRetried) {
+    if (!is401 || isAuthCall || alreadyRetried || noRefresh) {
       handler.next(err);
       return;
     }

@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/network/interceptors/refresh_interceptor.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/app_user.dart';
 import '../domain/role_mapping.dart';
@@ -153,6 +155,18 @@ class AuthRemoteDataSource {
         'newPassword': newPassword,
       },
     );
+  }
+
+  /// Revokes [refreshToken] on the server. Best effort, never throws; runs
+  /// after the local session is already cleared.
+  Future<void> revokeRefreshToken(String refreshToken) async {
+    try {
+      await _api.post<dynamic>(
+        '/api/v1/auth/logout',
+        body: <String, dynamic>{'refreshToken': refreshToken},
+        options: Options(extra: <String, dynamic>{kNoRefresh: true}),
+      );
+    } catch (_) {}
   }
 
   Future<void> logout() async {
