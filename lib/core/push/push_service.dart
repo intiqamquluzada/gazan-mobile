@@ -216,6 +216,8 @@ class PushService {
     if (_syncing) return;
     _syncing = true;
     try {
+      await _cleanup;
+      if (!_signedIn) return;
       final NotificationSettings s =
           await FirebaseMessaging.instance.requestPermission();
       _log('permission ${s.authorizationStatus.name}');
@@ -270,21 +272,43 @@ class PushService {
     _signedIn = false;
   }
 
-  /// Call on sign-out, before the session is cleared (needs the auth token).
-  Future<void> clearToken() async {
+  /// Sign-out clean-up still running in the background; the next sign-in
+  /// waits for it so deleting the old token can't kill the new one.
+  Future<void>? _cleanup;
+
+  /// Call on sign-out. Stops pushes for this account right away and finishes
+  /// the network part (unregister, fresh FCM token) in the background, using
+  /// the signed-out session's [accessToken].
+  void clearToken({String? accessToken}) {
     _signedIn = false;
     if (!_ready) return;
-    await _refreshSub?.cancel();
+    final StreamSubscription<String>? sub = _refreshSub;
     _refreshSub = null;
     final String? token = _registered;
     _registered = null;
-    try {
-      if (token != null) await _tokens.unregister(token);
-    } catch (_) {/* best effort */}
-    try {
-      // A fresh token for the next account on this phone.
-      await FirebaseMessaging.instance.deleteToken();
-    } catch (_) {}
+    final Future<void>? previous = _cleanup;
+    late final Future<void> job;
+    job = () async {
+      await previous;
+      await sub?.cancel();
+      try {
+        if (token != null) {
+          await _tokens
+              .unregister(token, accessToken: accessToken)
+              .timeout(const Duration(seconds: 15));
+        }
+      } catch (_) {/* best effort */}
+      try {
+        // A fresh token for the next account on this phone.
+        await FirebaseMessaging.instance
+            .deleteToken()
+            .timeout(const Duration(seconds: 15));
+      } catch (_) {}
+    }()
+        .whenComplete(() {
+      if (identical(_cleanup, job)) _cleanup = null;
+    });
+    _cleanup = job;
   }
 }
 

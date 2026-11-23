@@ -179,21 +179,24 @@ class AuthController extends StateNotifier<AuthState> {
     return _ref.read(sProvider).errorTryAgain;
   }
 
-  /// Signs the user out. The remote logout is best-effort — even if the
-  /// network call or token storage fails, the local session is *always*
-  /// cleared so the app can never get stuck in a half-logged-out state.
+  /// Signs the user out instantly: the local session is cleared first, so
+  /// the app switches to the login screen at once. Revoking the refresh
+  /// token and unregistering the push token run afterwards in the
+  /// background with the old session's tokens (best effort; offline is fine).
   Future<void> signOut() async {
+    String? access;
+    String? refresh;
     try {
-      await _push.clearToken();
-      await _remote.logout();
-    } catch (e, st) {
-      developer.log('signOut: remote logout failed (ignored)',
-          name: 'qazan.auth', error: e, stackTrace: st);
-    } finally {
-      try {
-        await _tokens.clear();
-      } catch (_) {}
-      _endLocalSession();
+      access = await _tokens.readAccessToken();
+      refresh = await _tokens.readRefreshToken();
+    } catch (_) {}
+    _push.clearToken(accessToken: access);
+    try {
+      await _tokens.clear();
+    } catch (_) {}
+    _endLocalSession();
+    if (refresh != null && refresh.isNotEmpty) {
+      unawaited(_remote.revokeRefreshToken(refresh));
     }
   }
 
