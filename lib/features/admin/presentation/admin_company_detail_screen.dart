@@ -7,7 +7,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../companies/domain/business_category.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
@@ -93,7 +93,7 @@ class _AdminCompanyDetailScreenState
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('${s.failed}: $e')));
+      messenger.showSnackBar(SnackBar(content: Text(errorText(s, e, fallback: s.failed))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -120,7 +120,7 @@ class _AdminCompanyDetailScreenState
       appBar: AppBar(title: Text(s.companyDetailTitle)),
       body: data.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(title: s.notLoaded, subtitle: '$e'),
+        error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(adminCompanyDetailProvider(companyId))),
         data: (AdminCompanyDetail c) => ListView(
           padding: const EdgeInsets.all(AppSpacing.xl),
           children: <Widget>[

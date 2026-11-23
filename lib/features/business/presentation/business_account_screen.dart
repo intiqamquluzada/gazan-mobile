@@ -5,6 +5,7 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/legal/legal_links.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/theme_mode_controller.dart';
@@ -203,6 +204,7 @@ class BusinessAccountScreen extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.dangerText,
+                backgroundBuilder: plainButtonFill,
                 minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.deleteAccount),

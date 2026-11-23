@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
@@ -72,7 +73,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     } catch (e) {
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = errorText(ref.read(sProvider), e);
       });
     }
   }
@@ -144,7 +145,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
       await _load(reset: true);
       ref.invalidate(adminStatsProvider);
     } catch (e) {
-      _snack('${ref.read(sProvider).failed}: $e', error: true);
+      _snack(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed), error: true);
     }
   }
 
@@ -169,7 +170,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           : '${u.email} ${s.userActivated}');
       await _load(reset: true);
     } catch (e) {
-      _snack('${s.failed}: $e', error: true);
+      _snack(errorText(s, e, fallback: s.failed), error: true);
     }
   }
 
@@ -275,7 +276,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     }
     if (_error != null && _users.isEmpty) {
       return EmptyState(
-          title: s.notLoaded, subtitle: _error, icon: AppIcons.error);
+          title: s.errLoadTitle, subtitle: _error, icon: AppIcons.error);
     }
     if (_users.isEmpty) {
       return EmptyState(

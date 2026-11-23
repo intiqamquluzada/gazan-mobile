@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/hero_header.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
@@ -127,11 +128,7 @@ class DiscoverScreen extends ConsumerWidget {
     }
     if (list == null && companies.hasError) {
       return SliverFillRemaining(
-        child: EmptyState(
-          title: s.errorOccurred,
-          subtitle: companies.error.toString(),
-          icon: AppIcons.error,
-        ),
+        child: ErrorState(error: companies.error!),
       );
     }
     final List<Company> items = list ?? const <Company>[];

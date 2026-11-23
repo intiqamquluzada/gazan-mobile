@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
@@ -183,7 +184,7 @@ class _AdminNotificationsScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${s.failed}: $e'),
+            content: Text(errorText(s, e, fallback: s.failed)),
             backgroundColor: AppColors.danger,
           ),
         );
@@ -263,7 +264,7 @@ class _AdminNotificationsScreenState
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (Object e, _) =>
-                  Text('${s.error}: $e', style: AppTextStyles.bodySm),
+                  InlineError(error: e),
               data: (List<AppNotification> list) {
                 if (list.isEmpty) {
                   return Text(

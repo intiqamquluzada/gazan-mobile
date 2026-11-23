@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -183,18 +184,13 @@ class _ManualState extends ConsumerState<BusinessManualScreen> {
                 child: Center(child: CircularProgressIndicator()),
               )
             else if (_customer != null)
-              EmptyState(
-                title: companyAsync?.hasError ?? false
-                    ? s.notLoaded
-                    : s.noBusinessProfile,
-                icon: Icons.storefront_outlined,
-                action: companyAsync == null
-                    ? null
-                    : OutlinedButton(
-                        onPressed: () => ref.invalidate(myCompanyProvider),
-                        child: Text(s.retry),
-                      ),
-              ),
+              if (companyAsync?.hasError ?? false)
+                ErrorState(
+                  error: companyAsync!.error!,
+                  onRetry: () => ref.invalidate(myCompanyProvider),
+                )
+              else
+                const BusinessSetupPrompt(),
           ],
         ),
       ),

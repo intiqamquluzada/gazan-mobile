@@ -16,6 +16,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../loyalty/domain/loyalty_program.dart';
 import '../../nfc/data/nfc_admin_repository.dart';
@@ -175,12 +176,12 @@ class _WriteDialogState extends ConsumerState<_WriteDialog> {
             await NfcManager.instance.stopSession();
             if (mounted) setState(() => _done = true);
           } catch (e) {
-            if (mounted) setState(() => _error = '${s.failed}: $e');
+            if (mounted) setState(() => _error = errorText(s, e, fallback: s.failed));
           }
         },
       );
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) setState(() => _error = errorText(ref.read(sProvider), e));
     }
   }
 
@@ -228,7 +229,7 @@ class _Inventory extends ConsumerWidget {
       child: cards.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => ListView(
-            children: <Widget>[EmptyState(title: s.notLoaded, subtitle: '$e')]),
+            children: <Widget>[ErrorState(error: e, onRetry: () => ref.invalidate(adminNfcCardsProvider))]),
         data: (List<NfcCard> list) {
           if (list.isEmpty) {
             return ListView(children: <Widget>[
@@ -364,7 +365,7 @@ extension on _AdminCardTile {
       if (context.mounted) await _writeFlow(context, fresh);
     } catch (e) {
       messenger.showSnackBar(SnackBar(
-          content: Text('${s.failed}: $e'),
+          content: Text(errorText(s, e, fallback: s.failed)),
           backgroundColor: AppColors.danger));
     }
   }
@@ -379,7 +380,7 @@ extension on _AdminCardTile {
           .setStatus(card.id, card.isActive ? 'REVOKED' : 'ACTIVE');
     } catch (e) {
       messenger.showSnackBar(SnackBar(
-          content: Text('${s.failed}: $e'),
+          content: Text(errorText(s, e, fallback: s.failed)),
           backgroundColor: AppColors.danger));
     } finally {
       container.invalidate(adminNfcCardsProvider);
@@ -430,7 +431,7 @@ class _NewCardSheetState extends ConsumerState<_NewCardSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${s.failed}: $e')));
+            .showSnackBar(SnackBar(content: Text(errorText(s, e, fallback: s.failed))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -577,7 +578,7 @@ class _TapsState extends ConsumerState<_Taps> {
               }
               if (snap.hasError) {
                 return ListView(children: <Widget>[
-                  EmptyState(title: s.notLoaded, subtitle: '${snap.error}'),
+                  ErrorState(error: snap.error!),
                 ]);
               }
               final List<NfcTapLog> list = snap.data ?? const <NfcTapLog>[];

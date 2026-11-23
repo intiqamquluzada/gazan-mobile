@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../application/notifications_providers.dart';
 import '../data/notifications_repository.dart';
 import 'notification_detail_screen.dart';
@@ -68,11 +69,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             children: <Widget>[
               const SizedBox(height: 120),
-              EmptyState(
-                title: s.notLoaded,
-                subtitle: e.toString(),
-                icon: AppIcons.error,
-              ),
+              ErrorState(error: e, onRetry: () => ref.invalidate(notificationInboxProvider)),
             ],
           ),
           data: (List<AppNotification> list) {

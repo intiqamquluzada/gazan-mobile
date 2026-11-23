@@ -10,6 +10,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/company_logo.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../rewards/application/rewards_providers.dart';
 import '../../rewards/domain/reward_claim.dart';
 
@@ -97,11 +98,7 @@ class _RewardsList extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           children: <Widget>[
             const SizedBox(height: 24),
-            EmptyState(
-              title: ref.read(sProvider).notLoaded,
-              subtitle: e.toString(),
-              icon: AppIcons.error,
-            ),
+            ErrorState(error: e, onRetry: () => ref.invalidate(provider)),
           ],
         ),
         data: (List<AppRewardClaim> list) {

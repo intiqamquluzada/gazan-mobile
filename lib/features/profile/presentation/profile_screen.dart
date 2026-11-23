@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/theme_mode_controller.dart';
@@ -288,6 +290,7 @@ class ProfileScreen extends ConsumerWidget {
             // out inside the dialog's action row.
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.dangerText,
+                backgroundBuilder: plainButtonFill,
                 minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.deleteAccount),
@@ -302,7 +305,7 @@ class ProfileScreen extends ConsumerWidget {
       await ref.read(profileRemoteDataSourceProvider).deleteAccount();
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('${s.accountDeleteFailed}: $e')),
+        SnackBar(content: Text(errorText(s, e, fallback: s.accountDeleteFailed))),
       );
       return;
     }

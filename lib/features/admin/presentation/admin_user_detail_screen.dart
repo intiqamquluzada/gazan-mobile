@@ -6,7 +6,7 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
 import 'admin_widgets.dart';
@@ -36,7 +36,7 @@ class AdminUserDetailScreen extends ConsumerWidget {
       appBar: AppBar(title: Text(s.userDetailTitle)),
       body: data.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(title: s.notLoaded, subtitle: '$e'),
+        error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(adminUserDetailProvider(userId))),
         data: (AdminUserDetail u) => ListView(
           padding: const EdgeInsets.all(AppSpacing.xl),
           children: <Widget>[

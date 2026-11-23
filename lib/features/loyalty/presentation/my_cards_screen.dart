@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/pill_tab_bar.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/i18n/strings.dart';
@@ -116,11 +117,7 @@ class _CardsTab extends ConsumerWidget {
               padding: EdgeInsets.all(AppSpacing.xxl),
               child: Center(child: CircularProgressIndicator()),
             ),
-            error: (Object e, _) => EmptyState(
-              title: s.error,
-              subtitle: e.toString(),
-              icon: AppIcons.error,
-            ),
+            error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(myCardsProvider)),
             data: (List<LoyaltyCard> list) {
               if (list.isEmpty) {
                 return EmptyState(

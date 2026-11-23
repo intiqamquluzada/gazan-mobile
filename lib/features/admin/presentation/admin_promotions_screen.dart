@@ -8,10 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/i18n/strings_panel2.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../application/admin_providers.dart';
 import '../data/admin_promotions_repository.dart';
 import '../domain/admin_models.dart';
@@ -37,11 +39,7 @@ class AdminPromotionsScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: s.notLoaded,
-          subtitle: e.toString(),
-          icon: AppIcons.error,
-        ),
+        error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(adminPromotionsProvider)),
         data: (List<AdminPromotion> list) {
           if (list.isEmpty) {
             return EmptyState(
@@ -82,7 +80,7 @@ class AdminPromotionsScreen extends ConsumerWidget {
           .setActive(p.id, active);
       container.invalidate(adminPromotionsProvider);
     } catch (e) {
-      if (context.mounted) _snack(context, '${s.failed}: $e', error: true);
+      if (context.mounted) _snack(context, errorText(s, e, fallback: s.failed), error: true);
     }
   }
 
@@ -102,6 +100,7 @@ class AdminPromotionsScreen extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.dangerText,
+                backgroundBuilder: plainButtonFill,
                 minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(s.delete),
@@ -117,7 +116,7 @@ class AdminPromotionsScreen extends ConsumerWidget {
       container.invalidate(adminPromotionsProvider);
     } catch (e) {
       if (context.mounted)
-        _snack(context, '${s.deleteFailed}: $e', error: true);
+        _snack(context, errorText(s, e, fallback: s.deleteFailed), error: true);
     }
   }
 
@@ -355,7 +354,7 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${ref.read(sProvider).failed}: $e')),
+          SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed))),
         );
       }
     } finally {
@@ -406,7 +405,7 @@ class _PromoFormState extends ConsumerState<_PromoForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${ref.read(sProvider).failed}: $e')),
+          SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed))),
         );
       }
     } finally {

@@ -10,6 +10,7 @@ import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../../core/widgets/trend_line_chart.dart';
 import '../../auth/application/auth_controller.dart';
@@ -70,11 +71,7 @@ class AdminDashboardScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xl),
               statsAsync.when(
                 loading: () => const _DashboardSkeleton(),
-                error: (Object e, _) => EmptyState(
-                  title: s.notLoaded,
-                  subtitle: e.toString(),
-                  icon: AppIcons.error,
-                ),
+                error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(adminStatsProvider)),
                 data: (AdminStats? stats) {
                   if (stats == null) {
                     return EmptyState(

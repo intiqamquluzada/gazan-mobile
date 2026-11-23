@@ -11,6 +11,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/section_header.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
@@ -127,11 +128,17 @@ class BusinessDashboardScreen extends ConsumerWidget {
                   padding: EdgeInsets.all(AppSpacing.xl),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (Object e, _) => EmptyState(
-                  title: s.error,
-                  subtitle: e.toString(),
-                  icon: AppIcons.error,
-                ),
+                error: (Object e, _) => isBusinessNotSetUp(e)
+                    // The setup card above already explains what to do.
+                    ? EmptyState(
+                        title: s.noCustomersYet,
+                        subtitle: s.firstCustomerHint,
+                        icon: AppIcons.customers,
+                      )
+                    : ErrorState(
+                        error: e,
+                        onRetry: () => ref.invalidate(myCustomersProvider),
+                      ),
                 data: (List<CustomerSummary> list) {
                   if (list.isEmpty) {
                     return EmptyState(
@@ -165,7 +172,10 @@ class _ApprovalBanner extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final S s = ref.watch(sProvider);
-    final Company? company = ref.watch(myCompanyProvider).valueOrNull;
+    final AsyncValue<Company?> companyAsync = ref.watch(myCompanyProvider);
+    final Company? company = companyAsync.valueOrNull;
+    // A new owner has no venue yet: invite them to create it.
+    if (companyAsync.hasValue && company == null) return const _SetupCard();
     if (company == null || company.isApproved) return const SizedBox.shrink();
     final bool suspended = company.status == 'SUSPENDED';
     return Container(
@@ -200,6 +210,63 @@ class _ApprovalBanner extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "Set up your business profile" call to action for an owner with no venue.
+class _SetupCard extends ConsumerWidget {
+  const _SetupCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final S s = ref.watch(sProvider);
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.caramel.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.caramelSoft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(Icons.storefront_outlined, color: AppColors.action),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  s.bizSetupTitle,
+                  style: AppTextStyles.body.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(s.bizSetupBody,
+              style: AppTextStyles.bodySm
+                  .copyWith(color: AppColors.textSecondary)),
+          const SizedBox(height: AppSpacing.lg),
+          FilledButton.icon(
+            onPressed: () => context.go('/business/profile'),
+            icon: const Icon(Icons.edit_rounded, size: 18),
+            label: Text(s.bizSetupAction),
           ),
         ],
       ),
