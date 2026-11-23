@@ -40,6 +40,7 @@ class AppUser {
     String? avatarUrl,
     UserRole? role,
     String? businessId,
+    bool clearAvatar = false,
   }) =>
       AppUser(
         id: id,
@@ -47,7 +48,7 @@ class AppUser {
         email: email ?? this.email,
         phone: phone ?? this.phone,
         birthDate: birthDate ?? this.birthDate,
-        avatarUrl: avatarUrl ?? this.avatarUrl,
+        avatarUrl: clearAvatar ? null : (avatarUrl ?? this.avatarUrl),
         role: role ?? this.role,
         businessId: businessId ?? this.businessId,
         profileComplete: profileComplete,

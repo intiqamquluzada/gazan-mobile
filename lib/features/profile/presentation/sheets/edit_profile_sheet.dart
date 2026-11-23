@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/i18n/strings.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/utils/phone_util.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/avatar.dart';
 import '../../../../core/widgets/phone_field.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../../auth/domain/app_user.dart';
 import '../../../auth/domain/user_role.dart';
-import '../../../media/data/media_repository.dart';
 import '../../data/profile_remote_data_source.dart';
+import '../widgets/editable_avatar.dart';
 import '_sheet_handle.dart';
 
 class EditProfileSheet extends ConsumerStatefulWidget {
@@ -34,8 +31,6 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
   // Same contract as the sign-up / complete-profile phone input.
   String _dialCode = '+994';
   bool _saving = false;
-  bool _uploadingAvatar = false;
-  String? _avatarUrl;
 
   @override
   void initState() {
@@ -50,38 +45,6 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
         text: phone.startsWith(_dialCode)
             ? phone.substring(_dialCode.length)
             : phone);
-    _avatarUrl = u?.avatarUrl;
-  }
-
-  /// Pick → upload → persist the avatar immediately (no "save" needed),
-  /// mirroring the business logo flow.
-  Future<void> _pickAvatar() async {
-    final XFile? file = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 800,
-      imageQuality: 85,
-    );
-    if (file == null) return;
-    setState(() => _uploadingAvatar = true);
-    try {
-      final String url = await ref.read(mediaRepositoryProvider).uploadImage(
-            bytes: await file.readAsBytes(),
-            filename: file.name,
-          );
-      await ref
-          .read(profileRemoteDataSourceProvider)
-          .updateProfile(avatarUrl: url);
-      ref.read(authControllerProvider.notifier).updateProfile(avatarUrl: url);
-      if (!mounted) return;
-      setState(() => _avatarUrl = url);
-    } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(e.message)));
-      }
-    } finally {
-      if (mounted) setState(() => _uploadingAvatar = false);
-    }
   }
 
   @override
@@ -122,40 +85,6 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
     }
   }
 
-  Widget _avatarPicker() {
-    final String name = _name.text.trim().isEmpty
-        ? (ref.read(currentUserProvider)?.fullName ?? 'Q')
-        : _name.text.trim();
-    return GestureDetector(
-      onTap: _uploadingAvatar ? null : _pickAvatar,
-      child: Stack(
-        alignment: Alignment.bottomRight,
-        children: <Widget>[
-          Avatar(name: name, imageUrl: _avatarUrl, size: 96),
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.action,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.surface, width: 2),
-            ),
-            child: _uploadingAvatar
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.onDark,
-                    ),
-                  )
-                : const Icon(Icons.camera_alt_rounded,
-                    size: 16, color: AppColors.onDark),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
@@ -179,7 +108,7 @@ class _EditProfileSheetState extends ConsumerState<EditProfileSheet> {
               const SizedBox(height: AppSpacing.lg),
               Text(s.editProfile, style: AppTextStyles.h2),
               const SizedBox(height: AppSpacing.xl),
-              Center(child: _avatarPicker()),
+              const Center(child: EditableAvatar(size: 96)),
               const SizedBox(height: AppSpacing.xl),
               AppTextField(
                 hint: s.fullNameHint,
