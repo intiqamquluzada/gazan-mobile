@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../../core/legal/legal_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,17 +13,20 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/phone_util.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/brand_header.dart';
+import '../../../core/widgets/otp_code_field.dart';
 import '../../../core/widgets/phone_field.dart';
 import '../../../core/widgets/primary_button.dart';
+import '../../profile/application/profile_settings_controller.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_remote_data_source.dart';
 import '../domain/user_role.dart';
 import 'social_buttons.dart';
 
-enum _Step { phone, verify, details, password }
+enum _Step { phone, verify, details, emailCode, password }
 
 /// Sign-up. A customer goes phone → (verification, once SMS exists) → name,
-/// email and birth date → password. A business fills one form.
+/// email and birth date → emailed code → password. A business fills one
+/// form, then confirms the emailed code and the account is created.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key, this.initialRole = UserRole.customer});
 
@@ -39,6 +44,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final TextEditingController _password = TextEditingController();
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _code = TextEditingController();
+  final TextEditingController _emailCode = TextEditingController();
   final GlobalKey<FormState> _form = GlobalKey<FormState>();
 
   late UserRole _role = widget.initialRole;
@@ -49,6 +55,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   DateTime? _birthDate;
   String _passwordValue = '';
   String _dialCode = '+994';
+
+  // Email OTP: the ticket from /auth/email/verify, and the address it is for.
+  String? _emailTicket;
+  String? _ticketEmail;
+  bool _codeError = false;
+  bool _verifying = false;
+  int _resendIn = 0;
+  Timer? _resendTimer;
 
   static final RegExp _hasLetter = RegExp(r'[A-Za-zƏəÇçĞğıİÖöŞşÜü]');
   static final RegExp _hasDigit = RegExp(r'[0-9]');
@@ -74,6 +88,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _password.dispose();
     _phone.dispose();
     _code.dispose();
+    _emailCode.dispose();
+    _resendTimer?.cancel();
     super.dispose();
   }
 
@@ -131,12 +147,102 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final bool valid = _form.currentState!.validate();
     if (_birthDate == null) setState(() => _birthDateMissing = true);
     if (valid && _birthDate != null) {
-      setState(() => _step = _Step.password);
+      if (_emailVerified) {
+        setState(() => _step = _Step.password);
+      } else {
+        _sendEmailCode();
+      }
+    }
+  }
+
+  String get _normalizedEmail => _email.text.trim().toLowerCase();
+
+  /// True when the address in the field already passed the code step.
+  bool get _emailVerified =>
+      _emailTicket != null && _ticketEmail == _normalizedEmail;
+
+  /// Mails a code and opens the code step (or just restarts the countdown
+  /// when resending from it).
+  Future<void> _sendEmailCode({bool resend = false}) async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(authRemoteDataSourceProvider).emailStart(
+            _email.text.trim(),
+            locale: ref.read(languageProvider).toUpperCase(),
+          );
+      if (!mounted) return;
+      _emailCode.clear();
+      setState(() {
+        _codeError = false;
+        _step = _Step.emailCode;
+      });
+      _startResendCountdown();
+      if (resend) _toast(ref.read(sProvider).emailCodeResent);
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _startResendCountdown() {
+    _resendTimer?.cancel();
+    setState(() => _resendIn = 60);
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (Timer t) {
+      if (!mounted || _resendIn <= 1) {
+        t.cancel();
+        if (mounted) setState(() => _resendIn = 0);
+        return;
+      }
+      setState(() => _resendIn--);
+    });
+  }
+
+  Future<void> _verifyEmailCode() async {
+    final S s = ref.read(sProvider);
+    final String code = _emailCode.text;
+    if (code.length != 6) {
+      setState(() => _codeError = true);
+      _toast(s.emailCodeIncomplete);
+      return;
+    }
+    if (_verifying) return;
+    setState(() => _verifying = true);
+    try {
+      final String ticket = await ref
+          .read(authRemoteDataSourceProvider)
+          .emailVerify(_email.text.trim(), code);
+      if (!mounted) return;
+      _emailTicket = ticket;
+      _ticketEmail = _normalizedEmail;
+      _resendTimer?.cancel();
+      if (_isBusiness) {
+        // The form was already validated: create the account right away.
+        await _signUp();
+      } else {
+        setState(() => _step = _Step.password);
+      }
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      _emailCode.clear();
+      setState(() => _codeError = true);
+      _toast(e.message);
+    } finally {
+      if (mounted) setState(() => _verifying = false);
     }
   }
 
   Future<void> _createAccount() async {
     if (!_form.currentState!.validate()) return;
+    if (!_emailVerified) {
+      // Business sign-up: prove the address first.
+      await _sendEmailCode();
+      return;
+    }
+    await _signUp();
+  }
+
+  Future<void> _signUp() async {
     final String fullName = _isBusiness
         ? _businessName.text.trim()
         : '${_first.text.trim()} ${_last.text.trim()}';
@@ -148,9 +254,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             role: _role,
             phone: _fullPhone,
             birthDate: _birthDate,
+            emailVerificationToken: _emailTicket,
           );
     } catch (_) {
       if (!mounted) return;
+      // Back to the form so the user can fix what the server rejected.
+      if (_step == _Step.emailCode) setState(() => _step = _Step.phone);
       _toast(ref.read(authControllerProvider).error ??
           ref.read(sProvider).registrationFailed);
       return;
@@ -171,6 +280,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         setState(() => _step = _Step.phone);
       case _Step.details:
         setState(() => _step = _Step.phone);
+      case _Step.emailCode:
+        // A business has a single form; it lives on the first step.
+        setState(() => _step = _isBusiness ? _Step.phone : _Step.details);
       case _Step.password:
         setState(() => _step = _Step.details);
     }
@@ -189,7 +301,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           leadingWidth: 72,
           leading: CircleBackButton(onPressed: _back),
           title: !_isBusiness && _step != _Step.phone
-              ? Text(s.stepOf(_visibleStep, 3))
+              ? Text(s.stepOf(_visibleStep, 4))
               : null,
         ),
         body: SafeArea(
@@ -199,7 +311,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Form(
               key: _form,
               child: ListView(
-                children: _isBusiness ? _businessForm(s) : _customerStep(s),
+                children: _step == _Step.emailCode
+                    ? _emailCodeStep(s)
+                    : _isBusiness
+                        ? _businessForm(s)
+                        : _customerStep(s),
               ),
             ),
           ),
@@ -211,8 +327,99 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   int get _visibleStep => switch (_step) {
         _Step.phone || _Step.verify => 1,
         _Step.details => 2,
-        _Step.password => 3,
+        _Step.emailCode => 3,
+        _Step.password => 4,
       };
+
+  /// Six-tile code entry for the emailed sign-up code.
+  List<Widget> _emailCodeStep(S s) {
+    final AppPalette p = context.palette;
+    final bool loading =
+        _verifying || ref.watch(authControllerProvider).isLoading;
+    return <Widget>[
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: <Color>[Color(0xFFFFA93A), Color(0xFFF76B15)],
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: AppColors.actionGlow.withValues(alpha: 0.30),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.mark_email_unread_rounded,
+              color: AppColors.onDark, size: 30),
+        ),
+      ),
+      const SizedBox(height: AppSpacing.xl),
+      Text(s.emailCodeTitle,
+          style: AppTextStyles.h1.copyWith(
+              fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
+      const SizedBox(height: AppSpacing.sm),
+      Text.rich(
+        TextSpan(
+          style: AppTextStyles.body.copyWith(color: p.textSecondary),
+          children: <InlineSpan>[
+            TextSpan(text: '${s.emailCodeSub} '),
+            TextSpan(
+              text: _email.text.trim(),
+              style: TextStyle(
+                  fontWeight: FontWeight.w700, color: p.textPrimary),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: AppSpacing.xxl),
+      OtpCodeField(
+        controller: _emailCode,
+        hasError: _codeError,
+        enabled: !loading,
+        onChanged: (_) {
+          if (_codeError) setState(() => _codeError = false);
+        },
+        onCompleted: (_) => _verifyEmailCode(),
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Text(s.emailCodeSpam,
+          style: AppTextStyles.bodySm.copyWith(color: p.textTertiary)),
+      const SizedBox(height: AppSpacing.xxl),
+      PrimaryButton(
+        label: _isBusiness ? s.createAccount : s.emailCodeVerify,
+        icon: Icons.verified_rounded,
+        loading: loading,
+        onPressed: _verifyEmailCode,
+      ),
+      const SizedBox(height: AppSpacing.md),
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          TextButton.icon(
+            onPressed: _resendIn > 0 || _busy || loading
+                ? null
+                : () => _sendEmailCode(resend: true),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: Text(_resendIn > 0
+                ? s.emailCodeResendIn(_resendIn)
+                : s.emailCodeResend),
+          ),
+          TextButton(
+            onPressed: loading ? null : _back,
+            child: Text(s.emailCodeChange),
+          ),
+        ],
+      ),
+    ];
+  }
 
   /// Brand block + customer / business switch shown on the first page.
   Widget _roleSwitch(S s) => Column(
@@ -348,8 +555,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           const SizedBox(height: AppSpacing.lg),
           _birthDateField(s, optional: false),
           const SizedBox(height: AppSpacing.xxl),
-          PrimaryButton(label: s.continueAction, onPressed: _submitDetails),
+          PrimaryButton(
+            label: s.continueAction,
+            loading: _busy,
+            onPressed: _submitDetails,
+          ),
         ];
+      case _Step.emailCode:
+        return _emailCodeStep(s);
       case _Step.password:
         return <Widget>[
           _heading(s.regPasswordTitle, s.regPasswordSub),
@@ -393,7 +606,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: AppSpacing.lg),
         PrimaryButton(
           label: s.createAccount,
-          loading: ref.watch(authControllerProvider).isLoading,
+          loading: _busy || ref.watch(authControllerProvider).isLoading,
           onPressed: _createAccount,
         ),
         const SizedBox(height: AppSpacing.lg),

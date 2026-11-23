@@ -45,6 +45,7 @@ class AuthRemoteDataSource {
     String? phone,
     DateTime? birthDate,
     String locale = 'AZ',
+    String? emailVerificationToken,
   }) async {
     final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
       '/api/v1/auth/register',
@@ -57,9 +58,29 @@ class AuthRemoteDataSource {
         'birthDate': birthDate?.toIso8601String().split('T').first,
         'role': RoleMapping.toBackend(role),
         'locale': locale,
+        if (emailVerificationToken != null)
+          'emailVerificationToken': emailVerificationToken,
       },
     );
     return _consume(json);
+  }
+
+  /// Sign-up step: mails a 6-digit code to [email]. Throws a 409
+  /// (AUTH_EMAIL_TAKEN) when an account already uses the address.
+  Future<void> emailStart(String email, {String locale = 'AZ'}) async {
+    await _api.post<dynamic>(
+      '/api/v1/auth/email/start',
+      body: <String, dynamic>{'email': email.trim(), 'locale': locale},
+    );
+  }
+
+  /// Checks the emailed code; returns the one-time ticket for [register].
+  Future<String> emailVerify(String email, String code) async {
+    final Map<String, dynamic> json = await _api.post<Map<String, dynamic>>(
+      '/api/v1/auth/email/verify',
+      body: <String, dynamic>{'email': email.trim(), 'code': code.trim()},
+    );
+    return json['verificationToken'] as String;
   }
 
   /// [identifier] is an email address or a normalized phone number.

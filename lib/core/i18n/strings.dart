@@ -4,6 +4,7 @@ import '../../features/profile/application/profile_settings_controller.dart';
 
 export 'strings_avatar.dart';
 export 'strings_campaign.dart';
+export 'strings_email_otp.dart';
 export 'strings_ext.dart';
 export 'strings_hints.dart';
 export 'strings_store.dart';
