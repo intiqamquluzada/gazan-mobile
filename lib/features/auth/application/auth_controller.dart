@@ -145,6 +145,7 @@ class AuthController extends StateNotifier<AuthState> {
     required UserRole role,
     String? phone,
     DateTime? birthDate,
+    String? emailVerificationToken,
   }) =>
       _authenticate(() => _remote.register(
             email: email,
@@ -154,6 +155,7 @@ class AuthController extends StateNotifier<AuthState> {
             phone: phone,
             birthDate: birthDate,
             locale: _ref.read(languageProvider).toUpperCase(),
+            emailVerificationToken: emailVerificationToken,
           ));
 
   Future<void> _authenticate(Future<AuthSession> Function() call) async {
