@@ -43,7 +43,15 @@ class _SocialButtonsState extends ConsumerState<SocialButtons> {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       debugPrint('social sign-in failed: $e');
-      messenger.showSnackBar(SnackBar(content: Text(s.socialSignInFailed)));
+      // Google's status code (e.g. 10 = app fingerprint not registered)
+      // tells us the cause when a tester reports it.
+      final String? code =
+          RegExp(r'ApiException: (\d+)').firstMatch('$e')?.group(1);
+      messenger.showSnackBar(SnackBar(
+        content: Text(code == null
+            ? s.socialSignInFailed
+            : '${s.socialSignInFailed} ($code)'),
+      ));
     } finally {
       if (mounted) setState(() => _busy = false);
     }

@@ -50,14 +50,7 @@ class NotificationsSheet extends ConsumerWidget {
             value: prefs.nearbyOffers,
             onChanged: ctrl.toggleNearbyOffers,
           ),
-          _NotifTile(
-            title: s.notifWeekly,
-            subtitle: s.notifWeeklySub,
-            icon: Icons.calendar_today_outlined,
-            tint: AppColors.catCoffee,
-            value: prefs.weeklyRecap,
-            onChanged: ctrl.toggleWeeklyRecap,
-          ),
+          // No weekly summary is sent yet, so its switch stays hidden.
           _NotifTile(
             title: s.notifMarketing,
             subtitle: s.notifMarketingSub,

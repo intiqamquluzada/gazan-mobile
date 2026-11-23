@@ -83,6 +83,10 @@ class NotificationPrefsController extends StateNotifier<NotificationPrefs> {
     );
   }
 
+  /// Set while this phone has switch changes the server has not stored
+  /// yet (offline, or a server that predates the switches).
+  static const String _kPending = 'qazan.notif.pending';
+
   Future<void> _onUser(AppUser? user) async {
     if (user == null) {
       _syncedFor = null;
@@ -93,49 +97,41 @@ class NotificationPrefsController extends StateNotifier<NotificationPrefs> {
     _syncedFor = user.id;
     await _ready;
     final SharedPreferences p = await SharedPreferences.getInstance();
-    if (p.getBool(_kSynced(user.id)) ?? false) {
-      state = NotificationPrefs.fromJson(server);
-      await _persist();
-      return;
-    }
-    // First run against a server that stores the switches: the choices
-    // made on this phone before win (until now they never reached it).
+    final bool firstTime = !(p.getBool(_kSynced(user.id)) ?? false);
     final bool changedHere = p.containsKey(_kNew) ||
         p.containsKey(_kNearby) ||
         p.containsKey(_kWeekly) ||
         p.containsKey(_kMarketing);
-    if (!changedHere) {
+    // Choices made on this phone that never reached the server win.
+    if ((p.getBool(_kPending) ?? false) || (firstTime && changedHere)) {
+      await _sync();
+    } else {
       state = NotificationPrefs.fromJson(server);
       await _persist();
-      await p.setBool(_kSynced(user.id), true);
-      return;
     }
-    if (await _upload()) await p.setBool(_kSynced(user.id), true);
+    await p.setBool(_kSynced(user.id), true);
   }
 
-  /// Sends the switches to the server. False when it could not be reached.
-  Future<bool> _upload() async {
-    if (_ref.read(currentUserProvider) == null) return false;
+  /// Sends the switches to the server. On failure they stay as the user
+  /// set them and are sent again on the next start.
+  Future<void> _sync() async {
+    final SharedPreferences p = await SharedPreferences.getInstance();
+    await p.setBool(_kPending, true);
+    if (_ref.read(currentUserProvider) == null) return;
     try {
       await _ref
           .read(profileRemoteDataSourceProvider)
           .updateNotificationPrefs(state.toJson());
-      return true;
+      await p.setBool(_kPending, false);
     } catch (_) {
-      return false;
+      // Keep the pending flag; never flip the switch back under the user.
     }
   }
 
   Future<void> _changed(NotificationPrefs next) async {
-    final NotificationPrefs before = state;
     state = next;
     await _persist();
-    if (_ref.read(currentUserProvider) == null) return;
-    if (!await _upload() && mounted) {
-      // The server still has the old value, so the switch would lie.
-      state = before;
-      await _persist();
-    }
+    await _sync();
   }
 
   Future<void> _persist() async {

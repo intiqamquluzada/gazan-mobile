@@ -220,10 +220,9 @@ class ProfileScreen extends ConsumerWidget {
     final int active = <bool>[
       p.newRewards,
       p.nearbyOffers,
-      p.weeklyRecap,
       p.marketing,
     ].where((bool e) => e).length;
-    return '$active / 4 ${ref.read(sProvider).notifActiveSuffix}';
+    return '$active / 3 ${ref.read(sProvider).notifActiveSuffix}';
   }
 
   String _langLabel(String code) => switch (code) {
