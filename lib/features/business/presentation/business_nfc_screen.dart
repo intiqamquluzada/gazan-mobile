@@ -10,6 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../nfc/data/nfc_admin_repository.dart';
 import 'nfc_assign_sheet.dart';
 
@@ -89,7 +90,7 @@ class _CardsTab extends ConsumerWidget {
       child: cards.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => ListView(children: <Widget>[
-          EmptyState(title: s.notLoaded, subtitle: '$e'),
+          ErrorState(error: e, onRetry: () => ref.invalidate(myNfcCardsProvider)),
         ]),
         data: (List<NfcCard> list) {
           if (list.isEmpty) {
@@ -138,7 +139,7 @@ class _CardTile extends ConsumerWidget {
       } on ApiException catch (e) {
         messenger.showSnackBar(SnackBar(content: Text(e.message)));
       } catch (e) {
-        messenger.showSnackBar(SnackBar(content: Text('${s.failed}: $e')));
+        messenger.showSnackBar(SnackBar(content: Text(errorText(s, e, fallback: s.failed))));
       }
     }
 
@@ -261,7 +262,7 @@ class _TapsTab extends ConsumerWidget {
       child: taps.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => ListView(
-            children: <Widget>[EmptyState(title: s.notLoaded, subtitle: '$e')]),
+            children: <Widget>[ErrorState(error: e, onRetry: () => ref.invalidate(myNfcTapsProvider))]),
         data: (List<NfcTapLog> list) {
           if (list.isEmpty) {
             return ListView(children: <Widget>[

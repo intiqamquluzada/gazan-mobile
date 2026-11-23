@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../menu/data/menu_repository.dart';
 import '../../../core/utils/money.dart';
 import '../../companies/application/companies_providers.dart';
@@ -50,7 +51,7 @@ class BusinessMenuScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (Object e, _) => ListView(
             children: <Widget>[
-              EmptyState(title: s.notLoaded, subtitle: '$e'),
+              ErrorState(error: e, onRetry: () => ref.invalidate(_myMenuProvider)),
             ],
           ),
           data: (List<MenuItem> items) {
@@ -140,7 +141,7 @@ class BusinessMenuScreen extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${s.deleteFailed}: $e')));
+            .showSnackBar(SnackBar(content: Text(errorText(s, e, fallback: s.deleteFailed))));
       }
     }
   }
@@ -214,7 +215,7 @@ class _MenuItemFormState extends ConsumerState<_MenuItemForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${s.failed}: $e')));
+            .showSnackBar(SnackBar(content: Text(errorText(s, e, fallback: s.failed))));
       }
     } finally {
       if (mounted) setState(() => _saving = false);

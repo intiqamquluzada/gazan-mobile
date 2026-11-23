@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/i18n/strings.dart';
+import '../../../../core/widgets/error_state.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/widgets/confirm_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -222,7 +223,7 @@ class RewardCatalog extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (Object e, _) =>
-              Text('${s.error}: $e', style: AppTextStyles.bodySm),
+              InlineError(error: e),
           data: (List<CoinReward> list) {
             if (list.isEmpty) {
               return Text(

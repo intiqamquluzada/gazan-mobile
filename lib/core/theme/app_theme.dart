@@ -316,3 +316,9 @@ class AppTheme {
     );
   }
 }
+
+/// Use as `backgroundBuilder` on a FilledButton that sets its own
+/// `backgroundColor` (e.g. a red "Delete"), so the theme's orange gradient
+/// does not paint over it.
+Widget plainButtonFill(BuildContext _, Set<WidgetState> __, Widget? child) =>
+    child ?? const SizedBox.shrink();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/i18n/strings.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -95,11 +96,11 @@ class _AdminBusinessesScreenState extends ConsumerState<AdminBusinessesScreen> {
       if (!mounted || seq != _seq) return;
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = errorText(ref.read(sProvider), e);
       });
       if (_items.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${ref.read(sProvider).failed}: $e'),
+          content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed)),
           backgroundColor: AppColors.danger,
         ));
       }
@@ -123,7 +124,7 @@ class _AdminBusinessesScreenState extends ConsumerState<AdminBusinessesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${ref.read(sProvider).failed}: $e'),
+          content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed)),
           backgroundColor: AppColors.danger,
         ));
       }
@@ -207,7 +208,7 @@ class _AdminBusinessesScreenState extends ConsumerState<AdminBusinessesScreen> {
     }
     if (_error != null && _items.isEmpty) {
       return EmptyState(
-          title: s.notLoaded, subtitle: _error, icon: AppIcons.error);
+          title: s.errLoadTitle, subtitle: _error, icon: AppIcons.error);
     }
     if (_items.isEmpty) {
       return EmptyState(

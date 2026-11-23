@@ -9,6 +9,7 @@ import '../../../core/utils/phone_util.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/phone_field.dart';
 import '../application/panel_providers.dart';
 import '../domain/panel_models.dart';
@@ -59,7 +60,7 @@ class BusinessStaffScreen extends ConsumerWidget {
       ),
       body: staff.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(title: s.notLoaded, subtitle: '$e'),
+        error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(staffProvider)),
         data: (List<StaffMember> list) {
           final List<StaffMember> active =
               list.where((StaffMember m) => m.active).toList();

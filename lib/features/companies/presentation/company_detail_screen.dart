@@ -20,6 +20,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/company_logo.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../favorites/application/favorites_providers.dart';
 import '../../loyalty/application/loyalty_providers.dart';
 import '../../reviews/application/reviews_providers.dart';
@@ -70,12 +71,7 @@ class CompanyDetailScreen extends ConsumerWidget {
       // A failed pull-to-refresh keeps the page that is already shown.
       skipError: true,
       loading: () => bare(const Center(child: CircularProgressIndicator())),
-      error: (Object e, _) => bare(EmptyState(
-        title: s.error,
-        subtitle: e is ApiException ? e.message : s.errorTryAgain,
-        icon: AppIcons.error,
-        action: TextButton(onPressed: retry, child: Text(s.retry)),
-      )),
+      error: (Object e, _) => bare(ErrorState(error: e, onRetry: retry)),
       data: (Company? company) {
         if (company == null) {
           return bare(EmptyState(
@@ -1002,7 +998,7 @@ class _OffersCard extends ConsumerWidget {
         padding: EdgeInsets.all(AppSpacing.xxl),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (Object e, _) => Text(e.toString()),
+      error: (Object e, _) => InlineError(error: e),
       data: (List<LoyaltyProgram> all) {
         // A paused or expired campaign is not on offer to customers.
         final DateTime now = DateTime.now();

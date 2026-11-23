@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../../core/i18n/strings.dart';
 import '../../../core/i18n/strings_panel2.dart';
@@ -30,16 +32,11 @@ class ManageProgramsScreen extends ConsumerWidget {
         body: companyAsync.isLoading
             ? const Center(child: CircularProgressIndicator())
             : companyAsync.hasError
-                ? EmptyState(
-                    title: s.notLoaded,
-                    subtitle: '${companyAsync.error}',
-                    icon: Icons.error_outline_rounded,
-                    action: OutlinedButton(
-                      onPressed: () => ref.invalidate(myCompanyProvider),
-                      child: Text(s.retry),
-                    ),
+                ? ErrorState(
+                    error: companyAsync.error!,
+                    onRetry: () => ref.invalidate(myCompanyProvider),
                   )
-                : EmptyState(title: s.noBusinessProfile),
+                : const BusinessSetupPrompt(),
       );
     }
     final String businessId = company.id;
@@ -52,10 +49,9 @@ class ManageProgramsScreen extends ConsumerWidget {
       ),
       body: programs.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: s.error,
-          subtitle: e.toString(),
-          icon: Icons.error_outline_rounded,
+        error: (Object e, _) => ErrorState(
+          error: e,
+          onRetry: () => ref.invalidate(programsForCompanyProvider(businessId)),
         ),
         data: (List<LoyaltyProgram> list) {
           return RefreshIndicator(
@@ -261,6 +257,7 @@ class _ProgramTile extends ConsumerWidget {
           FilledButton(
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.dangerText,
+                backgroundBuilder: plainButtonFill,
                 minimumSize: const Size(0, 44)),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(s.delete),

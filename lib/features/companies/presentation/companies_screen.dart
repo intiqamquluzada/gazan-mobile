@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../application/companies_providers.dart';
 import '../domain/company.dart';
 import 'widgets/category_chips.dart';
@@ -51,11 +52,7 @@ class CompaniesScreen extends ConsumerWidget {
                 error: (Object e, _) => ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: <Widget>[
-                    EmptyState(
-                      title: s.errorOccurred,
-                      subtitle: e.toString(),
-                      icon: AppIcons.error,
-                    ),
+                    ErrorState(error: e, onRetry: () => ref.invalidate(companiesProvider)),
                   ],
                 ),
                 data: (List<Company> list) {

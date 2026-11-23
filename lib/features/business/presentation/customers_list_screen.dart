@@ -12,6 +12,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../application/business_providers.dart';
 import '../domain/customer_summary.dart';
 
@@ -57,11 +58,7 @@ class _CustomersListScreenState extends ConsumerState<CustomersListScreen> {
           Expanded(
             child: customers.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (Object e, _) => EmptyState(
-                title: s.error,
-                subtitle: e.toString(),
-                icon: AppIcons.error,
-              ),
+              error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(myCustomersProvider)),
               data: (List<CustomerSummary> all) {
                 final List<CustomerSummary> filtered = _query.trim().isEmpty
                     ? all

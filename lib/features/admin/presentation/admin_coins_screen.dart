@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../application/admin_providers.dart';
 import '../domain/admin_models.dart';
 
@@ -51,7 +52,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
     } catch (e) {
       setState(() {
         _loading = false;
-        _error = e.toString();
+        _error = errorText(ref.read(sProvider), e);
       });
     }
   }
@@ -118,7 +119,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
               ref.watch(adminCoinsByCompanyProvider).when(
                     loading: () => const SizedBox.shrink(),
                     error: (Object e, _) =>
-                        Text('$e', style: AppTextStyles.bodySm),
+                        InlineError(error: e),
                     data: (List<CompanyCoinRow> rows) => rows.isEmpty
                         ? Text(s.noTransactions, style: AppTextStyles.bodySm)
                         : SingleChildScrollView(
@@ -155,7 +156,7 @@ class _AdminCoinsScreenState extends ConsumerState<AdminCoinsScreen> {
                 )
               else if (_error != null && _txns.isEmpty)
                 EmptyState(
-                    title: s.notLoaded, subtitle: _error, icon: AppIcons.error)
+                    title: s.errLoadTitle, subtitle: _error, icon: AppIcons.error)
               else if (_txns.isEmpty)
                 EmptyState(
                   title: s.noTransactions,
@@ -369,7 +370,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
     } catch (e) {
       setState(() {
         _searching = false;
-        _error = e.toString();
+        _error = errorText(widget.ref.read(sProvider), e);
       });
     }
   }
@@ -400,7 +401,7 @@ class _AdjustSheetState extends State<_AdjustSheet> {
     } catch (e) {
       setState(() {
         _submitting = false;
-        _error = e.toString();
+        _error = errorText(widget.ref.read(sProvider), e);
       });
     }
   }

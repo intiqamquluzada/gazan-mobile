@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/i18n/strings.dart';
+import '../../../../core/widgets/error_state.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -53,7 +54,7 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${ref.read(sProvider).error}: $e')),
+        SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).error))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);

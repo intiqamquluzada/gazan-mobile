@@ -12,7 +12,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/app_icons.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/confirm_sheet.dart';
-import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../companies/application/companies_providers.dart';
@@ -208,7 +208,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${ref.read(sProvider).error}: $e')),
+        SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).error))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -237,7 +237,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${ref.read(sProvider).photoNotPicked}: $e')),
+          SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).photoNotPicked))),
         );
       }
       return;
@@ -268,7 +268,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('${ref.read(sProvider).photoNotUploaded}: $e')),
+              content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).photoNotUploaded))),
         );
       }
     } finally {
@@ -284,7 +284,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${ref.read(sProvider).photoNotPicked}: $e')),
+          SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).photoNotPicked))),
         );
       }
       return;
@@ -309,7 +309,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${ref.read(sProvider).logoNotUploaded}: $e')),
+          SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).logoNotUploaded))),
         );
       }
     } finally {
@@ -371,11 +371,7 @@ class _BusinessProfileScreenState extends ConsumerState<BusinessProfileScreen> {
       ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: s.error,
-          subtitle: e.toString(),
-          icon: AppIcons.error,
-        ),
+        error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(myCompanyProvider)),
         data: (Company? company) {
           if (company == null) {
             return const _CreateBusinessForm();
@@ -783,7 +779,7 @@ class _CreateBusinessFormState extends ConsumerState<_CreateBusinessForm> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${s.error}: $e')),
+        SnackBar(content: Text(errorText(s, e, fallback: s.error))),
       );
     } finally {
       if (mounted) setState(() => _busy = false);

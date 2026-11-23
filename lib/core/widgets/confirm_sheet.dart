@@ -77,13 +77,12 @@ Future<bool> showConfirmSheet(
                 // Confirm (destructive) — quieter, outlined danger.
                 Expanded(
                   child: OutlinedButton(
+                    // Same pill shape as the app's primary buttons.
                     style: OutlinedButton.styleFrom(
                       foregroundColor: accent,
                       side: BorderSide(color: accent.withValues(alpha: 0.5)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
+                      shape: const StadiumBorder(),
                     ),
                     onPressed: () => Navigator.of(ctx).pop(true),
                     child: Text(confirmLabel),
@@ -93,13 +92,10 @@ Future<bool> showConfirmSheet(
                 // Cancel (stay) — emphasized primary, draws attention.
                 Expanded(
                   child: FilledButton(
+                    // The theme's gradient pill; a rounded-rect shape here
+                    // left solid orange corners around the gradient.
                     style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.action,
-                      foregroundColor: AppColors.onDark,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                      ),
+                      minimumSize: const Size.fromHeight(52),
                     ),
                     onPressed: () => Navigator.of(ctx).pop(false),
                     child: Text(cancelLabel),

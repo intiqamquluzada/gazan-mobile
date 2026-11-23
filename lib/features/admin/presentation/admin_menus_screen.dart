@@ -5,8 +5,7 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/app_icons.dart';
-import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../menu/data/menu_repository.dart';
@@ -52,7 +51,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
       ref.invalidate(companiesProvider);
       _snack(ref.read(sProvider).menuLinkSaved);
     } catch (e) {
-      _snack('${ref.read(sProvider).failed}: $e', error: true);
+      _snack(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed), error: true);
     } finally {
       if (mounted) setState(() => _savingLink = false);
     }
@@ -82,7 +81,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
           );
       ref.invalidate(companyMenuProvider(_company!.id));
     } catch (e) {
-      if (mounted) _snack('${ref.read(sProvider).failed}: $e', error: true);
+      if (mounted) _snack(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).failed), error: true);
     }
   }
 
@@ -91,7 +90,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
       await ref.read(menuRepositoryProvider).delete(m.id);
       ref.invalidate(companyMenuProvider(_company!.id));
     } catch (e) {
-      _snack('${ref.read(sProvider).deleteFailed}: $e', error: true);
+      _snack(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).deleteFailed), error: true);
     }
   }
 
@@ -119,11 +118,7 @@ class _AdminMenusScreenState extends ConsumerState<AdminMenusScreen> {
             ),
       body: companies.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, _) => EmptyState(
-          title: s.notLoaded,
-          subtitle: e.toString(),
-          icon: AppIcons.error,
-        ),
+        error: (Object e, _) => ErrorState(error: e, onRetry: () => ref.invalidate(companiesProvider)),
         data: (List<Company> list) {
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.xl),
@@ -212,7 +207,7 @@ class _MenuItems extends ConsumerWidget {
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (Object e, _) =>
-          Text('${s.error}: $e', style: AppTextStyles.bodySm),
+          InlineError(error: e),
       data: (List<MenuItem> items) {
         if (items.isEmpty) {
           return Text(

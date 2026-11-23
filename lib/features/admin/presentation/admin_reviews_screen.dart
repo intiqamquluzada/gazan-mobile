@@ -9,6 +9,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/confirm_sheet.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 
 /// One row of the admin moderation list (`GET /api/v1/admin/reviews`).
 class AdminReview {
@@ -89,7 +90,7 @@ class _AdminReviewsState extends ConsumerState<AdminReviewsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${s.deleteFailed}: $e')));
+            .showSnackBar(SnackBar(content: Text(errorText(s, e, fallback: s.deleteFailed))));
       }
     }
   }
@@ -130,7 +131,7 @@ class _AdminReviewsState extends ConsumerState<AdminReviewsScreen> {
         child: async.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (Object e, _) => ListView(
-            children: <Widget>[EmptyState(title: s.notLoaded, subtitle: '$e')],
+            children: <Widget>[ErrorState(error: e, onRetry: () => ref.invalidate(_adminReviewsProvider(_reportedOnly)))],
           ),
           data: (List<AdminReview> all) {
             final List<AdminReview> list = _lowOnly

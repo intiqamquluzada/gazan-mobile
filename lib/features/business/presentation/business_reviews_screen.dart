@@ -6,6 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../companies/application/companies_providers.dart';
 import '../../companies/domain/company.dart';
 import '../../reviews/application/reviews_providers.dart';
@@ -47,7 +48,12 @@ class _Body extends ConsumerWidget {
       child: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (Object e, _) => ListView(
-          children: <Widget>[EmptyState(title: s.reviewsNotLoaded)],
+          children: <Widget>[
+            ErrorState(
+              error: e,
+              onRetry: () => ref.invalidate(companyReviewsProvider(companyId)),
+            ),
+          ],
         ),
         data: (CompanyReviews r) {
           final List<int> dist = List<int>.filled(5, 0);

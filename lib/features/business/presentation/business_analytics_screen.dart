@@ -5,7 +5,7 @@ import '../../../core/i18n/strings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/error_state.dart';
 import '../../../core/widgets/trend_line_chart.dart';
 import '../application/panel_providers.dart';
 import '../domain/panel_models.dart';
@@ -47,7 +47,7 @@ class _AnalyticsState extends ConsumerState<BusinessAnalyticsScreen> {
               child: Center(child: CircularProgressIndicator()),
             ),
             error: (Object e, _) =>
-                EmptyState(title: s.notLoaded, subtitle: '$e'),
+                ErrorState(error: e, onRetry: () => ref.invalidate(businessAnalyticsProvider(_days))),
             data: (BusinessAnalytics a) => _Body(a: a, s: s),
           ),
         ],
