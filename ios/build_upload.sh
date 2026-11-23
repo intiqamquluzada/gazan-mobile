@@ -3,6 +3,7 @@
 # Usage:  ./ios/build_upload.sh /path/to/AuthKey_K53J7KTJ55.p8
 # Run from the gazan-mobile folder on a Mac with Xcode and Flutter installed.
 set -euo pipefail
+export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 KEY_PATH="${1:?Give the path of the AuthKey_K53J7KTJ55.p8 file}"
 KEY_ID="K53J7KTJ55"
