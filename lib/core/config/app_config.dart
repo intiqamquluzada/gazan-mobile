@@ -38,7 +38,26 @@ class AppConfig {
     if (url.isEmpty) return url;
     if (url.startsWith('/')) return '$apiBaseUrl$url';
     final int i = url.indexOf(_imagePath);
-    return i > 0 ? '$apiBaseUrl${url.substring(i)}' : url;
+    return i > 0 ? '$apiBaseUrl${url.substring(i)}' : sizedUnsplash(url);
+  }
+
+  /// Widest image a phone screen needs (about 3x a full-width card).
+  static const int _maxImageWidth = 1000;
+
+  /// Unsplash serves the full-resolution original (often 2+ MB) unless the
+  /// URL asks for a size. Cap the width and let it pick a compact format,
+  /// which makes the same photo roughly 15-20 times smaller.
+  @visibleForTesting
+  static String sizedUnsplash(String url) {
+    final Uri? u = Uri.tryParse(url);
+    if (u == null || u.host != 'images.unsplash.com') return url;
+    final Map<String, String> q = Map<String, String>.of(u.queryParameters);
+    final int? w = int.tryParse(q['w'] ?? '');
+    q['w'] = '${w == null || w > _maxImageWidth ? _maxImageWidth : w}';
+    q.putIfAbsent('q', () => '70');
+    q['auto'] = 'format';
+    q.putIfAbsent('fit', () => 'crop');
+    return u.replace(queryParameters: q).toString();
   }
 
   static String? mediaUrlOrNull(String? url) =>
