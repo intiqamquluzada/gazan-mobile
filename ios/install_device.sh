@@ -29,6 +29,24 @@ xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Relea
   -authenticationKeyIssuerID 68accc73-9225-4e19-a192-14158159bdcd \
   -quiet build
 
-xcrun devicectl device install app --device "$DEVICE" \
-  build/ios/device-dd/Build/Products/Release-iphoneos/Runner.app
+APP=build/ios/device-dd/Build/Products/Release-iphoneos/Runner.app
+
+# Dart native-assets frameworks (e.g. objective_c.framework) come out only
+# ad-hoc signed, which the phone refuses ("invalid signature"). Sign them
+# with the app's identity, then reseal the app.
+IDENTITY=$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)
+SHA=$(security find-identity -v -p codesigning | grep -F "$IDENTITY" | head -1 | awk '{print $2}')
+RESIGNED=0
+for fw in "$APP"/Frameworks/*.framework; do
+  if codesign -dv "$fw" 2>&1 | grep -q "Signature=adhoc"; then
+    codesign -f -s "$SHA" "$fw"
+    RESIGNED=1
+  fi
+done
+if [ "$RESIGNED" = 1 ]; then
+  codesign -f -s "$SHA" --preserve-metadata=entitlements,requirements,flags "$APP"
+fi
+codesign --verify --deep --strict "$APP"
+
+xcrun devicectl device install app --device "$DEVICE" "$APP"
 echo "Installed on $DEVICE."
