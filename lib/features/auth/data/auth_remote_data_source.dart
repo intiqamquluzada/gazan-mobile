@@ -191,6 +191,10 @@ class AuthRemoteDataSource {
     return _userFromJson(json);
   }
 
+  /// Stores a session the server issued outside sign-in (e.g. after a
+  /// password change).
+  Future<AuthSession> adoptSession(Map<String, dynamic> json) => _consume(json);
+
   // ───────────────────────── helpers ────────────────────────
 
   Future<AuthSession> _consume(Map<String, dynamic> json) async {
@@ -225,7 +229,17 @@ class AuthRemoteDataSource {
       profileComplete: (json['profileComplete'] as bool?) ??
           ((json['phone'] as String?)?.isNotEmpty ?? false),
       staffCompanyId: json['staffCompanyId'] as String?,
+      hasPassword: (json['hasPassword'] as bool?) ?? true,
+      notificationPrefs: _prefsFromJson(json['notificationPrefs']),
     );
+  }
+
+  static Map<String, bool>? _prefsFromJson(Object? raw) {
+    if (raw is! Map<String, dynamic>) return null;
+    return <String, bool>{
+      for (final MapEntry<String, dynamic> e in raw.entries)
+        if (e.value is bool) e.key: e.value as bool,
+    };
   }
 }
 

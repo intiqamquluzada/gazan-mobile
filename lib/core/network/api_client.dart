@@ -9,6 +9,7 @@ import 'api_exception.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/locale_interceptor.dart';
 import 'interceptors/refresh_interceptor.dart';
+import 'interceptors/retry_interceptor.dart';
 
 /// Thin wrapper over Dio with project conventions baked in.
 ///
@@ -99,8 +100,18 @@ class ApiClient {
         fields: _extractFieldErrors(data),
       );
     }
-    // No JSON from our API: offline, timeout, or a proxy error page. Dio's
-    // own text is technical English and must not reach the user.
+    // The server did answer, just not with our JSON (a proxy error page,
+    // an empty body): that is a server problem, not the user's network.
+    final int status = e.response?.statusCode ?? 0;
+    if (status > 0) {
+      return ApiException(
+        code: 'HTTP_$status',
+        message: _networkMessage(),
+        status: status,
+      );
+    }
+    // No answer at all: offline or timed out. Dio's own text is technical
+    // English and must not reach the user.
     return ApiException(
       code: 'NETWORK',
       message: _networkMessage(),
@@ -142,6 +153,9 @@ final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
 
   dio.interceptors.add(AuthInterceptor(tokens));
   dio.interceptors.add(LocaleInterceptor(ref));
+  // First, so a dropped connection is retried before anything else
+  // (including the token refresh) sees the error.
+  dio.interceptors.insert(0, RetryInterceptor(dio));
   dio.interceptors.add(RefreshInterceptor(
     dio,
     tokens,

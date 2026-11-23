@@ -227,6 +227,13 @@ class AuthController extends StateNotifier<AuthState> {
   }
 
   /// Replaces the signed-in user with what the server just returned.
+  /// Switches to a session the server just issued (password change signs
+  /// out every other device and re-issues this one).
+  Future<void> adoptSession(Map<String, dynamic> json) async {
+    final AuthSession session = await _remote.adoptSession(json);
+    state = AuthState(user: session.user);
+  }
+
   void applyUser(AppUser user) {
     state = AuthState(user: user);
     _cacheUser(user);

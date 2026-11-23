@@ -157,6 +157,9 @@ class S {
   // ── Security sheet ───────────────────────────────────────────────
   String get changePassword => _('changePassword', 'Şifrəni dəyiş');
   String get passwordUpdated => _('passwordUpdated', 'Şifrə yeniləndi ✓');
+  String get setPassword => _('setPassword', 'Şifrə təyin et');
+  String get setPasswordHint => _('setPasswordHint',
+      'Hesabına Google və ya Apple ilə girmisən. Şifrə təyin etsən, e-poçt və şifrə ilə də daxil ola biləcəksən.');
   String get currentPassword => _('currentPassword', 'Hazırkı şifrə');
   String get newPassword => _('newPassword', 'Yeni şifrə');
   String get repeatNewPassword =>
@@ -916,6 +919,8 @@ class S {
       'enterName': 'Enter your name',
       'changePassword': 'Change password',
       'passwordUpdated': 'Password updated ✓',
+      'setPassword': 'Set a password',
+      'setPasswordHint': 'You signed in with Google or Apple. Set a password to also sign in with your email.',
       'currentPassword': 'Current password',
       'newPassword': 'New password',
       'repeatNewPassword': 'Repeat new password',
@@ -1518,6 +1523,8 @@ class S {
       'enterName': 'Введите имя',
       'changePassword': 'Сменить пароль',
       'passwordUpdated': 'Пароль обновлён ✓',
+      'setPassword': 'Задать пароль',
+      'setPasswordHint': 'Вы вошли через Google или Apple. Задайте пароль, чтобы входить и по электронной почте.',
       'currentPassword': 'Текущий пароль',
       'newPassword': 'Новый пароль',
       'repeatNewPassword': 'Повторите новый пароль',
@@ -2120,6 +2127,8 @@ class S {
       'enterName': 'Adını yaz',
       'changePassword': 'Şifreyi değiştir',
       'passwordUpdated': 'Şifre güncellendi ✓',
+      'setPassword': 'Şifre belirle',
+      'setPasswordHint': 'Google veya Apple ile giriş yaptın. Şifre belirlersen e-posta ile de giriş yapabilirsin.',
       'currentPassword': 'Mevcut şifre',
       'newPassword': 'Yeni şifre',
       'repeatNewPassword': 'Yeni şifreyi tekrarla',

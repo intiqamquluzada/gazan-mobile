@@ -41,7 +41,8 @@ class _SocialButtonsState extends ConsumerState<SocialButtons> {
       );
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('social sign-in failed: $e');
       messenger.showSnackBar(SnackBar(content: Text(s.socialSignInFailed)));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -124,9 +125,12 @@ class _GoogleMark extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = sw;
     const double deg = math.pi / 180;
-    canvas.drawArc(r, -40 * deg, -100 * deg, false, arc(const Color(0xFFEA4335)));
-    canvas.drawArc(r, -140 * deg, -80 * deg, false, arc(const Color(0xFFFBBC05)));
-    canvas.drawArc(r, 140 * deg, -90 * deg, false, arc(const Color(0xFF34A853)));
+    canvas.drawArc(
+        r, -40 * deg, -100 * deg, false, arc(const Color(0xFFEA4335)));
+    canvas.drawArc(
+        r, -140 * deg, -80 * deg, false, arc(const Color(0xFFFBBC05)));
+    canvas.drawArc(
+        r, 140 * deg, -90 * deg, false, arc(const Color(0xFF34A853)));
     canvas.drawArc(r, 50 * deg, -50 * deg, false, arc(const Color(0xFF4285F4)));
     canvas.drawRect(
       Rect.fromLTWH(d / 2, d / 2 - sw / 2, (d - sw) / 2 + sw / 2, sw),
