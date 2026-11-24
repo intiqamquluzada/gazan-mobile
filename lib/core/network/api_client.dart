@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -91,6 +94,11 @@ class ApiClient {
   }
 
   ApiException _mapError(DioException e) {
+    if (!kReleaseMode) {
+      debugPrint('[net] ${e.requestOptions.method} ${e.requestOptions.uri} '
+          'type=${e.type} status=${e.response?.statusCode} '
+          'error=${e.error.runtimeType}: ${e.error}');
+    }
     final Object? data = e.response?.data;
     if (data is Map<String, dynamic>) {
       return ApiException(
@@ -134,6 +142,19 @@ class ApiClient {
   }
 }
 
+/// Decodes a response body as UTF-8 without ever throwing.
+///
+/// A body with a stray non-UTF-8 byte (the server once sent its 401s as
+/// ISO-8859-1) must still reach the interceptors: if decoding throws, Dio
+/// drops the status code, the token refresh never runs and the user sees
+/// "no internet" on every screen.
+String lenientUtf8Decoder(
+  List<int> bytes,
+  RequestOptions options,
+  ResponseBody body,
+) =>
+    utf8.decode(bytes, allowMalformed: true);
+
 // ─────────────────────────── providers ───────────────────────────
 
 final Provider<TokenStorage> tokenStorageProvider =
@@ -149,6 +170,7 @@ final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
     contentType: 'application/json',
     responseType: ResponseType.json,
     validateStatus: (int? code) => code != null && code >= 200 && code < 300,
+    responseDecoder: lenientUtf8Decoder,
   ));
 
   dio.interceptors.add(AuthInterceptor(tokens));
