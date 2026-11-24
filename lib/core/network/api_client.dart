@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -9,6 +12,7 @@ import 'api_exception.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/locale_interceptor.dart';
 import 'interceptors/refresh_interceptor.dart';
+import 'interceptors/retry_interceptor.dart';
 
 /// Thin wrapper over Dio with project conventions baked in.
 ///
@@ -90,6 +94,11 @@ class ApiClient {
   }
 
   ApiException _mapError(DioException e) {
+    if (!kReleaseMode) {
+      debugPrint('[net] ${e.requestOptions.method} ${e.requestOptions.uri} '
+          'type=${e.type} status=${e.response?.statusCode} '
+          'error=${e.error.runtimeType}: ${e.error}');
+    }
     final Object? data = e.response?.data;
     if (data is Map<String, dynamic>) {
       return ApiException(
@@ -99,8 +108,18 @@ class ApiClient {
         fields: _extractFieldErrors(data),
       );
     }
-    // No JSON from our API: offline, timeout, or a proxy error page. Dio's
-    // own text is technical English and must not reach the user.
+    // The server did answer, just not with our JSON (a proxy error page,
+    // an empty body): that is a server problem, not the user's network.
+    final int status = e.response?.statusCode ?? 0;
+    if (status > 0) {
+      return ApiException(
+        code: 'HTTP_$status',
+        message: _networkMessage(),
+        status: status,
+      );
+    }
+    // No answer at all: offline or timed out. Dio's own text is technical
+    // English and must not reach the user.
     return ApiException(
       code: 'NETWORK',
       message: _networkMessage(),
@@ -123,6 +142,19 @@ class ApiClient {
   }
 }
 
+/// Decodes a response body as UTF-8 without ever throwing.
+///
+/// A body with a stray non-UTF-8 byte (the server once sent its 401s as
+/// ISO-8859-1) must still reach the interceptors: if decoding throws, Dio
+/// drops the status code, the token refresh never runs and the user sees
+/// "no internet" on every screen.
+String lenientUtf8Decoder(
+  List<int> bytes,
+  RequestOptions options,
+  ResponseBody body,
+) =>
+    utf8.decode(bytes, allowMalformed: true);
+
 // ─────────────────────────── providers ───────────────────────────
 
 final Provider<TokenStorage> tokenStorageProvider =
@@ -138,10 +170,14 @@ final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
     contentType: 'application/json',
     responseType: ResponseType.json,
     validateStatus: (int? code) => code != null && code >= 200 && code < 300,
+    responseDecoder: lenientUtf8Decoder,
   ));
 
   dio.interceptors.add(AuthInterceptor(tokens));
   dio.interceptors.add(LocaleInterceptor(ref));
+  // First, so a dropped connection is retried before anything else
+  // (including the token refresh) sees the error.
+  dio.interceptors.insert(0, RetryInterceptor(dio));
   dio.interceptors.add(RefreshInterceptor(
     dio,
     tokens,

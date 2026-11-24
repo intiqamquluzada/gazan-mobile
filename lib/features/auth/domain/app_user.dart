@@ -12,6 +12,8 @@ class AppUser {
     this.businessId,
     this.profileComplete = true,
     this.staffCompanyId,
+    this.hasPassword = true,
+    this.notificationPrefs,
   });
 
   final String id;
@@ -31,6 +33,14 @@ class AppUser {
 
   /// The venue a cashier works at.
   final String? staffCompanyId;
+
+  /// False for Google / Apple accounts that never set a password: they set
+  /// one without typing a current password.
+  final bool hasPassword;
+
+  /// Push switches as the server stores them (`rewards`, `offers`,
+  /// `weekly`, `marketing`). Null from servers that predate them.
+  final Map<String, bool>? notificationPrefs;
 
   AppUser copyWith({
     String? fullName,
@@ -53,5 +63,7 @@ class AppUser {
         businessId: businessId ?? this.businessId,
         profileComplete: profileComplete,
         staffCompanyId: staffCompanyId,
+        hasPassword: hasPassword,
+        notificationPrefs: notificationPrefs,
       );
 }

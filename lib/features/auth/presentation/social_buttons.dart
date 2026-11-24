@@ -41,8 +41,17 @@ class _SocialButtonsState extends ConsumerState<SocialButtons> {
       );
     } on ApiException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
-      messenger.showSnackBar(SnackBar(content: Text(s.socialSignInFailed)));
+    } catch (e) {
+      debugPrint('social sign-in failed: $e');
+      // Google's status code (e.g. 10 = app fingerprint not registered)
+      // tells us the cause when a tester reports it.
+      final String? code =
+          RegExp(r'ApiException: (\d+)').firstMatch('$e')?.group(1);
+      messenger.showSnackBar(SnackBar(
+        content: Text(code == null
+            ? s.socialSignInFailed
+            : '${s.socialSignInFailed} ($code)'),
+      ));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -124,9 +133,12 @@ class _GoogleMark extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = sw;
     const double deg = math.pi / 180;
-    canvas.drawArc(r, -40 * deg, -100 * deg, false, arc(const Color(0xFFEA4335)));
-    canvas.drawArc(r, -140 * deg, -80 * deg, false, arc(const Color(0xFFFBBC05)));
-    canvas.drawArc(r, 140 * deg, -90 * deg, false, arc(const Color(0xFF34A853)));
+    canvas.drawArc(
+        r, -40 * deg, -100 * deg, false, arc(const Color(0xFFEA4335)));
+    canvas.drawArc(
+        r, -140 * deg, -80 * deg, false, arc(const Color(0xFFFBBC05)));
+    canvas.drawArc(
+        r, 140 * deg, -90 * deg, false, arc(const Color(0xFF34A853)));
     canvas.drawArc(r, 50 * deg, -50 * deg, false, arc(const Color(0xFF4285F4)));
     canvas.drawRect(
       Rect.fromLTWH(d / 2, d / 2 - sw / 2, (d - sw) / 2 + sw / 2, sw),

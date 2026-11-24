@@ -134,8 +134,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         context.go('/login?identifier=${Uri.encodeQueryComponent(phone)}');
         return;
       }
-      setState(() =>
-          _step = r.verificationRequired ? _Step.verify : _Step.details);
+      setState(
+          () => _step = r.verificationRequired ? _Step.verify : _Step.details);
     } on ApiException catch (e) {
       if (mounted) _toast(e.message);
     } finally {
@@ -373,8 +373,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             TextSpan(text: '${s.emailCodeSub} '),
             TextSpan(
               text: _email.text.trim(),
-              style: TextStyle(
-                  fontWeight: FontWeight.w700, color: p.textPrimary),
+              style:
+                  TextStyle(fontWeight: FontWeight.w700, color: p.textPrimary),
             ),
           ],
         ),
@@ -471,16 +471,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           Flexible(
             child: Text(
               s.haveAccount,
-              style: AppTextStyles.bodySm.copyWith(
-                  fontSize: 14, color: context.palette.textSecondary),
+              style: AppTextStyles.bodySm
+                  .copyWith(fontSize: 14, color: context.palette.textSecondary),
             ),
           ),
           TextButton(
             onPressed: () => context.go('/login'),
             child: Text(
               s.login,
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -520,7 +519,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             controller: _code,
             keyboardType: TextInputType.number,
             maxLength: 6,
-            decoration: InputDecoration(hintText: s.hintVerifyCode, labelText: s.regVerifyCode),
+            decoration: InputDecoration(
+                hintText: s.hintVerifyCode, labelText: s.regVerifyCode),
           ),
           const SizedBox(height: AppSpacing.xl),
           PrimaryButton(

@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../storage/token_storage.dart';
 
@@ -47,6 +48,7 @@ class RefreshInterceptor extends Interceptor {
     }
 
     final _RefreshOutcome outcome = await _refreshOnce();
+    if (!kReleaseMode) debugPrint('[net] token refresh: $outcome');
     if (outcome != _RefreshOutcome.refreshed) {
       handler.next(err);
       return;

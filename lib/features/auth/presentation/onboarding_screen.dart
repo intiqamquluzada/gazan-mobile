@@ -91,16 +91,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   const BrandMark(size: 28),
                   const Spacer(),
                   TextButton(
-                  onPressed: _finish,
-                  style: TextButton.styleFrom(
-                    foregroundColor: context.palette.textPrimary,
+                    onPressed: _finish,
+                    style: TextButton.styleFrom(
+                      foregroundColor: context.palette.textPrimary,
+                    ),
+                    child: Text(
+                      s.skip,
+                      style: AppTextStyles.body
+                          .copyWith(fontWeight: FontWeight.w500),
+                    ),
                   ),
-                  child: Text(
-                    s.skip,
-                    style: AppTextStyles.body
-                        .copyWith(fontWeight: FontWeight.w500),
-                  ),
-                ),
                 ],
               ),
             ),
@@ -175,9 +175,7 @@ class _SlideView extends StatelessWidget {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints c) {
         // Shrink the art on short screens so the text never clips.
-        final double artW = (c.maxHeight * 0.62)
-            .clamp(190.0, 330.0)
-            .toDouble();
+        final double artW = (c.maxHeight * 0.62).clamp(190.0, 330.0).toDouble();
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
           child: ConstrainedBox(

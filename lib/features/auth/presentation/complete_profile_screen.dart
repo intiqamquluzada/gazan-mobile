@@ -123,8 +123,9 @@ class _CompleteProfileScreenState extends ConsumerState<CompleteProfileScreen> {
                 label: s.fullName,
                 controller: _name,
                 prefixIcon: Icons.person_outline_rounded,
-                validator: (String? v) =>
-                    (v == null || v.trim().length < 2) ? s.enterNameShort : null,
+                validator: (String? v) => (v == null || v.trim().length < 2)
+                    ? s.enterNameShort
+                    : null,
               ),
               const SizedBox(height: AppSpacing.lg),
               if (_email.text.isNotEmpty) ...<Widget>[

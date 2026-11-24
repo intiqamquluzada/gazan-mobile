@@ -190,12 +190,14 @@ Future<void> _upload(BuildContext context, WidgetRef ref) async {
           filename: file.name,
           contentType: _contentType(file.name),
         );
-    await ref.read(profileRemoteDataSourceProvider).updateProfile(avatarUrl: url);
+    await ref
+        .read(profileRemoteDataSourceProvider)
+        .updateProfile(avatarUrl: url);
     ref.read(authControllerProvider.notifier).updateProfile(avatarUrl: url);
     messenger.showSnackBar(SnackBar(content: Text(s.avatarUpdated)));
   } on ApiException catch (e) {
-    messenger.showSnackBar(SnackBar(
-        content: Text(e.isNetwork ? s.avatarFailed : e.message)));
+    messenger.showSnackBar(
+        SnackBar(content: Text(e.isNetwork ? s.avatarFailed : e.message)));
   } catch (_) {
     messenger.showSnackBar(SnackBar(content: Text(s.avatarFailed)));
   } finally {

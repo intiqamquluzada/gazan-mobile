@@ -8,6 +8,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../auth/application/auth_controller.dart';
+import '../../../auth/domain/app_user.dart';
 import '../../data/profile_remote_data_source.dart';
 import '_sheet_handle.dart';
 
@@ -36,11 +38,17 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
     setState(() => _saving = true);
+    final bool hasPassword = ref.read(currentUserProvider)?.hasPassword ?? true;
     try {
-      await ref.read(profileRemoteDataSourceProvider).changePassword(
-            currentPassword: _current.text,
-            newPassword: _new.text,
-          );
+      final Map<String, dynamic>? session =
+          await ref.read(profileRemoteDataSourceProvider).changePassword(
+                currentPassword: hasPassword ? _current.text : null,
+                newPassword: _new.text,
+              );
+      // Every other device was signed out; keep this one signed in.
+      if (session != null) {
+        await ref.read(authControllerProvider.notifier).adoptSession(session);
+      }
       if (!mounted) return;
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -54,7 +62,9 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorText(ref.read(sProvider), e, fallback: ref.read(sProvider).error))),
+        SnackBar(
+            content: Text(errorText(ref.read(sProvider), e,
+                fallback: ref.read(sProvider).error))),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -64,6 +74,8 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
   @override
   Widget build(BuildContext context) {
     final S s = ref.watch(sProvider);
+    final AppUser? user = ref.watch(currentUserProvider);
+    final bool hasPassword = user?.hasPassword ?? true;
     final EdgeInsets bottom = MediaQuery.viewInsetsOf(context);
     return AnimatedPadding(
       duration: const Duration(milliseconds: 120),
@@ -82,18 +94,25 @@ class _SecuritySheetState extends ConsumerState<SecuritySheet> {
             children: <Widget>[
               const SheetHandle(),
               const SizedBox(height: AppSpacing.lg),
-              Text(s.changePassword, style: AppTextStyles.h2),
+              Text(hasPassword ? s.changePassword : s.setPassword,
+                  style: AppTextStyles.h2),
+              if (!hasPassword) ...<Widget>[
+                const SizedBox(height: AppSpacing.sm),
+                Text(s.setPasswordHint, style: AppTextStyles.bodySm),
+              ],
               const SizedBox(height: AppSpacing.xl),
-              AppTextField(
-                hint: s.hintCurrentPassword,
-                label: s.currentPassword,
-                controller: _current,
-                obscure: true,
-                prefixIcon: Icons.lock_outline_rounded,
-                validator: (String? v) =>
-                    (v == null || v.isEmpty) ? s.enter : null,
-              ),
-              const SizedBox(height: AppSpacing.md),
+              if (hasPassword) ...<Widget>[
+                AppTextField(
+                  hint: s.hintCurrentPassword,
+                  label: s.currentPassword,
+                  controller: _current,
+                  obscure: true,
+                  prefixIcon: Icons.lock_outline_rounded,
+                  validator: (String? v) =>
+                      (v == null || v.isEmpty) ? s.enter : null,
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
               AppTextField(
                 hint: s.passwordHintMin8,
                 label: s.newPassword,
