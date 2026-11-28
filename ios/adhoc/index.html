@@ -7,37 +7,123 @@
 <title>Qazan — test versiyası</title>
 <style>
   :root { color-scheme: light; }
+  * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-         background: #FFF8F3; color: #1F1712; }
-  .wrap { max-width: 420px; margin: 0 auto; padding: 40px 20px; text-align: center; }
-  img.icon { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 12px 30px -12px rgba(247,107,21,.6); }
-  h1 { font-size: 26px; margin: 18px 0 4px; }
-  .ver { color: #6E6259; font-size: 14px; }
-  a.btn { display: block; margin: 28px 0 10px; padding: 16px; border-radius: 999px; color: #fff; font-weight: 700;
-          font-size: 17px; text-decoration: none; background: linear-gradient(135deg, #FFA93A, #F76B15);
-          box-shadow: 0 10px 24px -10px rgba(247,107,21,.8); }
-  .card { background: #fff; border: 1px solid #FFE6D3; border-radius: 20px; padding: 18px 18px 6px; margin-top: 24px; text-align: left; }
-  .card h2 { font-size: 15px; margin: 0 0 8px; }
-  ol { padding-left: 20px; margin: 0; font-size: 14px; line-height: 1.6; color: #4a3d35; }
-  li { margin-bottom: 8px; }
-  .note { font-size: 12px; color: #948880; margin-top: 18px; }
+         background: #FFF8F3; color: #2B1A12; }
+  .wrap { max-width: 440px; margin: 0 auto; padding: 36px 18px 40px; text-align: center; }
+  img.icon { width: 88px; height: 88px; border-radius: 22px; box-shadow: 0 12px 28px -12px rgba(247,107,21,.55); }
+  h1 { font-size: 26px; margin: 16px 0 2px; color: #2B1A12; }
+  .sub { color: #6E6259; font-size: 14px; margin: 0 0 22px; }
+  .card { background: #fff; border-radius: 20px; padding: 18px; margin-top: 14px; text-align: left;
+          box-shadow: 0 8px 24px -14px rgba(120,60,20,.22); border: 1px solid #FFE6D3; }
+  .card.mine { border: 2px solid #F76B15; }
+  .head { display: flex; align-items: center; gap: 12px; }
+  .pi { width: 42px; height: 42px; border-radius: 12px; background: #FFF0E4; display: flex;
+        align-items: center; justify-content: center; flex: none; }
+  .pi svg { width: 24px; height: 24px; fill: #F06416; }
+  .head h2 { font-size: 17px; margin: 0; color: #2B1A12; }
+  .head .ver { font-size: 12.5px; color: #948880; margin-top: 2px; }
+  .tag { margin-left: auto; font-size: 11px; font-weight: 700; color: #C2500F; background: #FFF0E4;
+         padding: 4px 9px; border-radius: 999px; display: none; white-space: nowrap; }
+  .mine .tag { display: inline-block; }
+  a.btn { display: block; margin: 14px 0 4px; padding: 14px; border-radius: 999px; color: #fff; font-weight: 700;
+          font-size: 16px; text-decoration: none; text-align: center;
+          background: linear-gradient(135deg, #FFA93A, #F76B15); box-shadow: 0 10px 22px -12px rgba(247,107,21,.8); }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: #C2500F; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "+ "; }
+  details[open] summary::before { content: "– "; }
+  ol { padding-left: 20px; margin: 8px 0 0; font-size: 13.5px; line-height: 1.55; color: #4A3D35; }
+  li { margin-bottom: 6px; }
+  .note { font-size: 12px; color: #948880; margin: 8px 0 0; }
+  .hide { display: none; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <img class="icon" src="icon-512.png" alt="Qazan">
   <h1>Qazan</h1>
-  <div class="ver">Test versiyası __VERSION__ (__BUILD__) · __DATE__</div>
-  <a class="btn" href="itms-services://?action=download-manifest&amp;url=__MANIFEST_URL__">Yüklə</a>
-  <div class="card">
-    <h2>Necə quraşdırmaq olar</h2>
-    <ol>
-      <li>Bu səhifəni iPhone-da <b>Safari</b> ilə aç və <b>Yüklə</b> düyməsinə bas.</li>
-      <li>"Quraşdır" sualına <b>Quraşdır</b> cavabını ver. Tətbiq ana ekrana düşəcək.</li>
-      <li>Açılmasa: Ayarlar → Ümumi → VPN və Cihaz idarəsi bölməsində sertifikata güvən.</li>
-    </ol>
+  <p class="sub">Test versiyaları — cihazını seç və yüklə</p>
+
+  <div class="card" id="ios">
+    <div class="head">
+      <div class="pi"><svg viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.6-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.2 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3 2.4 1.2 0 1.7-.8 3.1-.8 1.5 0 1.9.8 3.2.8 1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.5-1-2.5-4zM14 5.4c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4z"/></svg></div>
+      <div><h2>iPhone</h2><div class="ver">Versiya __VERSION__ (__BUILD__) · __DATE__</div></div>
+      <span class="tag">Sənin cihazın</span>
+    </div>
+    <a class="btn" href="itms-services://?action=download-manifest&amp;url=__MANIFEST_URL__">iPhone üçün yüklə</a>
+    <details>
+      <summary>Necə quraşdırmaq olar</summary>
+      <ol>
+        <li>Bu səhifəni iPhone-da <b>Safari</b> ilə aç və düyməyə bas.</li>
+        <li>"Quraşdır" sualına <b>Quraşdır</b> cavabını ver. Tətbiq ana ekrana düşəcək.</li>
+        <li>Açılmasa: Ayarlar → Ümumi → VPN və Cihaz idarəsi bölməsində sertifikata güvən.</li>
+      </ol>
+      <p class="note">Yalnız qeydiyyatdan keçmiş test telefonlarında işləyir.</p>
+    </details>
   </div>
-  <p class="note">Yalnız qeydiyyatdan keçmiş test telefonlarında işləyir.</p>
+
+  <div class="card hide" id="android">
+    <div class="head">
+      <div class="pi"><svg viewBox="0 0 24 24"><path d="M17.6 9.5l1.8-3.2a.4.4 0 0 0-.7-.4l-1.9 3.3A11 11 0 0 0 12 8.2c-1.7 0-3.3.4-4.8 1L5.3 5.9a.4.4 0 0 0-.7.4l1.8 3.2C3.4 11.1 1.4 14.1 1 17.6h22c-.4-3.5-2.4-6.5-5.4-8.1zM7 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm10 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/></svg></div>
+      <div><h2>Android</h2><div class="ver" data-ver="android"></div></div>
+      <span class="tag">Sənin cihazın</span>
+    </div>
+    <a class="btn" data-file="android" href="#">Android üçün yüklə (APK)</a>
+    <details>
+      <summary>Necə quraşdırmaq olar</summary>
+      <ol>
+        <li>Düyməyə bas, <b>qazan.apk</b> faylı yüklənəcək.</li>
+        <li>Faylı aç. "Naməlum mənbələr" soruşularsa, brauzerə <b>icazə ver</b>.</li>
+        <li><b>Quraşdır</b> bas. Köhnə versiya varsa, üzərinə yenilənir.</li>
+      </ol>
+    </details>
+  </div>
+
+  <div class="card hide" id="windows">
+    <div class="head">
+      <div class="pi"><svg viewBox="0 0 24 24"><path d="M3 5.5l7.4-1v7.1H3V5.5zm8.3-1.2L21 3v8.6h-9.7V4.3zM3 12.5h7.4v7.1L3 18.5v-6zm8.3 0H21V21l-9.7-1.3v-7.2z"/></svg></div>
+      <div><h2>Windows — İşletmə</h2><div class="ver" data-ver="windows"></div></div>
+      <span class="tag">Sənin cihazın</span>
+    </div>
+    <a class="btn" data-file="windows" href="#">Windows üçün yüklə (ZIP)</a>
+    <details>
+      <summary>Necə quraşdırmaq olar</summary>
+      <ol>
+        <li>ZIP faylını yüklə, sağ klik → <b>Hamısını çıxar</b>.</li>
+        <li>Qovluqda <b>qazan_isletme.exe</b> faylını aç.</li>
+        <li>"Windows kompüterinizi qorudu" çıxarsa: <b>Ətraflı</b> → <b>Hər halda işə sal</b>.</li>
+      </ol>
+      <p class="note">Kassa və işletmə idarəsi üçündür, müştəri tətbiqi deyil.</p>
+    </details>
+  </div>
 </div>
+<script>
+(function () {
+  var ua = navigator.userAgent || "";
+  var isIOS = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var mine = isIOS ? "ios" : /Android/.test(ua) ? "android" : /Windows/.test(ua) ? "windows" : null;
+  function mb(b) { return b ? " · " + (b / 1048576).toFixed(0) + " MB" : ""; }
+  function order() {
+    if (!mine) return;
+    var el = document.getElementById(mine), wrap = document.querySelector(".wrap");
+    el.classList.add("mine");
+    wrap.insertBefore(el, wrap.querySelector(".card"));
+  }
+  fetch("downloads.json", { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : {}; })
+    .catch(function () { return {}; })
+    .then(function (d) {
+      ["android", "windows"].forEach(function (k) {
+        var x = d[k]; if (!x || !x.file) return;
+        document.getElementById(k).classList.remove("hide");
+        document.querySelector('[data-file="' + k + '"]').href = x.file;
+        document.querySelector('[data-ver="' + k + '"]').textContent =
+          "Versiya " + x.version + " (" + x.build + ") · " + x.date + mb(x.size);
+      });
+      order();
+    });
+})();
+</script>
 </body>
 </html>

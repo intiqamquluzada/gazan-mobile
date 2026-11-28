@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:ndef_record/ndef_record.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
@@ -18,10 +19,12 @@ class NfcRead {
 
 /// Pulls token and chip serial out of a discovered tag on either platform.
 NfcRead parseNfcTag(NfcTag tag) {
-  final NdefAndroid? android = NdefAndroid.from(tag);
-  if (android != null) {
+  // Each platform's `from` hard-casts the tag's data to its own type, so
+  // calling the Android one on an iPhone throws instead of returning null.
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    final NdefAndroid? android = NdefAndroid.from(tag);
     return NfcRead(
-      token: NfcPayload.tokenOf(android.cachedNdefMessage),
+      token: NfcPayload.tokenOf(android?.cachedNdefMessage),
       uid: NfcPayload.uidHex(NfcTagAndroid.from(tag)?.id),
     );
   }
